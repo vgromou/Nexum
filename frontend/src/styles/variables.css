@@ -1,0 +1,59 @@
+:root {
+  /* Colors */
+  --color-highlight-purple-text: #9333ea;
+  --color-highlight-orange-text: #f97316;
+  --color-highlight-red-text: #ef4444;
+  --color-accent-light: #ffb3ab;
+  --color-icon: #000000;
+  --color-text-muted: #b89b91;
+  --color-text-tertiary: #9b7b6f;
+  --color-bg-white: #ffffff;
+  --color-shadow-small: #ff968214;
+  --color-border-light: #ffe8e0;
+  --color-sidebar-bg-alpha: #fff8f5cc;
+  --color-bg-gradient-start: #ffe8d6;
+  --color-bg-gradient-40: #ffd4c8;
+  --color-bg-gradient-70: #ffc4d0;
+  --color-bg-gradient-end: #ffb8c8;
+  --color-text-primary: #000000;
+  /* Assumed based on design context */
+  --color-text-secondary: #666666;
+  --color-border-demo: #eeeeee;
+
+  /* Typography */
+  --font-family-sans: 'Inter', sans-serif;
+
+  /* Page Title */
+  --font-size-page-title: 40px;
+  --line-height-page-title: 48px;
+  --font-weight-page-title: 700;
+  --letter-spacing-page-title: -0.5px;
+
+  /* H1 */
+  --font-size-h1: 32px;
+  --line-height-h1: 40px;
+  --font-weight-h1: 700;
+  --letter-spacing-h1: -0.4px;
+
+  /* H2 */
+  --font-size-h2: 24px;
+  --line-height-h2: 32px;
+  --font-weight-h2: 600;
+  --letter-spacing-h2: -0.2px;
+
+  /* H3 */
+  --font-size-h3: 20px;
+  --line-height-h3: 28px;
+  --font-weight-h3: 600;
+  --letter-spacing-h3: 0px;
+
+  /* Body Regular */
+  --font-size-body: 16px;
+  --line-height-body: 26px;
+  --font-weight-body: 400;
+
+  /* Breadcrumbs */
+  --font-size-breadcrumbs: 13px;
+  --line-height-breadcrumbs: 18px;
+  --font-weight-breadcrumbs: 400;
+}
