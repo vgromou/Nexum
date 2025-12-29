@@ -1,0 +1,49 @@
+.properties-bar {
+    width: var(--properties-bar-width);
+    background-color: white;
+    /* border-left handled by PageContent border-right or vice versa. 
+       Let's stick to PageContent having the border-right. */
+    height: calc(100% - 16px);
+    margin-top: 8px;
+    margin-bottom: 8px;
+    margin-right: 16px;
+    /* Indent on the right */
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex-shrink: 0;
+
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    /* Ensure no left radius */
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.properties-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.4);
+    margin-bottom: 8px;
+}
+
+.property-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+}
+
+.prop-label {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.prop-value {
+    color: black;
+}
+
+.badge {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}

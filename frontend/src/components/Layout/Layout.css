@@ -1,0 +1,10 @@
+.layout-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    /* Gap handled between flex items, or we can use specific margins */
+    gap: 0;
+    /* background gradient is applied inline or we can move it here (using root var) */
+    background: linear-gradient(54deg, var(--bg-gradient-start) 0%, var(--bg-gradient-40) 40%, var(--bg-gradient-70) 70%, var(--bg-gradient-end) 100%);
+}

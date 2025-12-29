@@ -1,0 +1,82 @@
+.space-hierarchy {
+    width: var(--space-hierarchy-width);
+    height: calc(100% - 16px);
+    /* Match PageContent height */
+    margin-top: 8px;
+    margin-bottom: 8px;
+    margin-right: 0;
+    /* Adjoin to PageContent */
+    display: flex;
+    flex-direction: column;
+    padding-top: 24px;
+    flex-shrink: 0;
+
+    /* Glassmorphism Effect */
+    background-color: rgba(255, 248, 245, 0.6);
+    /* Slightly more transparent to show blur */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    /* Optional: Border or shadow if needed to match "glass" look */
+    /* border-right: 1px solid rgba(255, 255, 255, 0.3); */
+    /* Rounded Left Corners only */
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.hierarchy-header {
+    font-weight: 600;
+    font-size: 14px;
+    padding: 0 16px 16px 16px;
+    color: rgba(0, 0, 0, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.hierarchy-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hierarchy-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    color: rgba(0, 0, 0, 0.8);
+    font-size: 14px;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.hierarchy-row:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.hierarchy-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.spacer-icon {
+    width: 14px;
+}
+
+.file-icon {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.hierarchy-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

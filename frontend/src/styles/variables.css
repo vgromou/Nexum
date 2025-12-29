@@ -20,6 +20,22 @@
   --color-text-secondary: #666666;
   --color-border-demo: #eeeeee;
 
+  /* Workspace Colors */
+  --color-workspace-purple: #8b3dff;
+  --color-workspace-orange: #f06a1d;
+  --color-workspace-red: #ed4043;
+
+  /* Layout Sizing */
+  --activity-bar-width: 60px;
+  --space-hierarchy-width: 240px;
+  --properties-bar-width: 260px;
+
+  /* Gray Scale (for PageContent) */
+  --color-gray-100: #f3f4f6;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-800: #1f2937;
+
   /* Typography */
   --font-family-sans: 'Inter', sans-serif;
 

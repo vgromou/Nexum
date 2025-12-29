@@ -1,0 +1,96 @@
+.activity-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    width: var(--activity-bar-width);
+    height: 100%;
+    flex-shrink: 0;
+    gap: 24px;
+}
+
+.workspace-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+}
+
+.workspace-item {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.workspace-item:hover {
+    opacity: 0.9;
+}
+
+.workspace-purple {
+    background-color: var(--color-workspace-purple);
+}
+
+.workspace-orange {
+    background-color: var(--color-workspace-orange);
+}
+
+.workspace-red {
+    background-color: var(--color-workspace-red);
+}
+
+.add-workspace {
+    background-color: transparent;
+    border: 1px solid var(--border-light);
+    color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.add-workspace:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #000;
+}
+
+.bottom-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: center;
+    width: 100%;
+}
+
+.icon-btn-ghost {
+    background: none;
+    border: none;
+    color: black;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 0;
+}
+
+.icon-btn-ghost:hover {
+    opacity: 0.7;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ff9ea1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.user-avatar-icon {
+    color: rgba(0, 0, 0, 0.8);
+}

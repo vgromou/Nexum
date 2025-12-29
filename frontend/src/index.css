@@ -1,6 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import './styles/variables.css';
 
+:root {
+  /* Gradient Background Colors */
+  --bg-gradient-start: #ffe8d6;
+  --bg-gradient-40: #ffd4c8;
+  --bg-gradient-70: #ffc4d0;
+  --bg-gradient-end: #ffb8c8;
+
+  /* UI Colors */
+  --border-light: #ffe8e0;
+  --color-text-primary: #000000;
+  --color-bg-white: #ffffff;
+
+  /* Font Family */
+  --font-family-sans: 'Inter', sans-serif;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -9,10 +25,11 @@
 
 body {
   font-family: var(--font-family-sans);
-  background-color: var(--color-bg-white);
   color: var(--color-text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* Apply the gradient to the body or a main wrapper, but let's keep body neutral for now and apply to layout */
+  background-color: var(--bg-gradient-start);
 }
 
 h1,
@@ -22,4 +39,5 @@ h4,
 h5,
 h6 {
   color: var(--color-text-primary);
+  font-weight: 600;
 }
