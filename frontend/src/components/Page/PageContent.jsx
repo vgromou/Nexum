@@ -7,6 +7,7 @@ import {
     ChevronsRight,
     PanelLeft,
 } from 'lucide-react';
+import BlockEditor from '../Editor/BlockEditor';
 import './PageContent.css';
 
 const PageContent = () => {
@@ -56,18 +57,8 @@ const PageContent = () => {
                         </h1>
                     </div>
 
-                    {/* Content Blocks */}
-                    <div className="text-blocks">
-                        <p>
-                            Text Block With Simple Text Text Block With Simple Text Text Block With Simple Text Text Block With Simple Text Text Block With Simple Text Text Block With Simple Text Text Block With Simple Text Text Block With Simple Text Text Block With Simple Text
-                        </p>
-                    </div>
-
-                    <div className="headings-section">
-                        <h1 className="content-h1">Heading 1</h1>
-                        <h2 className="content-h2">Heading 2</h2>
-                        <h3 className="content-h3">Heading 3</h3>
-                    </div>
+                    {/* Block-based Editor */}
+                    <BlockEditor />
 
                     {/* Added extra space at bottom for scrolling feel */}
                     <div className="spacer-bottom"></div>
