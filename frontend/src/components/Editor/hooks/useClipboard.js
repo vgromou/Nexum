@@ -3,6 +3,8 @@ import { useCallback } from 'react';
 // Storage key for block clipboard data
 const CLIPBOARD_STORAGE_KEY = 'notion_blocks_clipboard';
 
+import DOMPurify from 'dompurify';
+
 /**
  * Custom hook for managing clipboard operations in the Block Editor.
  * Supports copy/cut/paste of single and multiple blocks.
@@ -80,10 +82,16 @@ export function useClipboard({ state, actions, editorRef }) {
 
             // If structured paste and we have stored blocks
             if (!asPlainText && storedBlocks && storedBlocks.length > 0) {
+                // Sanitize stored content before inserting
+                const sanitizedBlocks = storedBlocks.map(block => ({
+                    ...block,
+                    content: DOMPurify.sanitize(block.content),
+                }));
+
                 if (focusedBlockId) {
-                    actions.insertBlocks(focusedBlockId, storedBlocks);
+                    actions.insertBlocks(focusedBlockId, sanitizedBlocks);
                 } else if (state.blocks.length > 0) {
-                    actions.insertBlocks(state.blocks[state.blocks.length - 1].id, storedBlocks);
+                    actions.insertBlocks(state.blocks[state.blocks.length - 1].id, sanitizedBlocks);
                 }
             } else {
                 // Plain text paste into current block
@@ -96,11 +104,14 @@ export function useClipboard({ state, actions, editorRef }) {
                         if (sel.rangeCount > 0) {
                             const range = sel.getRangeAt(0);
                             range.deleteContents();
+                            // createTextNode escapes HTML entities, so this is safe from XSS execution
+                            // but will display raw tags if present in clipboardText
                             range.insertNode(document.createTextNode(clipboardText));
                             range.collapse(false);
 
                             const block = state.blocks.find(b => b.id === focusedBlockId);
                             if (block) {
+                                // We trust element.innerHTML here because we just inserted text securely
                                 actions.updateBlock(focusedBlockId, element.innerHTML);
                             }
                         }

@@ -6,9 +6,10 @@ import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useClipboard } from './hooks/useClipboard';
 import { useSlashMenu } from './hooks/useSlashMenu';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
+import { debounce } from '../../utils/debounce';
 import './BlockEditor.css';
 
-// Markdown shortcuts for quick block type conversion
+// Markdown shortcuts for quick block conversion
 const MARKDOWN_SHORTCUTS = {
     '# ': 'h1',
     '## ': 'h2',
@@ -138,7 +139,7 @@ const BlockEditor = () => {
 
     // Listen for cross-block text selection changes
     useEffect(() => {
-        const handleSelectionChange = () => {
+        const handleSelectionChange = debounce(() => {
             const blockIds = getBlocksWithTextSelection();
 
             if (blockIds.length > 1) {
@@ -146,7 +147,7 @@ const BlockEditor = () => {
             } else if (state.textSelectionBlockIds.length > 0 && blockIds.length <= 1) {
                 actions.clearTextSelection();
             }
-        };
+        }, 100); // Debounce to prevent excessive re-renders during selection dragging
 
         document.addEventListener('selectionchange', handleSelectionChange);
         return () => document.removeEventListener('selectionchange', handleSelectionChange);
@@ -229,6 +230,12 @@ const BlockEditor = () => {
 
         // Update slash menu filter while typing
         if (slashMenu.isOpen && slashMenu.blockId === blockId) {
+            // Close menu if space is typed after slash
+            if (e.key === ' ') {
+                closeSlashMenu();
+                return;
+            }
+
             const slashIndex = textContent.lastIndexOf('/');
             if (slashIndex !== -1) {
                 setTimeout(() => {
@@ -289,12 +296,15 @@ const BlockEditor = () => {
             if (cursorPos === 0 && textContent.length === 0) {
                 e.preventDefault();
 
+                // First, convert non-paragraph blocks to paragraph
+                if (block.type !== 'paragraph') {
+                    actions.changeBlockType(blockId, 'paragraph');
+                    return;
+                }
+
+                // Only delete paragraph blocks if there are more than one
                 if (state.blocks.length > 1) {
-                    if (block.type !== 'paragraph') {
-                        actions.changeBlockType(blockId, 'paragraph');
-                    } else {
-                        actions.deleteBlock(blockId);
-                    }
+                    actions.deleteBlock(blockId);
                 }
                 return;
             }

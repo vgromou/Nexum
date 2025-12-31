@@ -144,6 +144,8 @@ function blockReducer(state, action) {
                 blocks: state.blocks.map(b =>
                     b.id === blockId ? { ...b, type: newType } : b
                 ),
+                focusedBlockId: blockId,
+                focusVersion: state.focusVersion + 1,
             };
         }
 

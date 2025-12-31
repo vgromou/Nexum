@@ -32,9 +32,24 @@
 
   /* Gray Scale (for PageContent) */
   --color-gray-100: #f3f4f6;
+  --color-gray-300: #d1d5db;
   --color-gray-400: #9ca3af;
   --color-gray-500: #6b7280;
   --color-gray-800: #1f2937;
+
+  /* Editor Colors */
+  --color-selection-blue: #2383e2;
+  --color-selection-blue-light: rgba(35, 131, 226, 0.1);
+  --color-selection-blue-hover: rgba(35, 131, 226, 0.15);
+  --color-selection-blue-transparent: rgba(35, 131, 226, 0.08);
+  --color-selection-blue-pulse: rgba(35, 131, 226, 0.2);
+  --color-selection-blue-highlight: rgba(35, 131, 226, 0.3);
+  --color-drag-bg: rgba(0, 0, 0, 0.02);
+  --color-drag-active-bg: rgba(35, 131, 226, 0.05);
+  --color-code-bg: rgba(135, 131, 120, 0.15);
+  --color-code-text: #eb5757;
+  --color-shadow-menu: rgba(0, 0, 0, 0.12);
+  --color-shadow-drag: rgba(0, 0, 0, 0.15);
 
   /* Typography */
   --font-family-sans: 'Inter', sans-serif;
