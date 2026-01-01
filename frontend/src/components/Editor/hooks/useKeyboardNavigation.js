@@ -10,7 +10,11 @@ export function useKeyboardNavigation({
     slashMenu,
     closeSlashMenu,
     copyBlocksToClipboard,
+    copySelectedTextToClipboard,
+    cutSelectedText,
     pasteFromClipboard,
+    handleKeyboardSelection,
+    getSelectionForDeletion,
 }) {
     /**
      * Global keyboard event handler for editor shortcuts.
@@ -18,21 +22,56 @@ export function useKeyboardNavigation({
     const handleGlobalKeyDown = useCallback((e) => {
         const hasSelectedBlocks = state.selectedBlockIds.length > 0;
         const hasTextSelection = state.textSelectionBlockIds.length > 0;
-        const activeBlockIds = hasSelectedBlocks ? state.selectedBlockIds :
-            hasTextSelection ? state.textSelectionBlockIds : [];
+
+        // Check for actual text selection in document
+        const sel = window.getSelection();
+        const hasActualTextSelection = sel && !sel.isCollapsed && sel.toString().length > 0;
+
+        // Handle Shift+Arrow for cross-block selection extension
+        if (e.shiftKey && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
+            if (handleKeyboardSelection?.(e)) {
+                return;
+            }
+        }
 
         // Copy: Cmd/Ctrl + C
-        if ((e.metaKey || e.ctrlKey) && e.key === 'c' && activeBlockIds.length > 0) {
-            e.preventDefault();
-            copyBlocksToClipboard(activeBlockIds, false);
-            return;
+        if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+            // First check for text selection across blocks
+            if (hasActualTextSelection && hasTextSelection) {
+                e.preventDefault();
+                copySelectedTextToClipboard?.(false);
+                return;
+            }
+            // Then check for block selection
+            if (hasSelectedBlocks) {
+                e.preventDefault();
+                copyBlocksToClipboard(state.selectedBlockIds, false);
+                return;
+            }
+            // Single block text selection - let browser handle it
+            if (hasActualTextSelection) {
+                return; // Let browser handle native copy
+            }
         }
 
         // Cut: Cmd/Ctrl + X
-        if ((e.metaKey || e.ctrlKey) && e.key === 'x' && activeBlockIds.length > 0) {
-            e.preventDefault();
-            copyBlocksToClipboard(activeBlockIds, true);
-            return;
+        if ((e.metaKey || e.ctrlKey) && e.key === 'x') {
+            // First check for text selection across blocks
+            if (hasActualTextSelection && hasTextSelection) {
+                e.preventDefault();
+                cutSelectedText?.();
+                return;
+            }
+            // Then check for block selection
+            if (hasSelectedBlocks) {
+                e.preventDefault();
+                copyBlocksToClipboard(state.selectedBlockIds, true);
+                return;
+            }
+            // Single block text selection - let browser handle it
+            if (hasActualTextSelection) {
+                return; // Let browser handle native cut
+            }
         }
 
         // Paste: Cmd/Ctrl + V
@@ -40,15 +79,22 @@ export function useKeyboardNavigation({
             const activeEl = document.activeElement;
             const isInContentEditable = activeEl?.closest?.('.block-content');
 
-            // Shift+V = plain text paste, or paste when in contentEditable
-            if (e.shiftKey || isInContentEditable) {
-                if (!e.shiftKey && isInContentEditable) {
-                    // Let browser handle normal paste in contentEditable
-                    return;
-                }
+            // Shift+V = plain text paste
+            if (e.shiftKey) {
                 e.preventDefault();
                 pasteFromClipboard(true);
-            } else if (hasSelectedBlocks || hasTextSelection) {
+                return;
+            }
+
+            // If in contentEditable with focus, use smart paste
+            if (isInContentEditable) {
+                e.preventDefault();
+                pasteFromClipboard(false);
+                return;
+            }
+
+            // Otherwise let browser handle it or do nothing
+            if (hasSelectedBlocks || hasTextSelection) {
                 e.preventDefault();
                 pasteFromClipboard(false);
             }
@@ -64,8 +110,25 @@ export function useKeyboardNavigation({
             }
         }
 
+        // Delete/Backspace when text is selected across blocks
+        if ((e.key === 'Delete' || e.key === 'Backspace') && hasActualTextSelection && hasTextSelection) {
+            e.preventDefault();
+            const selectionInfo = getSelectionForDeletion?.();
+            if (selectionInfo && !selectionInfo.isSingleBlock) {
+                actions.deleteCrossSelection(
+                    selectionInfo.startBlockId,
+                    selectionInfo.endBlockId,
+                    selectionInfo.startOffset,
+                    selectionInfo.endOffset
+                );
+                window.getSelection()?.removeAllRanges();
+                actions.clearTextSelection();
+            }
+            return;
+        }
+
         // Delete/Backspace when blocks are selected
-        if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedBlockIds.length > 0) {
+        if ((e.key === 'Delete' || e.key === 'Backspace') && hasSelectedBlocks) {
             e.preventDefault();
             actions.deleteSelectedBlocks();
             return;
@@ -88,7 +151,11 @@ export function useKeyboardNavigation({
         slashMenu.isOpen,
         actions,
         copyBlocksToClipboard,
+        copySelectedTextToClipboard,
+        cutSelectedText,
         pasteFromClipboard,
+        handleKeyboardSelection,
+        getSelectionForDeletion,
         closeSlashMenu,
     ]);
 

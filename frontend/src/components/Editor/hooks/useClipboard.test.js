@@ -81,9 +81,9 @@ describe('useClipboard', () => {
         );
 
         const savedData = JSON.parse(sessionStorageMock.setItem.mock.calls[0][1]);
-        expect(savedData).toHaveLength(2);
-        expect(savedData[0].type).toBe('paragraph');
-        expect(savedData[1].type).toBe('h1');
+        expect(savedData.blocks).toHaveLength(2);
+        expect(savedData.blocks[0].type).toBe('paragraph');
+        expect(savedData.blocks[1].type).toBe('h1');
     });
 
     it('cuts blocks to clipboard and deletes them', async () => {

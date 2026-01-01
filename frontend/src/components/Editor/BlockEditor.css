@@ -15,6 +15,77 @@
     -webkit-user-select: text;
 }
 
+/* Unified Editor Layout */
+.block-editor.unified-editor {
+    display: flex;
+    align-items: flex-start;
+}
+
+.block-handles-layer {
+    position: absolute;
+    left: -40px;
+    top: 0;
+    width: 32px;
+    z-index: 10;
+}
+
+.block-handle-wrapper {
+    position: absolute;
+    left: 0;
+    width: 32px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    /* Transition for smooth movement if blocks shift */
+    transition: top 0.1s ease-out;
+}
+
+.block-handle-wrapper .block-handle {
+    position: relative;
+    /* Reset internal positioning as wrapper now handles it */
+    left: auto;
+    top: auto;
+}
+
+/* Show handle when hovering on the handle wrapper */
+.block-handle-wrapper:hover .block-handle,
+.block-handle-wrapper.hovered .block-handle {
+    opacity: 1;
+}
+
+.unified-content-area {
+    flex: 1;
+    outline: none;
+    min-height: 200px;
+}
+
+.unified-content-area:empty::before {
+    content: "Type '/' for commands...";
+    color: var(--color-gray-400, #9ca3af);
+    pointer-events: none;
+}
+
+.unified-content-area .block-content {
+    padding: 4px 0;
+    margin: 0;
+}
+
+.unified-content-area .block-content:focus {
+    outline: none;
+}
+
+/* Block selection in unified editor */
+.unified-content-area .block-content.block-selected {
+    background-color: rgba(35, 131, 226, 0.14);
+    border-radius: 4px;
+}
+
+.unified-content-area .block-content.block-being-dragged {
+    opacity: 0.5;
+}
+
 /* Block Wrapper */
 .block-wrapper {
     position: relative;
@@ -87,12 +158,20 @@
     white-space: pre-wrap;
     line-height: 1.5;
     margin: 0;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    min-height: var(--line-height-body, 26px);
+    box-sizing: border-box;
 }
 
-.block-content:empty::before {
+.block-content:empty:focus::before {
     content: attr(data-placeholder);
     color: var(--color-gray-400, #9ca3af);
     pointer-events: none;
+    float: left;
+    /* Ensures it stays on the line */
+    height: 100%;
 }
 
 /* Paragraph */
@@ -165,10 +244,76 @@
     margin: 0;
 }
 
+/* Unified Editor List Styles */
+.unified-content-area .block-content[data-block-type="bulleted-list"],
+.unified-content-area .block-content[data-block-type="numbered-list"] {
+    position: relative;
+    padding-left: 28px;
+    padding-left: 28px;
+    list-style: none;
+}
+
+/* Quote Block */
+.unified-content-area .block-content[data-block-type="quote"] {
+    border-left: 4px solid var(--color-gray-400, #9ca3af);
+    background-color: var(--color-gray-100, #f3f4f6);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 4px 0;
+    font-style: italic;
+    color: var(--color-text-secondary, #666);
+    min-height: 52px;
+    /* Ensure space for line-height (26px) + padding (24px) + border */
+    display: flex;
+    align-items: center;
+}
+
+/* Marker Utility - Reset Counter */
+.unified-content-area .block-content[data-list-reset="true"] {
+    counter-reset: block-list-counter;
+}
+
+/* Bullet Marker */
+.unified-content-area .block-content[data-block-type="bulleted-list"]::before {
+    content: '•';
+    position: absolute;
+    left: 4px;
+    width: 20px;
+    text-align: center;
+    color: var(--color-text-primary, #000);
+    font-size: 1.2em;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Number Marker */
+.unified-content-area .block-content[data-block-type="numbered-list"] {
+    counter-increment: block-list-counter;
+}
+
+.unified-content-area .block-content[data-block-type="numbered-list"]::before {
+    content: counter(block-list-counter) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
 /* Quote */
 .block-type-quote .block-content-wrapper {
-    border-left: 3px solid var(--color-gray-400, #9ca3af);
-    padding-left: 16px;
+    border-left: 4px solid var(--color-gray-400, #9ca3af);
+    background-color: var(--color-gray-100, #f3f4f6);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 4px 0;
 }
 
 .quote-content {
@@ -437,4 +582,60 @@
 
 .block-editor ::-moz-selection {
     background-color: var(--color-selection-blue-highlight);
+}
+
+/* Text drag cursor - show grab on hover over selected text */
+.block-wrapper.block-text-selected .block-content::selection {
+    cursor: grab;
+}
+
+/* During text drag - show move cursor */
+.block-editor.is-text-dragging {
+    cursor: grabbing;
+}
+
+.block-editor.is-text-dragging.is-copying {
+    cursor: copy;
+}
+
+/* Text insertion indicator during drag */
+.text-insertion-indicator {
+    position: absolute;
+    width: 2px;
+    height: 1.5em;
+    background-color: var(--color-selection-blue, #2563eb);
+    animation: textCursorBlink 1s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 100;
+}
+
+@keyframes textCursorBlink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* Copy indicator badge during Alt/Option drag */
+.drag-preview.is-copying::after {
+    content: '+';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background-color: var(--color-selection-blue, #2563eb);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }

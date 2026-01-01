@@ -48,6 +48,8 @@ export const ACTIONS = {
     DELETE_SELECTED_BLOCKS: 'DELETE_SELECTED_BLOCKS',
     SET_BLOCKS: 'SET_BLOCKS',
     INSERT_BLOCKS: 'INSERT_BLOCKS',
+    DELETE_CROSS_SELECTION: 'DELETE_CROSS_SELECTION',
+    SPLIT_AND_INSERT_BLOCKS: 'SPLIT_AND_INSERT_BLOCKS',
 };
 
 /**
@@ -381,6 +383,157 @@ function blockReducer(state, action) {
             };
         }
 
+        case ACTIONS.DELETE_CROSS_SELECTION: {
+            const {
+                startBlockId,
+                endBlockId,
+                startOffset,
+                endOffset,
+            } = action.payload;
+
+            const startIndex = state.blocks.findIndex(b => b.id === startBlockId);
+            const endIndex = state.blocks.findIndex(b => b.id === endBlockId);
+
+            if (startIndex === -1 || endIndex === -1) return state;
+
+            const [minIndex, maxIndex] = startIndex <= endIndex
+                ? [startIndex, endIndex]
+                : [endIndex, startIndex];
+
+            const startBlock = state.blocks[minIndex];
+            const endBlock = state.blocks[maxIndex];
+
+            // Extract text content from HTML
+            const extractText = (html) => {
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                return div.textContent || '';
+            };
+
+            const startText = extractText(startBlock.content);
+            const endText = extractText(endBlock.content);
+
+            // Keep content before selection in first block
+            const beforeContent = startText.substring(0, startOffset);
+            // Keep content after selection in last block
+            const afterContent = endText.substring(endOffset);
+
+            // Merge into single block
+            const mergedContent = beforeContent + afterContent;
+
+            const newBlocks = [
+                ...state.blocks.slice(0, minIndex),
+                { ...startBlock, content: mergedContent },
+                ...state.blocks.slice(maxIndex + 1)
+            ];
+
+            // Ensure at least one block remains
+            const finalBlocks = newBlocks.length === 0
+                ? [{ id: generateBlockId(), type: 'paragraph', content: '' }]
+                : newBlocks;
+
+            return {
+                ...state,
+                blocks: finalBlocks,
+                textSelectionBlockIds: [],
+                focusedBlockId: startBlock.id,
+                focusVersion: state.focusVersion + 1,
+            };
+        }
+
+        case ACTIONS.SPLIT_AND_INSERT_BLOCKS: {
+            const {
+                blockId,
+                cursorOffset,
+                blocksToInsert,
+            } = action.payload;
+
+            if (!blocksToInsert || blocksToInsert.length === 0) return state;
+
+            const blockIndex = state.blocks.findIndex(b => b.id === blockId);
+            if (blockIndex === -1) return state;
+
+            const block = state.blocks[blockIndex];
+
+            // Extract text content
+            const extractText = (html) => {
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                return div.textContent || '';
+            };
+
+            const blockText = extractText(block.content);
+            const beforeCursor = blockText.substring(0, cursorOffset);
+            const afterCursor = blockText.substring(cursorOffset);
+
+            // Process inserted blocks
+            const insertedBlocks = blocksToInsert.map(b => ({
+                ...b,
+                id: generateBlockId(),
+            }));
+
+            const firstInserted = insertedBlocks[0];
+            const lastInserted = insertedBlocks[insertedBlocks.length - 1];
+
+            // If first block is partial, merge with content before cursor
+            if (firstInserted.isPartial?.start) {
+                firstInserted.content = beforeCursor + firstInserted.content;
+            }
+
+            // If last block is partial, merge with content after cursor
+            if (lastInserted.isPartial?.end) {
+                lastInserted.content = lastInserted.content + afterCursor;
+            }
+
+            let newBlocks;
+            if (firstInserted.isPartial?.start && lastInserted.isPartial?.end) {
+                // Both partial - replace current block with inserted blocks
+                newBlocks = [
+                    ...state.blocks.slice(0, blockIndex),
+                    ...insertedBlocks,
+                    ...state.blocks.slice(blockIndex + 1)
+                ];
+            } else if (firstInserted.isPartial?.start) {
+                // Only first partial - keep content after cursor in original block
+                newBlocks = [
+                    ...state.blocks.slice(0, blockIndex),
+                    ...insertedBlocks,
+                    { ...block, content: afterCursor },
+                    ...state.blocks.slice(blockIndex + 1)
+                ];
+            } else if (lastInserted.isPartial?.end) {
+                // Only last partial - keep content before cursor in original block
+                newBlocks = [
+                    ...state.blocks.slice(0, blockIndex),
+                    { ...block, content: beforeCursor },
+                    ...insertedBlocks,
+                    ...state.blocks.slice(blockIndex + 1)
+                ];
+            } else {
+                // No partials - split block and insert between
+                newBlocks = [
+                    ...state.blocks.slice(0, blockIndex),
+                    { ...block, content: beforeCursor },
+                    ...insertedBlocks,
+                    { id: generateBlockId(), type: block.type, content: afterCursor },
+                    ...state.blocks.slice(blockIndex + 1)
+                ];
+            }
+
+            // Filter out empty blocks (except ensure at least one remains)
+            const filteredBlocks = newBlocks.filter(b => b.content.trim() !== '' || b.id === firstInserted.id);
+            const finalBlocks = filteredBlocks.length === 0
+                ? [{ id: generateBlockId(), type: 'paragraph', content: '' }]
+                : filteredBlocks;
+
+            return {
+                ...state,
+                blocks: finalBlocks,
+                focusedBlockId: lastInserted.id,
+                focusVersion: state.focusVersion + 1,
+            };
+        }
+
         default:
             return state;
     }
@@ -485,6 +638,20 @@ export function useBlockReducer(initialBlocks = null) {
         dispatch({ type: ACTIONS.INSERT_BLOCKS, payload: { afterBlockId, blocksToInsert, focusFirst } });
     }, []);
 
+    const deleteCrossSelection = useCallback((startBlockId, endBlockId, startOffset, endOffset) => {
+        dispatch({
+            type: ACTIONS.DELETE_CROSS_SELECTION,
+            payload: { startBlockId, endBlockId, startOffset, endOffset }
+        });
+    }, []);
+
+    const splitAndInsertBlocks = useCallback((blockId, cursorOffset, blocksToInsert) => {
+        dispatch({
+            type: ACTIONS.SPLIT_AND_INSERT_BLOCKS,
+            payload: { blockId, cursorOffset, blocksToInsert }
+        });
+    }, []);
+
     return {
         state,
         dispatch,
@@ -510,6 +677,8 @@ export function useBlockReducer(initialBlocks = null) {
             deleteSelectedBlocks,
             setBlocks,
             insertBlocks,
+            deleteCrossSelection,
+            splitAndInsertBlocks,
         },
     };
 }

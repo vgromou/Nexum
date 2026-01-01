@@ -21,6 +21,7 @@ describe('useDragAndDrop', () => {
             setDraggedBlocks: vi.fn(),
             moveBlock: vi.fn(),
             moveBlocks: vi.fn(),
+            selectBlock: vi.fn(),
         };
 
         mockEditorRef = { current: null };
@@ -56,6 +57,16 @@ describe('useDragAndDrop', () => {
             result.current.handleHandleMouseDown(mockEvent, 'block-1', 0);
         });
 
+        // Simulate mouse move to pass threshold
+        const moveEvent = new MouseEvent('mousemove', {
+            clientX: 110, // moved 10px
+            clientY: 210, // moved 10px
+        });
+
+        act(() => {
+            document.dispatchEvent(moveEvent);
+        });
+
         expect(mockEvent.preventDefault).toHaveBeenCalled();
         expect(mockEvent.stopPropagation).toHaveBeenCalled();
         expect(result.current.dragState.isDragging).toBe(true);
@@ -88,6 +99,16 @@ describe('useDragAndDrop', () => {
             result.current.handleHandleMouseDown(mockEvent, 'block-1', 0);
         });
 
+        // Simulate mouse move to pass threshold
+        const moveEvent = new MouseEvent('mousemove', {
+            clientX: 110,
+            clientY: 210,
+        });
+
+        act(() => {
+            document.dispatchEvent(moveEvent);
+        });
+
         expect(result.current.dragState.draggedBlockIds).toEqual(['block-1', 'block-2']);
         expect(mockActions.setDraggedBlocks).toHaveBeenCalledWith(['block-1', 'block-2']);
     });
@@ -117,6 +138,16 @@ describe('useDragAndDrop', () => {
             result.current.handleHandleMouseDown(mockEvent, 'block-2', 1);
         });
 
+        // Simulate mouse move to pass threshold
+        const moveEvent = new MouseEvent('mousemove', {
+            clientX: 110,
+            clientY: 210,
+        });
+
+        act(() => {
+            document.dispatchEvent(moveEvent);
+        });
+
         expect(result.current.dragState.draggedBlockIds).toEqual(['block-2', 'block-3']);
     });
 
@@ -144,6 +175,16 @@ describe('useDragAndDrop', () => {
         // Start dragging block-3 which is not in the selection
         act(() => {
             result.current.handleHandleMouseDown(mockEvent, 'block-3', 2);
+        });
+
+        // Simulate mouse move to pass threshold
+        const moveEvent = new MouseEvent('mousemove', {
+            clientX: 110,
+            clientY: 210,
+        });
+
+        act(() => {
+            document.dispatchEvent(moveEvent);
         });
 
         expect(result.current.dragState.draggedBlockIds).toEqual(['block-3']);
@@ -197,6 +238,19 @@ describe('useDragAndDrop', () => {
             result.current.handleHandleMouseDown(mockEvent, 'block-1', 0);
         });
 
-        expect(result.current.dragState.previewPosition).toEqual({ x: 170, y: 260 });
+        // Simulate mouse move to pass threshold
+        // Start: 150, 250. Move to: 160, 260.
+        const moveEvent = new MouseEvent('mousemove', {
+            clientX: 160,
+            clientY: 260,
+        });
+
+        act(() => {
+            document.dispatchEvent(moveEvent);
+        });
+
+        // Preview position is based on current mouse position + offset (20, 10)
+        // Mouse at 160, 260 -> Preview at 180, 270
+        expect(result.current.dragState.previewPosition).toEqual({ x: 180, y: 270 });
     });
 });

@@ -6,6 +6,7 @@ import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useClipboard } from './hooks/useClipboard';
 import { useSlashMenu } from './hooks/useSlashMenu';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
+import { useCrossBlockSelection } from './hooks/useCrossBlockSelection';
 import { debounce } from '../../utils/debounce';
 import './BlockEditor.css';
 
@@ -25,19 +26,34 @@ const BlockEditor = () => {
     const editorRef = useRef(null);
     const lastClickedBlockRef = useRef(null);
 
+    // Cross-block text selection hook (must be before drag hook)
+    const {
+        crossSelection,
+        getSelectedContent,
+        handleKeyboardSelection,
+        getSelectionForDeletion,
+    } = useCrossBlockSelection({ editorRef, state, actions });
+
     // Custom hooks for modular functionality
     const {
         dragState,
         dropIndicator,
         handleHandleMouseDown,
+        handleTextDragStart,
         handleDragOver,
         handleDrop,
-    } = useDragAndDrop({ editorRef, state, actions });
+    } = useDragAndDrop({ editorRef, state, actions, getSelectedContent });
 
-    const { copyBlocksToClipboard, pasteFromClipboard } = useClipboard({
+    const {
+        copyBlocksToClipboard,
+        copySelectedTextToClipboard,
+        cutSelectedText,
+        pasteFromClipboard,
+    } = useClipboard({
         state,
         actions,
         editorRef,
+        getSelectedContent,
     });
 
     const {
@@ -48,14 +64,18 @@ const BlockEditor = () => {
         handleSlashSelect,
     } = useSlashMenu({ state, actions });
 
-    // Global keyboard navigation
+    // Global keyboard navigation with cross-block selection support
     useKeyboardNavigation({
         state,
         actions,
         slashMenu,
         closeSlashMenu,
         copyBlocksToClipboard,
+        copySelectedTextToClipboard,
+        cutSelectedText,
         pasteFromClipboard,
+        handleKeyboardSelection,
+        getSelectionForDeletion,
     });
 
     /**
@@ -116,6 +136,8 @@ const BlockEditor = () => {
 
     /**
      * Gets block IDs that have text selection spanning across them.
+     * Uses element positions to determine selection range since native Selection
+     * cannot span multiple contentEditable elements.
      */
     const getBlocksWithTextSelection = useCallback(() => {
         const sel = window.getSelection();
@@ -137,17 +159,93 @@ const BlockEditor = () => {
         return blockIds;
     }, []);
 
-    // Listen for cross-block text selection changes
+    /**
+     * Mouse tracking state for cross-block selection simulation.
+     */
+    const mouseSelectionRef = useRef({
+        isSelecting: false,
+        startBlockId: null,
+        startY: 0,
+    });
+
+    /**
+     * Handles mouse down to start potential cross-block selection.
+     */
+    const handleEditorMouseDown = useCallback((e) => {
+        // Only track left mouse button for text selection
+        if (e.button !== 0) return;
+
+        // Don't interfere with handle clicks
+        if (e.target.closest('.block-handle')) return;
+
+        const blockEl = e.target.closest('[data-block-id]');
+        if (blockEl) {
+            mouseSelectionRef.current = {
+                isSelecting: true,
+                startBlockId: blockEl.getAttribute('data-block-id'),
+                startY: e.clientY,
+            };
+        }
+    }, []);
+
+    /**
+     * Handles mouse move during cross-block selection.
+     */
+    const handleEditorMouseMove = useCallback((e) => {
+        if (!mouseSelectionRef.current.isSelecting) return;
+        if (e.buttons !== 1) {
+            // Mouse button released elsewhere
+            mouseSelectionRef.current.isSelecting = false;
+            return;
+        }
+
+        const startY = mouseSelectionRef.current.startY;
+        const currentY = e.clientY;
+
+        // Determine vertical selection range
+        const minY = Math.min(startY, currentY);
+        const maxY = Math.max(startY, currentY);
+
+        const blockElements = editorRef.current?.querySelectorAll('[data-block-id]');
+        if (!blockElements) return;
+
+        const selectedBlockIds = [];
+        blockElements.forEach((blockEl) => {
+            const rect = blockEl.getBoundingClientRect();
+            // Block is in selection range if it overlaps with minY-maxY
+            if (rect.bottom >= minY && rect.top <= maxY) {
+                selectedBlockIds.push(blockEl.getAttribute('data-block-id'));
+            }
+        });
+
+        // Only update if more than one block selected (cross-block)
+        if (selectedBlockIds.length > 1) {
+            if (JSON.stringify(selectedBlockIds) !== JSON.stringify(state.textSelectionBlockIds)) {
+                actions.setTextSelectionBlocks(selectedBlockIds);
+            }
+        } else if (state.textSelectionBlockIds.length > 0) {
+            actions.clearTextSelection();
+        }
+    }, [state.textSelectionBlockIds, actions]);
+
+    /**
+     * Handles mouse up to end cross-block selection tracking.
+     */
+    const handleEditorMouseUp = useCallback(() => {
+        mouseSelectionRef.current.isSelecting = false;
+    }, []);
+
+    // Legacy selectionchange listener (kept for single-block selection detection)
     useEffect(() => {
         const handleSelectionChange = debounce(() => {
-            const blockIds = getBlocksWithTextSelection();
+            // Only use this for single-block selection; mouse tracking handles cross-block
+            if (mouseSelectionRef.current.isSelecting) return;
 
-            if (blockIds.length > 1) {
-                actions.setTextSelectionBlocks(blockIds);
-            } else if (state.textSelectionBlockIds.length > 0 && blockIds.length <= 1) {
+            const blockIds = getBlocksWithTextSelection();
+            if (blockIds.length <= 1 && state.textSelectionBlockIds.length > 0) {
                 actions.clearTextSelection();
             }
-        }, 100); // Debounce to prevent excessive re-renders during selection dragging
+        }, 100);
 
         document.addEventListener('selectionchange', handleSelectionChange);
         return () => document.removeEventListener('selectionchange', handleSelectionChange);
@@ -423,8 +521,21 @@ const BlockEditor = () => {
         ? state.blocks.filter(b => dragState.draggedBlockIds.includes(b.id))
         : [];
 
+    // Build editor class names for drag state
+    const editorClassName = [
+        'block-editor',
+        dragState.isDragging && dragState.dragType === 'text' ? 'is-text-dragging' : '',
+        dragState.isCopying ? 'is-copying' : '',
+    ].filter(Boolean).join(' ');
+
     return (
-        <div className="block-editor" ref={editorRef}>
+        <div
+            className={editorClassName}
+            ref={editorRef}
+            onMouseDown={handleEditorMouseDown}
+            onMouseMove={handleEditorMouseMove}
+            onMouseUp={handleEditorMouseUp}
+        >
             <div className="block-list">
                 {state.blocks.map((block, index) => (
                     <Block
@@ -459,7 +570,7 @@ const BlockEditor = () => {
             {/* Drag preview */}
             {dragState.isDragging && draggedBlocks.length > 0 && (
                 <div
-                    className="drag-preview"
+                    className={`drag-preview${dragState.isCopying ? ' is-copying' : ''}`}
                     style={{
                         left: dragState.previewPosition.x,
                         top: dragState.previewPosition.y,

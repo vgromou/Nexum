@@ -7,7 +7,11 @@ describe('useKeyboardNavigation', () => {
     let mockSlashMenu;
     let mockCloseSlashMenu;
     let mockCopyBlocksToClipboard;
+    let mockCopySelectedTextToClipboard;
+    let mockCutSelectedText;
     let mockPasteFromClipboard;
+    let mockHandleKeyboardSelection;
+    let mockGetSelectionForDeletion;
     let addEventListenerSpy;
     let removeEventListenerSpy;
 
@@ -27,7 +31,11 @@ describe('useKeyboardNavigation', () => {
         mockSlashMenu = { isOpen: false };
         mockCloseSlashMenu = vi.fn();
         mockCopyBlocksToClipboard = vi.fn();
+        mockCopySelectedTextToClipboard = vi.fn();
+        mockCutSelectedText = vi.fn();
         mockPasteFromClipboard = vi.fn();
+        mockHandleKeyboardSelection = vi.fn().mockReturnValue(false);
+        mockGetSelectionForDeletion = vi.fn().mockReturnValue(null);
 
         addEventListenerSpy = vi.spyOn(document, 'addEventListener');
         removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
@@ -50,7 +58,11 @@ describe('useKeyboardNavigation', () => {
                 slashMenu: overrides.slashMenu || mockSlashMenu,
                 closeSlashMenu: overrides.closeSlashMenu || mockCloseSlashMenu,
                 copyBlocksToClipboard: overrides.copyBlocksToClipboard || mockCopyBlocksToClipboard,
+                copySelectedTextToClipboard: overrides.copySelectedTextToClipboard || mockCopySelectedTextToClipboard,
+                cutSelectedText: overrides.cutSelectedText || mockCutSelectedText,
                 pasteFromClipboard: overrides.pasteFromClipboard || mockPasteFromClipboard,
+                handleKeyboardSelection: overrides.handleKeyboardSelection || mockHandleKeyboardSelection,
+                getSelectionForDeletion: overrides.getSelectionForDeletion || mockGetSelectionForDeletion,
             })
         );
     };
@@ -93,6 +105,13 @@ describe('useKeyboardNavigation', () => {
     });
 
     it('copies text selection blocks on Ctrl+C', () => {
+        // Mock window.getSelection to return a non-collapsed selection
+        vi.spyOn(window, 'getSelection').mockReturnValue({
+            isCollapsed: false,
+            toString: () => 'selected text',
+            removeAllRanges: vi.fn(),
+        });
+
         renderNavigationHook({
             state: { selectedBlockIds: [], textSelectionBlockIds: ['block-3'] },
         });
@@ -104,7 +123,7 @@ describe('useKeyboardNavigation', () => {
 
         handler(event);
 
-        expect(mockCopyBlocksToClipboard).toHaveBeenCalledWith(['block-3'], false);
+        expect(mockCopySelectedTextToClipboard).toHaveBeenCalledWith(false);
     });
 
     it('cuts selected blocks on Cmd+X', () => {

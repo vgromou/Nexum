@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import PageContent from './PageContent';
 
 // Mock BlockEditor as it's complex and tested separately
-vi.mock('../Editor/BlockEditor', () => ({
+vi.mock('../Editor/UnifiedBlockEditor', () => ({
     default: () => <div data-testid="block-editor">Block Editor Content</div>
 }));
 

@@ -7,7 +7,7 @@ import {
     ChevronsRight,
     PanelLeft,
 } from 'lucide-react';
-import BlockEditor from '../Editor/BlockEditor';
+import BlockEditor from '../Editor/UnifiedBlockEditor';
 import './PageContent.css';
 
 const PageContent = () => {
