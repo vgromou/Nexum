@@ -18,20 +18,22 @@ const mockActions = {
     clearTextSelection: vi.fn(),
 };
 
-const mockState = {
-    blocks: [
-        { id: '1', type: 'paragraph', content: 'Block 1' },
-        { id: '2', type: 'h1', content: 'Heading 1' },
-    ],
+let mockBlocks = [
+    { id: '1', type: 'paragraph', content: 'Block 1' },
+    { id: '2', type: 'h1', content: 'Heading 1' },
+];
+
+const getMockState = () => ({
+    blocks: mockBlocks,
     selectedBlockIds: [],
     textSelectionBlockIds: [],
     focusedBlockId: null,
     focusVersion: 0,
-};
+});
 
 vi.mock('./hooks/useBlockReducer', () => ({
     useBlockReducer: () => ({
-        state: mockState,
+        state: getMockState(),
         actions: mockActions,
     }),
 }));
@@ -68,9 +70,13 @@ vi.mock('./hooks/useSlashMenu', () => ({
     }),
 }));
 
-// Mock debounce to execute immediately
+// Mock debounce to execute immediately but include cancel method
 vi.mock('../../utils/debounce', () => ({
-    debounce: (fn) => fn,
+    debounce: (fn) => {
+        const debouncedFn = (...args) => fn(...args);
+        debouncedFn.cancel = vi.fn();
+        return debouncedFn;
+    },
 }));
 
 // Mock ResizeObserver
@@ -80,9 +86,38 @@ global.ResizeObserver = class ResizeObserver {
     disconnect() { }
 };
 
+// Helper to create a complete mock range
+const createMockRange = (container, offset = 0) => ({
+    startContainer: container,
+    endContainer: container,
+    startOffset: offset,
+    endOffset: offset,
+    collapsed: true,
+    commonAncestorContainer: container?.parentElement || container,
+    getClientRects: () => [],
+    getBoundingClientRect: () => ({ top: 0, left: 0, width: 0, height: 0 }),
+    setStart: vi.fn(),
+    setEnd: vi.fn(),
+    collapse: vi.fn(),
+    toString: () => '',
+    cloneRange: function () {
+        return { ...this, selectNodeContents: vi.fn(), setEnd: vi.fn() };
+    },
+    selectNodeContents: vi.fn(),
+    extractContents: vi.fn(() => document.createDocumentFragment()),
+});
+
 describe('UnifiedBlockEditor', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Reset blocks to default
+        mockBlocks = [
+            { id: '1', type: 'paragraph', content: 'Block 1' },
+            { id: '2', type: 'h1', content: 'Heading 1' },
+        ];
+
+        // Setup default document.createRange mock
+        document.createRange = vi.fn(() => createMockRange(document.body));
     });
 
     it('renders blocks with correct tags and content', () => {
@@ -250,6 +285,292 @@ describe('UnifiedBlockEditor', () => {
     it('applies data-placeholder attribute to blocks', () => {
         render(<UnifiedBlockEditor />);
         const pBlock = screen.getByText('Block 1');
-        expect(pBlock).toHaveAttribute('data-placeholder', 'Type text here or / for commands');
+        expect(pBlock).toHaveAttribute('data-placeholder', 'Type / for commands');
+    });
+
+    describe('Empty Block Placeholder', () => {
+        it('adds is-empty class to blocks with no content', () => {
+            // Override mockBlocks to include an empty block
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '' },
+                { id: '2', type: 'h1', content: 'Heading 1' },
+            ];
+
+            const { container } = render(<UnifiedBlockEditor />);
+
+            const emptyBlock = container.querySelector('[data-block-id="1"]');
+            const nonEmptyBlock = container.querySelector('[data-block-id="2"]');
+
+            expect(emptyBlock).toHaveClass('is-empty');
+            expect(nonEmptyBlock).not.toHaveClass('is-empty');
+        });
+
+        it('adds is-empty class to blocks with only whitespace', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '   ' },
+                { id: '2', type: 'h1', content: 'Heading 1' },
+            ];
+
+            const { container } = render(<UnifiedBlockEditor />);
+
+            const whitespaceBlock = container.querySelector('[data-block-id="1"]');
+
+            expect(whitespaceBlock).toHaveClass('is-empty');
+        });
+
+        it('removes is-empty class when block receives content', async () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '' },
+            ];
+
+            const { container } = render(<UnifiedBlockEditor />);
+            const contentEditable = container.querySelector('.unified-content-area');
+            const emptyBlock = container.querySelector('[data-block-id="1"]');
+
+            // Initially empty
+            expect(emptyBlock).toHaveClass('is-empty');
+
+            // Add content to the block
+            emptyBlock.textContent = 'New content';
+
+            // Mock selection with complete range
+            const mockRange = createMockRange(emptyBlock.firstChild || emptyBlock, 11);
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 1,
+                getRangeAt: () => mockRange,
+                anchorNode: emptyBlock.firstChild || emptyBlock,
+                anchorOffset: 11,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            fireEvent.input(contentEditable);
+
+            // After input, is-empty should be removed
+            expect(emptyBlock).not.toHaveClass('is-empty');
+        });
+    });
+
+    describe('Focused Block Tracking', () => {
+        it('adds is-focused class to the focused block', async () => {
+            const { container } = render(<UnifiedBlockEditor />);
+            const pBlock = screen.getByText('Block 1');
+
+            // Mock selection pointing to pBlock with complete range
+            const mockRange = createMockRange(pBlock.firstChild || pBlock, 0);
+            mockRange.commonAncestorContainer = pBlock;
+
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 1,
+                getRangeAt: () => mockRange,
+                anchorNode: pBlock.firstChild,
+                anchorOffset: 0,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            // Trigger selection change
+            await act(async () => {
+                document.dispatchEvent(new Event('selectionchange'));
+            });
+
+            expect(pBlock).toHaveClass('is-focused');
+        });
+
+        it('removes is-focused class when focus moves to another block', async () => {
+            const { container } = render(<UnifiedBlockEditor />);
+            const pBlock = screen.getByText('Block 1');
+            const h1Block = screen.getAllByText('Heading 1')[0];
+
+            // First focus on pBlock
+            let mockRange = createMockRange(pBlock.firstChild || pBlock, 0);
+            mockRange.commonAncestorContainer = pBlock;
+
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 1,
+                getRangeAt: () => mockRange,
+                anchorNode: pBlock.firstChild,
+                anchorOffset: 0,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            await act(async () => {
+                document.dispatchEvent(new Event('selectionchange'));
+            });
+
+            expect(pBlock).toHaveClass('is-focused');
+            expect(h1Block).not.toHaveClass('is-focused');
+
+            // Now move focus to h1Block
+            mockRange = createMockRange(h1Block.firstChild || h1Block, 0);
+            mockRange.commonAncestorContainer = h1Block;
+
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 1,
+                getRangeAt: () => mockRange,
+                anchorNode: h1Block.firstChild,
+                anchorOffset: 0,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            await act(async () => {
+                document.dispatchEvent(new Event('selectionchange'));
+            });
+
+            expect(pBlock).not.toHaveClass('is-focused');
+            expect(h1Block).toHaveClass('is-focused');
+        });
+
+        it('removes is-focused class when selection is outside editor', async () => {
+            const { container } = render(<UnifiedBlockEditor />);
+            const pBlock = screen.getByText('Block 1');
+
+            // First focus on pBlock
+            const mockRange = createMockRange(pBlock.firstChild || pBlock, 0);
+            mockRange.commonAncestorContainer = pBlock;
+
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 1,
+                getRangeAt: () => mockRange,
+                anchorNode: pBlock.firstChild,
+                anchorOffset: 0,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            await act(async () => {
+                document.dispatchEvent(new Event('selectionchange'));
+            });
+
+            expect(pBlock).toHaveClass('is-focused');
+
+            // Now selection is outside (rangeCount = 0)
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 0,
+                getRangeAt: () => null,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            await act(async () => {
+                document.dispatchEvent(new Event('selectionchange'));
+            });
+
+            expect(pBlock).not.toHaveClass('is-focused');
+        });
+    });
+
+    describe('Auto-focus on Mount', () => {
+        it('focuses the first block on mount', async () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '' },
+            ];
+
+            // Mock requestAnimationFrame
+            const originalRAF = window.requestAnimationFrame;
+            window.requestAnimationFrame = (cb) => { cb(); return 0; };
+
+            // Mock window.getSelection for focus logic
+            const mockRemoveAllRanges = vi.fn();
+            const mockAddRange = vi.fn();
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 0,
+                getRangeAt: () => null,
+                removeAllRanges: mockRemoveAllRanges,
+                addRange: mockAddRange,
+            }));
+
+            const { container } = render(<UnifiedBlockEditor />);
+
+            const firstBlock = container.querySelector('[data-block-id="1"]');
+
+            // The focus and cursor placement should have been called
+            expect(mockRemoveAllRanges).toHaveBeenCalled();
+            expect(mockAddRange).toHaveBeenCalled();
+
+            // First block should have is-focused class
+            expect(firstBlock).toHaveClass('is-focused');
+
+            window.requestAnimationFrame = originalRAF;
+        });
+
+        it('sets cursor at the beginning of the first block', async () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: 'Some text' },
+            ];
+
+            const originalRAF = window.requestAnimationFrame;
+            window.requestAnimationFrame = (cb) => { cb(); return 0; };
+
+            const mockSetStart = vi.fn();
+            const mockCollapse = vi.fn();
+            const mockRange = {
+                setStart: mockSetStart,
+                collapse: mockCollapse,
+            };
+
+            document.createRange = vi.fn(() => mockRange);
+
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 0,
+                getRangeAt: () => null,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            render(<UnifiedBlockEditor />);
+
+            // Verify cursor was set at position 0
+            expect(mockSetStart).toHaveBeenCalled();
+            expect(mockCollapse).toHaveBeenCalledWith(true);
+
+            window.requestAnimationFrame = originalRAF;
+        });
+    });
+
+    describe('Placeholder Visibility Conditions', () => {
+        it('shows placeholder only on empty focused blocks', async () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '' },
+                { id: '2', type: 'paragraph', content: '' },
+            ];
+
+            const { container } = render(<UnifiedBlockEditor />);
+
+            const block1 = container.querySelector('[data-block-id="1"]');
+            const block2 = container.querySelector('[data-block-id="2"]');
+
+            // Both are empty
+            expect(block1).toHaveClass('is-empty');
+            expect(block2).toHaveClass('is-empty');
+
+            // Focus on block1
+            const mockRange = createMockRange(block1, 0);
+            mockRange.commonAncestorContainer = block1;
+
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 1,
+                getRangeAt: () => mockRange,
+                anchorNode: block1,
+                anchorOffset: 0,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            await act(async () => {
+                document.dispatchEvent(new Event('selectionchange'));
+            });
+
+            // Block1 should be focused, block2 should not
+            expect(block1).toHaveClass('is-focused');
+            expect(block2).not.toHaveClass('is-focused');
+
+            // Both still empty, but only block1 has both classes
+            expect(block1).toHaveClass('is-empty');
+            expect(block2).toHaveClass('is-empty');
+        });
     });
 });
+

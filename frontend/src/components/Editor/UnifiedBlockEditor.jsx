@@ -42,6 +42,7 @@ const UnifiedBlockEditor = () => {
     const isUpdatingFromDOM = useRef(false);
     const [hoveredBlockId, setHoveredBlockId] = useState(null);
     const [handlePositions, setHandlePositions] = useState({});
+    const [focusedBlockId, setFocusedBlockId] = useState(null);
 
     // Block Selection Hooks
     const {
@@ -171,6 +172,23 @@ const UnifiedBlockEditor = () => {
     );
 
     /**
+     * Updates the is-empty class on blocks based on their content.
+     */
+    const updateEmptyState = useCallback(() => {
+        if (!editorRef.current) return;
+
+        const blockElements = editorRef.current.querySelectorAll('[data-block-id]');
+        blockElements.forEach((el) => {
+            const textContent = el.textContent?.trim() || '';
+            if (textContent === '') {
+                el.classList.add('is-empty');
+            } else {
+                el.classList.remove('is-empty');
+            }
+        });
+    }, []);
+
+    /**
      * Handles input events in the contentEditable.
      */
     const handleInput = useCallback((e) => {
@@ -248,7 +266,8 @@ const UnifiedBlockEditor = () => {
         }
 
         debouncedSync();
-    }, [debouncedSync]);
+        updateEmptyState();
+    }, [debouncedSync, updateEmptyState]);
 
     /**
      * Handles keydown events for block-level operations.
@@ -673,7 +692,7 @@ const UnifiedBlockEditor = () => {
                 el.setAttribute('data-block-id', block.id);
                 el.setAttribute('data-block-type', block.type);
                 el.setAttribute('data-block-index', index);
-                el.setAttribute('data-placeholder', 'Type text here or / for commands');
+                el.setAttribute('data-placeholder', 'Type / for commands');
                 el.innerHTML = block.content;
 
                 // Handle List Reset
@@ -724,8 +743,8 @@ const UnifiedBlockEditor = () => {
                 if (el.getAttribute('data-block-type') !== block.type) {
                     el.setAttribute('data-block-type', block.type);
                 }
-                if (el.getAttribute('data-placeholder') !== 'Type text here or / for commands') {
-                    el.setAttribute('data-placeholder', 'Type text here or / for commands');
+                if (el.getAttribute('data-placeholder') !== 'Type / for commands') {
+                    el.setAttribute('data-placeholder', 'Type / for commands');
                 }
 
                 // Handle List Reset Update
@@ -756,7 +775,9 @@ const UnifiedBlockEditor = () => {
 
         // Ensure handles are updated immediately after DOM changes
         updateHandlePositions();
-    }, [state.blocks, updateHandlePositions]);
+        // Update empty state for placeholders
+        updateEmptyState();
+    }, [state.blocks, updateHandlePositions, updateEmptyState]);
 
     // Clear selection when clicking outside editor
     useEffect(() => {
@@ -774,7 +795,45 @@ const UnifiedBlockEditor = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [actions, closeSlashMenu]);
 
-    // Sync selection state to DOM
+    // Track selection changes to update focused block for placeholder
+    useEffect(() => {
+        const handleSelectionChange = () => {
+            if (!editorRef.current) return;
+
+            const sel = window.getSelection();
+            if (!sel.rangeCount) {
+                setFocusedBlockId(null);
+                return;
+            }
+
+            const range = sel.getRangeAt(0);
+            const container = range.startContainer;
+            const blockEl = container.nodeType === Node.TEXT_NODE
+                ? container.parentElement?.closest('[data-block-id]')
+                : (container.closest ? container.closest('[data-block-id]') : null);
+
+            if (blockEl && editorRef.current.contains(blockEl)) {
+                const blockId = blockEl.getAttribute('data-block-id');
+                setFocusedBlockId(blockId);
+            } else {
+                setFocusedBlockId(null);
+            }
+
+            // Update empty state after selection change
+            updateEmptyState();
+        };
+
+        const debouncedHandler = debounce(handleSelectionChange, 10);
+        document.addEventListener('selectionchange', debouncedHandler);
+
+        return () => {
+            document.removeEventListener('selectionchange', debouncedHandler);
+            // Cancel any pending debounced calls to prevent memory leaks
+            debouncedHandler.cancel?.();
+        };
+    }, [updateEmptyState]);
+
+    // Sync selection state and focused state to DOM
     useEffect(() => {
         if (!editorRef.current) return;
 
@@ -795,8 +854,15 @@ const UnifiedBlockEditor = () => {
             } else {
                 el.classList.remove('block-being-dragged');
             }
+
+            // Update is-focused class for placeholder
+            if (focusedBlockId === blockId) {
+                el.classList.add('is-focused');
+            } else {
+                el.classList.remove('is-focused');
+            }
         });
-    }, [state.selectedBlockIds, dragState.draggedBlockIds]);
+    }, [state.selectedBlockIds, dragState.draggedBlockIds, focusedBlockId]);
 
 
 
@@ -820,6 +886,34 @@ const UnifiedBlockEditor = () => {
 
         return () => resizeObserver.disconnect();
     }, [updateHandlePositions]);
+
+    // Auto-focus the first block on mount
+    useEffect(() => {
+        if (!editorRef.current) return;
+
+        // Small delay to ensure DOM is ready
+        requestAnimationFrame(() => {
+            const firstBlock = editorRef.current?.querySelector('[data-block-id]');
+            if (firstBlock) {
+                firstBlock.focus();
+                // Place cursor at the start
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.setStart(firstBlock, 0);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+
+                // Update focused state for placeholder
+                const blockId = firstBlock.getAttribute('data-block-id');
+                setFocusedBlockId(blockId);
+                firstBlock.classList.add('is-focused');
+
+                // Update empty state
+                updateEmptyState();
+            }
+        });
+    }, [updateEmptyState]);
 
     // Get blocks being dragged for preview - use stored blocks from dragState
     const draggedBlocks = dragState.draggedBlocks || [];

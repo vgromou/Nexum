@@ -152,6 +152,7 @@
 
 /* Block Content (contentEditable) */
 .block-content {
+    position: relative;
     outline: none;
     width: 100%;
     word-wrap: break-word;
@@ -165,13 +166,36 @@
     box-sizing: border-box;
 }
 
-.block-content:empty:focus::before {
+/* Placeholder for empty focused paragraph blocks */
+.block-content[data-block-type="paragraph"].is-empty.is-focused::before,
+.block-content[data-block-type="h1"].is-empty.is-focused::before,
+.block-content[data-block-type="h2"].is-empty.is-focused::before,
+.block-content[data-block-type="h3"].is-empty.is-focused::before {
     content: attr(data-placeholder);
     color: var(--color-gray-400, #9ca3af);
     pointer-events: none;
-    float: left;
-    /* Ensures it stays on the line */
-    height: 100%;
+    position: absolute;
+    left: 0;
+    /* Align with block content padding */
+    top: var(--block-content-padding-top, 4px);
+}
+
+/* Placeholder for empty focused list blocks (use ::after since ::before is for marker) */
+.block-content[data-block-type="bulleted-list"].is-empty.is-focused::after,
+.block-content[data-block-type="numbered-list"].is-empty.is-focused::after {
+    content: attr(data-placeholder);
+    color: var(--color-gray-400, #9ca3af);
+    pointer-events: none;
+    /* Position after the list marker */
+    position: relative;
+}
+
+/* Placeholder for empty focused quote blocks */
+.block-content[data-block-type="quote"].is-empty.is-focused::after {
+    content: attr(data-placeholder);
+    color: var(--color-gray-400, #9ca3af);
+    pointer-events: none;
+    position: relative;
 }
 
 /* Paragraph */
