@@ -1,10 +1,12 @@
 import React, { useRef, useCallback, useEffect, useState, useLayoutEffect } from 'react';
 import { GripVertical } from 'lucide-react';
 import SlashCommandMenu from './SlashCommandMenu';
+import FormattingMenu from './FormattingMenu';
 import { useBlockReducer } from './hooks/useBlockReducer';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useClipboard } from './hooks/useClipboard';
 import { useSlashMenu } from './hooks/useSlashMenu';
+import { useFormattingMenu } from './hooks/useFormattingMenu';
 import { useCrossBlockSelection } from './hooks/useCrossBlockSelection';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { debounce } from '../../utils/debounce';
@@ -78,6 +80,18 @@ const UnifiedBlockEditor = () => {
         updateSlashMenuFilter,
         handleSlashSelect,
     } = useSlashMenu({ state, actions });
+
+    // Formatting Menu Hook
+    const {
+        menu: formattingMenu,
+        toggleSubmenu,
+        applyFormat,
+        applyHighlight,
+        clearHighlight,
+        insertLink,
+        removeLink,
+        changeBlockType: changeBlockTypeFromMenu,
+    } = useFormattingMenu({ editorRef, state, actions });
 
     // Keyboard Navigation Hook
     useKeyboardNavigation({
@@ -189,6 +203,65 @@ const UnifiedBlockEditor = () => {
     }, []);
 
     /**
+     * Cleans up formatting tags when a block is empty.
+     * This removes color highlights, bold, italic, etc. to prevent
+     * new text from inheriting old formatting.
+     */
+    /**
+     * Cleans up formatting tags when a block is empty.
+     * This removes color highlights, bold, italic, etc. to prevent
+     * new text from inheriting old formatting.
+     */
+    const cleanupEmptyBlockFormatting = useCallback((blockEl) => {
+        if (!blockEl) return;
+
+        const textContent = blockEl.textContent || '';
+        if (textContent.trim() !== '') return; // Only clean empty blocks
+
+        // If completely empty (no children) or has formatting tags
+        const hasFormatting = blockEl.querySelector('span, b, i, u, s, a, strong, em');
+
+        // Even if no tags, we might have sticky cursor style.
+        // We force a cleanup if it's empty.
+
+        // 1. Clear content explicitly
+        blockEl.innerHTML = '';
+
+        // 2. Insert a Zero Width Space to give us something to select
+        const tempText = document.createTextNode('\u200B');
+        blockEl.appendChild(tempText);
+
+        // 3. Select the temp text
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(blockEl);
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+        // 4. Force remove format
+        try {
+            document.execCommand('removeFormat', false, null);
+            ['bold', 'italic', 'underline', 'strikeThrough'].forEach(cmd => {
+                if (document.queryCommandState(cmd)) {
+                    document.execCommand(cmd, false, null);
+                }
+            });
+        } catch (e) {
+            // Ignore errors
+        }
+
+        // 5. Remove the temp text effectively clearing the block
+        blockEl.textContent = '';
+
+        // 6. Reset cursor to start
+        const newRange = document.createRange();
+        newRange.setStart(blockEl, 0);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+    }, []);
+
+    /**
      * Handles input events in the contentEditable.
      */
     const handleInput = useCallback((e) => {
@@ -204,6 +277,9 @@ const UnifiedBlockEditor = () => {
             const textContent = blockEl.textContent || '';
             const blockId = blockEl.getAttribute('data-block-id');
             const blockType = blockEl.getAttribute('data-block-type');
+
+            // Clean up formatting when block is empty (backup check)
+            cleanupEmptyBlockFormatting(blockEl);
 
             // Only check markdown shortcuts in paragraph blocks
             if (blockType === 'paragraph') {
@@ -267,7 +343,7 @@ const UnifiedBlockEditor = () => {
 
         debouncedSync();
         updateEmptyState();
-    }, [debouncedSync, updateEmptyState]);
+    }, [debouncedSync, updateEmptyState, cleanupEmptyBlockFormatting]);
 
     /**
      * Handles keydown events for block-level operations.
@@ -954,6 +1030,21 @@ const UnifiedBlockEditor = () => {
                 suppressContentEditableWarning
                 onInput={handleInput}
                 onKeyDown={handleKeyDown}
+                onKeyUp={(e) => {
+                    // Clean up formatting after Backspace/Delete if block becomes empty
+                    if (e.key === 'Backspace' || e.key === 'Delete') {
+                        const sel = window.getSelection();
+                        if (!sel.rangeCount) return;
+
+                        const blockEl = sel.anchorNode?.nodeType === Node.TEXT_NODE
+                            ? sel.anchorNode.parentElement?.closest('[data-block-id]')
+                            : sel.anchorNode?.closest?.('[data-block-id]');
+
+                        if (blockEl) {
+                            cleanupEmptyBlockFormatting(blockEl);
+                        }
+                    }
+                }}
                 onMouseDown={(e) => {
                     // Clear block selection when clicking inside editor text/empty space
                     // Only if not holding modifiers (which might be for selection extension)
@@ -1022,6 +1113,23 @@ const UnifiedBlockEditor = () => {
                     filter={slashMenu.filter}
                     onSelect={handleSlashSelect}
                     onClose={closeSlashMenu}
+                />
+            )}
+
+            {/* Formatting menu */}
+            {formattingMenu.isOpen && (
+                <FormattingMenu
+                    position={formattingMenu.position}
+                    currentBlockType={formattingMenu.currentBlockType}
+                    activeFormats={formattingMenu.activeFormats}
+                    activeSubmenu={formattingMenu.activeSubmenu}
+                    onToggleSubmenu={toggleSubmenu}
+                    onFormat={applyFormat}
+                    onHighlight={applyHighlight}
+                    onClearHighlight={clearHighlight}
+                    onInsertLink={insertLink}
+                    onRemoveLink={removeLink}
+                    onChangeBlockType={changeBlockTypeFromMenu}
                 />
             )}
         </div>

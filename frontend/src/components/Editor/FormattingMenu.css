@@ -1,0 +1,383 @@
+/* Formatting Menu - Floating toolbar for text selection */
+.formatting-menu {
+    position: fixed;
+    z-index: 1100;
+    transform: translate(-50%, -100%);
+    background: var(--color-bg-white, white);
+    border: 1px solid var(--color-gray-100, #f3f4f6);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px var(--color-shadow-menu, rgba(0, 0, 0, 0.12));
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: formattingMenuAppear 0.15s ease-out;
+}
+
+@keyframes formattingMenuAppear {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -100%) translateY(4px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -100%) translateY(0);
+    }
+}
+
+.formatting-menu-main {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.formatting-menu-group {
+    display: flex;
+    align-items: center;
+}
+
+.formatting-menu-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: var(--color-gray-500, #6b7280);
+    cursor: pointer;
+    transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.formatting-menu-button:hover {
+    background-color: var(--color-gray-100, #f3f4f6);
+    color: var(--color-text-primary, #000);
+}
+
+.formatting-menu-button.active {
+    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
+    color: var(--color-selection-blue, #2383e2);
+}
+
+.formatting-menu-button.disabled,
+.formatting-menu-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.formatting-menu-button.with-dropdown {
+    width: auto;
+    padding: 0 8px;
+}
+
+/* Turn Into Button with block type label */
+.formatting-menu-button.turn-into-button {
+    width: auto;
+    padding: 0 10px;
+    gap: 6px;
+}
+
+.formatting-menu-button .block-type-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary, #000);
+}
+
+.formatting-menu-button:hover .block-type-label {
+    color: var(--color-text-primary, #000);
+}
+
+.formatting-menu-divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--color-gray-100, #f3f4f6);
+    margin: 0 4px;
+}
+
+/* Formatting Popup - Separate floating panels */
+.formatting-popup {
+    position: fixed;
+    z-index: 1110;
+    background: var(--color-bg-white, white);
+    border: 1px solid var(--color-gray-100, #f3f4f6);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--color-shadow-menu, rgba(0, 0, 0, 0.16)),
+        0 0 1px rgba(0, 0, 0, 0.08);
+    animation: popupAppear 0.15s ease-out;
+    overflow: hidden;
+}
+
+@keyframes popupAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Turn Into Popup */
+.turn-into-popup {
+    width: 220px;
+    padding: 8px;
+}
+
+.popup-header {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-gray-400, #9ca3af);
+    padding: 8px 12px 6px;
+}
+
+.popup-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.popup-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    color: var(--color-text-primary, #000);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.1s ease;
+}
+
+.popup-item:hover {
+    background-color: var(--color-gray-100, #f3f4f6);
+}
+
+.popup-item.active {
+    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
+}
+
+.popup-item svg {
+    color: var(--color-gray-500, #6b7280);
+    flex-shrink: 0;
+}
+
+.popup-item.active svg {
+    color: var(--color-selection-blue, #2383e2);
+}
+
+.popup-item .check-icon {
+    margin-left: auto;
+    color: var(--color-selection-blue, #2383e2);
+}
+
+/* Highlight Popup */
+.highlight-popup {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Clear Formatting Button */
+.clear-formatting-button {
+    width: 100%;
+    padding: 4px 12px;
+    background-color: var(--color-bg-white, white);
+    border: 1px solid var(--color-gray-300, #d1d5db);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-gray-500, #6b7280);
+    cursor: pointer;
+    transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.clear-formatting-button:hover {
+    background-color: var(--color-gray-100, #f3f4f6);
+    color: var(--color-text-primary, #000);
+}
+
+/* Color Section with header */
+.color-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.color-section-header {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-gray-400, #9ca3af);
+    padding-left: 2px;
+}
+
+/* Color Row - swatches in a row */
+.color-row {
+    display: flex;
+    gap: 4px;
+}
+
+/* Color Swatch - Large square with letter A */
+.color-swatch {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--color-gray-200, #e5e7eb);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    background: transparent;
+    padding: 0;
+}
+
+.color-swatch:hover {
+    transform: scale(1.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Letter A inside swatches */
+.swatch-letter {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Clear swatch - white with X */
+.clear-swatch {
+    background-color: var(--color-bg-white, white);
+    border: 1px solid var(--color-gray-300, #d1d5db);
+    color: var(--color-gray-400, #9ca3af);
+}
+
+.clear-swatch:hover {
+    color: var(--color-gray-600, #4b5563);
+}
+
+/* Highlight Swatches - Background color with black A */
+.highlight-swatch {
+    border: none;
+}
+
+.highlight-swatch .swatch-letter {
+    color: var(--color-text-primary, #000);
+}
+
+.highlight-swatch-purple {
+    background-color: var(--color-highlight-purple-bg);
+}
+
+.highlight-swatch-blue {
+    background-color: var(--color-highlight-blue-bg);
+}
+
+.highlight-swatch-green {
+    background-color: var(--color-highlight-green-bg);
+}
+
+.highlight-swatch-orange {
+    background-color: var(--color-highlight-orange-bg);
+}
+
+.highlight-swatch-red {
+    background-color: var(--color-highlight-red-bg);
+}
+
+.highlight-swatch-gray {
+    background-color: var(--color-highlight-gray-bg);
+}
+
+/* Tag Swatches - Background color with colored A */
+.tag-swatch {
+    border: none;
+}
+
+.tag-swatch-purple {
+    background-color: var(--color-highlight-purple-bg);
+}
+
+.tag-swatch-purple .swatch-letter {
+    color: var(--color-highlight-purple-text);
+}
+
+.tag-swatch-blue {
+    background-color: var(--color-highlight-blue-bg);
+}
+
+.tag-swatch-blue .swatch-letter {
+    color: var(--color-highlight-blue-text);
+}
+
+.tag-swatch-green {
+    background-color: var(--color-highlight-green-bg);
+}
+
+.tag-swatch-green .swatch-letter {
+    color: var(--color-highlight-green-text);
+}
+
+.tag-swatch-orange {
+    background-color: var(--color-highlight-orange-bg);
+}
+
+.tag-swatch-orange .swatch-letter {
+    color: var(--color-highlight-orange-text);
+}
+
+.tag-swatch-red {
+    background-color: var(--color-highlight-red-bg);
+}
+
+.tag-swatch-red .swatch-letter {
+    color: var(--color-highlight-red-text);
+}
+
+.tag-swatch-gray {
+    background-color: var(--color-highlight-gray-bg);
+}
+
+.tag-swatch-gray .swatch-letter {
+    color: var(--color-highlight-gray-text);
+}
+
+/* Active Highlight Button State (when a highlight is active) */
+.formatting-menu-button.has-active-style {
+    color: var(--color-selection-blue, #2383e2);
+    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
+}
+
+/* Active Color Swatch State */
+.color-swatch.active {
+    border: 2px solid var(--color-selection-blue, #2383e2);
+    transform: scale(0.95);
+    /* Slight shrink to fit border inside layout */
+}
+
+.swatch-check {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--color-bg-white, white);
+    border-radius: 50%;
+    padding: 1px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    color: var(--color-selection-blue, #2383e2);
+    z-index: 10;
+}

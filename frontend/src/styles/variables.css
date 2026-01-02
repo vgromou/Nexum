@@ -1,8 +1,21 @@
 :root {
   /* Colors */
-  --color-highlight-purple-text: #9333ea;
-  --color-highlight-orange-text: #f97316;
-  --color-highlight-red-text: #ef4444;
+
+  /* Highlight Colors - Background (85% alpha from Figma) */
+  --color-highlight-purple-bg: rgba(220, 197, 255, 0.85);
+  --color-highlight-blue-bg: rgba(196, 224, 255, 0.85);
+  --color-highlight-green-bg: rgba(184, 245, 216, 0.85);
+  --color-highlight-orange-bg: rgba(255, 201, 153, 0.85);
+  --color-highlight-red-bg: rgba(255, 184, 184, 0.85);
+  --color-highlight-gray-bg: rgba(209, 213, 219, 0.85);
+
+  /* Highlight Colors - Text (from Figma) */
+  --color-highlight-purple-text: #6B21E0;
+  --color-highlight-blue-text: #1D4ED8;
+  --color-highlight-green-text: #047857;
+  --color-highlight-orange-text: #C2410C;
+  --color-highlight-red-text: #B91C1C;
+  --color-highlight-gray-text: #374151;
   --color-accent-light: #ffb3ab;
   --color-icon: #000000;
   --color-text-muted: #b89b91;
@@ -53,38 +66,100 @@
 
   /* Typography */
   --font-family-sans: 'Inter', sans-serif;
+  --font-family-mono: 'JetBrains Mono', monospace;
 
   /* Page Title */
   --font-size-page-title: 40px;
-  --line-height-page-title: 48px;
+  --line-height-page-title: 1.2;
   --font-weight-page-title: 700;
-  --letter-spacing-page-title: -0.5px;
+  --letter-spacing-page-title: -0.005em;
 
-  /* H1 */
+  /* Heading/H1 */
   --font-size-h1: 32px;
-  --line-height-h1: 40px;
+  --line-height-h1: 1.25;
   --font-weight-h1: 700;
-  --letter-spacing-h1: -0.4px;
+  --letter-spacing-h1: -0.004em;
 
-  /* H2 */
+  /* Heading/H2 */
   --font-size-h2: 24px;
-  --line-height-h2: 32px;
+  --line-height-h2: 1.33;
   --font-weight-h2: 600;
-  --letter-spacing-h2: -0.2px;
+  --letter-spacing-h2: -0.002em;
 
-  /* H3 */
+  /* Heading/H3 */
   --font-size-h3: 20px;
-  --line-height-h3: 28px;
+  --line-height-h3: 1.4;
   --font-weight-h3: 600;
-  --letter-spacing-h3: 0px;
+  --letter-spacing-h3: 0;
 
-  /* Body Regular */
+  /* Body/Regular */
   --font-size-body: 16px;
-  --line-height-body: 26px;
+  --line-height-body: 1.625;
   --font-weight-body: 400;
+  --letter-spacing-body: 0;
 
   /* Breadcrumbs */
   --font-size-breadcrumbs: 13px;
-  --line-height-breadcrumbs: 18px;
+  --line-height-breadcrumbs: 1.38;
   --font-weight-breadcrumbs: 400;
+  --letter-spacing-breadcrumbs: 0;
+
+  /* Caption */
+  --font-size-caption: 12px;
+  --line-height-caption: 1.5;
+  --font-weight-caption: 400;
+  --letter-spacing-caption: 0;
+
+  /* Label */
+  --font-size-label: 13px;
+  --line-height-label: 1.38;
+  --font-weight-label: 500;
+  --letter-spacing-label: 0;
+
+  /* Code Inline */
+  --font-size-code-inline: 14px;
+  --line-height-code-inline: 1.5;
+  --font-weight-code-inline: 400;
+  --letter-spacing-code-inline: 0;
+
+  /* Sidebar/Item */
+  --font-size-sidebar-item: 14px;
+  --line-height-sidebar-item: 1.5;
+  --font-weight-sidebar-item: 400;
+  --letter-spacing-sidebar-item: 0;
+
+  /* Sidebar/Item Active */
+  --font-size-sidebar-item-active: 14px;
+  --line-height-sidebar-item-active: 1.5;
+  --font-weight-sidebar-item-active: 500;
+  --letter-spacing-sidebar-item-active: 0;
+
+  /* Highlight/Body */
+  --font-size-highlight-body: 14px;
+  --line-height-highlight-body: 1.5;
+  --font-weight-highlight-body: 500;
+  --letter-spacing-highlight-body: 0;
+
+  /* Highlight/H1 */
+  --font-size-highlight-h1: 28px;
+  --line-height-highlight-h1: 1.25;
+  --font-weight-highlight-h1: 700;
+  --letter-spacing-highlight-h1: -0.004em;
+
+  /* Highlight/H2 */
+  --font-size-highlight-h2: 22px;
+  --line-height-highlight-h2: 1.33;
+  --font-weight-highlight-h2: 600;
+  --letter-spacing-highlight-h2: -0.002em;
+
+  /* Highlight/H3 */
+  --font-size-highlight-h3: 18px;
+  --line-height-highlight-h3: 1.4;
+  --font-weight-highlight-h3: 600;
+  --letter-spacing-highlight-h3: 0;
+
+  /* Tag (for highlight tags) */
+  --font-size-tag: 13px;
+  --line-height-tag: 1.38;
+  --border-radius-tag: 4px;
 }

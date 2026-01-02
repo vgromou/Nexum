@@ -571,6 +571,40 @@ describe('UnifiedBlockEditor', () => {
             expect(block1).toHaveClass('is-empty');
             expect(block2).toHaveClass('is-empty');
         });
+        it('clears formatting when block content becomes empty', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '<b>Bold Text</b>' },
+            ];
+
+            const { container } = render(<UnifiedBlockEditor />);
+            const contentEditable = container.querySelector('.unified-content-area');
+            const block = container.querySelector('[data-block-id="1"]');
+
+            // Mock document.execCommand
+            document.execCommand = vi.fn();
+            document.queryCommandState = vi.fn(() => true);
+
+            // Mock selection
+            const mockRange = createMockRange(block.firstChild || block, 0);
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 1,
+                getRangeAt: () => mockRange,
+                anchorNode: block,
+                anchorOffset: 0,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            // Simulate making it empty
+            // We need to trigger handleInput or handleKeyUp. 
+            // The cleanup is called in handleInput and handleKeyUp (Backspace).
+
+            // 1. Simulate Backspace key affecting content
+            block.textContent = ''; // User deleted everything
+            fireEvent.keyUp(contentEditable, { key: 'Backspace' });
+
+            expect(document.execCommand).toHaveBeenCalledWith('removeFormat', false, null);
+        });
     });
 });
 
