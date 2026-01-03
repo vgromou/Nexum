@@ -472,8 +472,22 @@
 }
 
 .block-content a {
-    color: var(--color-selection-blue);
-    text-decoration: underline;
+    color: var(--color-selection-blue, #2563eb);
+    text-decoration: none;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.block-content a:hover {
+    border-bottom-color: var(--color-selection-blue, #2563eb);
+}
+
+/* Link when cursor is inside (active editing state) */
+.block-content a.link-active,
+.unified-content-area a.link-active {
+    background-color: rgba(37, 99, 235, 0.1);
+    border-radius: 2px;
 }
 
 /* Normal Highlights (background only) */

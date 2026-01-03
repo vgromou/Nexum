@@ -11,7 +11,7 @@ describe('FormattingMenu', () => {
         onFormat: vi.fn(),
         onHighlight: vi.fn(),
         onClearHighlight: vi.fn(),
-        onInsertLink: vi.fn(),
+        onOpenLinkPopover: vi.fn(),
         onRemoveLink: vi.fn(),
         onChangeBlockType: vi.fn(),
         onClose: vi.fn(),
@@ -30,7 +30,7 @@ describe('FormattingMenu', () => {
         expect(document.querySelector('[title="Italic (⌘I)"]')).toBeTruthy();
         expect(document.querySelector('[title="Underline (⌘U)"]')).toBeTruthy();
         expect(document.querySelector('[title="Strikethrough"]')).toBeTruthy();
-        expect(document.querySelector('[title="Insert link"]')).toBeTruthy();
+        expect(document.querySelector('[title="Insert link (⌘K)"]')).toBeTruthy();
         expect(document.querySelector('[title="Remove link"]')).toBeTruthy();
     });
 
@@ -159,14 +159,14 @@ describe('FormattingMenu', () => {
         expect(onToggleSubmenu).toHaveBeenCalledWith(null); // Closes popup
     });
 
-    it('should call onInsertLink when link button is clicked', () => {
-        const onInsertLink = vi.fn();
-        render(<FormattingMenu {...defaultProps} onInsertLink={onInsertLink} />);
+    it('should call onOpenLinkPopover when link button is clicked', () => {
+        const onOpenLinkPopover = vi.fn();
+        render(<FormattingMenu {...defaultProps} onOpenLinkPopover={onOpenLinkPopover} />);
 
-        const linkButton = document.querySelector('[title="Insert link"]');
+        const linkButton = document.querySelector('[title="Insert link (⌘K)"]');
         fireEvent.click(linkButton);
 
-        expect(onInsertLink).toHaveBeenCalled();
+        expect(onOpenLinkPopover).toHaveBeenCalled();
     });
 
     it('should call onRemoveLink when unlink button is clicked and link is active', () => {
@@ -226,7 +226,7 @@ describe('FormattingMenu', () => {
 
         it('should apply active class to link button when link is active', () => {
             render(<FormattingMenu {...defaultProps} activeFormats={{ link: true }} />);
-            const linkButton = document.querySelector('[title="Insert link"]');
+            const linkButton = document.querySelector('[title="Insert link (⌘K)"]');
             expect(linkButton.className).toContain('active');
         });
 

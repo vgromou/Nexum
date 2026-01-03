@@ -2,14 +2,17 @@ import React, { useRef, useCallback, useEffect, useState, useLayoutEffect } from
 import { GripVertical } from 'lucide-react';
 import SlashCommandMenu from './SlashCommandMenu';
 import FormattingMenu from './FormattingMenu';
+import LinkPopover from './LinkPopover';
 import { useBlockReducer } from './hooks/useBlockReducer';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useClipboard } from './hooks/useClipboard';
 import { useSlashMenu } from './hooks/useSlashMenu';
 import { useFormattingMenu } from './hooks/useFormattingMenu';
+import { useLinkPopover } from './hooks/useLinkPopover';
 import { useCrossBlockSelection } from './hooks/useCrossBlockSelection';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { debounce } from '../../utils/debounce';
+import { isValidUrl, normalizeUrl } from '../../utils/urlUtils';
 import './BlockEditor.css';
 
 // Markdown shortcuts for quick block conversion
@@ -42,6 +45,7 @@ const UnifiedBlockEditor = () => {
     const { state, actions } = useBlockReducer();
     const editorRef = useRef(null);
     const isUpdatingFromDOM = useRef(false);
+    const autoOpenLinkTimeoutRef = useRef(null);
     const [hoveredBlockId, setHoveredBlockId] = useState(null);
     const [handlePositions, setHandlePositions] = useState({});
     const [focusedBlockId, setFocusedBlockId] = useState(null);
@@ -88,10 +92,24 @@ const UnifiedBlockEditor = () => {
         applyFormat,
         applyHighlight,
         clearHighlight,
-        insertLink,
+        applyLinkToSelection,
         removeLink,
         changeBlockType: changeBlockTypeFromMenu,
+        getMenuPosition,
     } = useFormattingMenu({ editorRef, state, actions });
+
+    // Link Popover Hook
+    const {
+        state: linkPopoverState,
+        openForSelection: openLinkPopoverForSelection,
+        openForLink: openLinkPopoverForLink,
+        applyLink: applyLinkFromPopover,
+        unlinkCurrentLink,
+        close: closeLinkPopover,
+        checkCursorInLink,
+        cancelScheduledClose: cancelLinkPopoverClose,
+        scheduleClose: scheduleLinkPopoverClose,
+    } = useLinkPopover({ editorRef, onApplyLink: applyLinkToSelection });
 
     // Keyboard Navigation Hook
     useKeyboardNavigation({
@@ -635,7 +653,26 @@ const UnifiedBlockEditor = () => {
             setTimeout(debouncedSync, 0);
             return;
         }
-    }, [slashMenu, openSlashMenu, closeSlashMenu, updateSlashMenuFilter, debouncedSync]);
+
+        // Link shortcut (Ctrl/Cmd+K)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+
+            // Check if cursor is inside a link
+            const linkEl = checkCursorInLink();
+            if (linkEl) {
+                // Open link popover for editing
+                openLinkPopoverForLink(linkEl);
+            } else if (!sel.isCollapsed) {
+                // Has text selection - open link popover for creating link
+                const menuPos = getMenuPosition();
+                openLinkPopoverForSelection(menuPos);
+            }
+            return;
+        }
+    }, [slashMenu, openSlashMenu, closeSlashMenu, updateSlashMenuFilter, debouncedSync, checkCursorInLink, openLinkPopoverForLink, openLinkPopoverForSelection, getMenuPosition]);
 
     /**
      * Gets cursor position within a block element.
@@ -895,6 +932,41 @@ const UnifiedBlockEditor = () => {
                 setFocusedBlockId(null);
             }
 
+            // Check for cursor inside link (collapsed selection only)
+            // Only auto-open popover if not already open
+            // Skip if focus is inside the link popover (input is focused)
+            const activeElement = document.activeElement;
+            const isPopoverInputFocused = activeElement?.closest('.link-popover');
+
+            if (sel.isCollapsed && !linkPopoverState.isOpen && !isPopoverInputFocused) {
+                const linkEl = checkCursorInLink();
+                if (linkEl) {
+                    // Cancel any scheduled close
+                    cancelLinkPopoverClose();
+                    // Clear any previous auto-open timeout
+                    if (autoOpenLinkTimeoutRef.current) {
+                        clearTimeout(autoOpenLinkTimeoutRef.current);
+                    }
+                    // Open popover for this link with a slight delay
+                    // to avoid opening while user is just passing through
+                    autoOpenLinkTimeoutRef.current = setTimeout(() => {
+                        const currentLink = checkCursorInLink();
+                        if (currentLink === linkEl) {
+                            openLinkPopoverForLink(linkEl);
+                        }
+                        autoOpenLinkTimeoutRef.current = null;
+                    }, 300);
+                }
+            } else if (sel.isCollapsed && linkPopoverState.isOpen && linkPopoverState.isEditing && !isPopoverInputFocused) {
+                // Only close if popover was opened for EDITING (cursor on existing link)
+                // Don't close if opened for creating a NEW link (from FormattingMenu)
+                // Don't close if focus is on the popover input
+                const linkEl = checkCursorInLink();
+                if (!linkEl) {
+                    scheduleLinkPopoverClose(150);
+                }
+            }
+
             // Update empty state after selection change
             updateEmptyState();
         };
@@ -906,8 +978,12 @@ const UnifiedBlockEditor = () => {
             document.removeEventListener('selectionchange', debouncedHandler);
             // Cancel any pending debounced calls to prevent memory leaks
             debouncedHandler.cancel?.();
+            // Clear auto-open timeout
+            if (autoOpenLinkTimeoutRef.current) {
+                clearTimeout(autoOpenLinkTimeoutRef.current);
+            }
         };
-    }, [updateEmptyState]);
+    }, [updateEmptyState, checkCursorInLink, openLinkPopoverForLink, linkPopoverState.isOpen, linkPopoverState.isEditing, cancelLinkPopoverClose, scheduleLinkPopoverClose]);
 
     // Sync selection state and focused state to DOM
     useEffect(() => {
@@ -940,6 +1016,44 @@ const UnifiedBlockEditor = () => {
         });
     }, [state.selectedBlockIds, dragState.draggedBlockIds, focusedBlockId]);
 
+    // Handle paste for URL linking
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const handlePaste = (e) => {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+
+            // Only handle if there's a text selection
+            if (sel.isCollapsed) return;
+
+            // Check if selection is within editor
+            const range = sel.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            const blockEl = container.nodeType === Node.TEXT_NODE
+                ? container.parentElement?.closest('[data-block-id]')
+                : container.closest?.('[data-block-id]');
+
+            if (!blockEl || !editor.contains(blockEl)) return;
+
+            // Get clipboard text
+            const clipboardText = e.clipboardData?.getData('text/plain');
+            if (!clipboardText || !isValidUrl(clipboardText)) return;
+
+            // We have a valid URL and selected text - create a link
+            e.preventDefault();
+
+            const normalizedUrl = normalizeUrl(clipboardText);
+            document.execCommand('createLink', false, normalizedUrl);
+        };
+
+        editor.addEventListener('paste', handlePaste);
+
+        return () => {
+            editor.removeEventListener('paste', handlePaste);
+        };
+    }, []);
 
 
     // Update positions when blocks change
@@ -1127,11 +1241,26 @@ const UnifiedBlockEditor = () => {
                     onFormat={applyFormat}
                     onHighlight={applyHighlight}
                     onClearHighlight={clearHighlight}
-                    onInsertLink={insertLink}
+                    onOpenLinkPopover={() => {
+                        const menuPos = getMenuPosition();
+                        openLinkPopoverForSelection(menuPos);
+                    }}
                     onRemoveLink={removeLink}
                     onChangeBlockType={changeBlockTypeFromMenu}
                 />
             )}
+
+            {/* Link popover */}
+            <LinkPopover
+                isOpen={linkPopoverState.isOpen}
+                position={linkPopoverState.position}
+                currentUrl={linkPopoverState.currentUrl}
+                isEditing={linkPopoverState.isEditing}
+                onApply={applyLinkFromPopover}
+                onUnlink={unlinkCurrentLink}
+                onClose={closeLinkPopover}
+                formattingMenuHeight={40}
+            />
         </div>
     );
 };

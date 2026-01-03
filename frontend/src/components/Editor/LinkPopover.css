@@ -1,0 +1,105 @@
+/* Link Popover - Floating URL editor */
+.link-popover {
+    position: fixed;
+    z-index: var(--z-index-link-popover, 1120);
+    transform: translate(-50%, -100%);
+    background: var(--color-bg-white, white);
+    border: 1px solid var(--color-gray-100, #f3f4f6);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px var(--color-shadow-menu, rgba(0, 0, 0, 0.12));
+    padding: 6px;
+    animation: linkPopoverAppear 0.15s ease-out;
+}
+
+@keyframes linkPopoverAppear {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -100%) translateY(4px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -100%) translateY(0);
+    }
+}
+
+.link-popover-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.link-popover-input {
+    width: 240px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--color-gray-200, #e5e7eb);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--color-text-primary, #000);
+    background: var(--color-bg-white, white);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.link-popover-input::placeholder {
+    color: var(--color-gray-400, #9ca3af);
+}
+
+.link-popover-input:focus {
+    border-color: var(--color-selection-blue, #2383e2);
+    box-shadow: 0 0 0 2px var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.12));
+}
+
+.link-popover-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.link-popover-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: var(--color-gray-500, #6b7280);
+    cursor: pointer;
+    transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.link-popover-button:hover {
+    background-color: var(--color-gray-100, #f3f4f6);
+    color: var(--color-text-primary, #000);
+}
+
+.link-popover-apply {
+    color: var(--color-selection-blue, #2383e2);
+}
+
+.link-popover-apply:hover {
+    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
+    color: var(--color-selection-blue, #2383e2);
+}
+
+.link-popover-open {
+    color: var(--color-gray-500, #6b7280);
+}
+
+.link-popover-open:hover {
+    background-color: var(--color-gray-100, #f3f4f6);
+    color: var(--color-text-primary, #000);
+}
+
+.link-popover-unlink {
+    color: var(--color-gray-500, #6b7280);
+}
+
+.link-popover-unlink:hover {
+    background-color: var(--color-danger-bg, rgba(239, 68, 68, 0.1));
+    color: var(--color-danger, #ef4444);
+}

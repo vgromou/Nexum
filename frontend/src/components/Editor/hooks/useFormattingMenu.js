@@ -606,23 +606,60 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     }, [restoreSelection, removeExistingHighlights, getActiveFormats]);
 
     /**
-     * Inserts a link around the selected text.
+     * Applies a link to the selected text with the given URL.
+     * Called from LinkPopover after user enters URL.
      */
-    const insertLink = useCallback(() => {
+    const applyLinkToSelection = useCallback((url) => {
+        if (!url || !url.trim()) return;
         if (!restoreSelection()) return;
+        document.execCommand('createLink', false, url);
+        // Update active formats
+        const newFormats = getActiveFormats();
+        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+    }, [restoreSelection, getActiveFormats]);
 
-        const url = prompt('Enter URL:');
-        if (url) {
-            document.execCommand('createLink', false, url);
-        }
-        // Menu stays open
-    }, [restoreSelection]);
+    /**
+     * Gets the current menu position for LinkPopover positioning.
+     */
+    const getMenuPosition = useCallback(() => {
+        return menu.position;
+    }, [menu.position]);
+
+    /**
+     * Gets the saved selection for external use.
+     */
+    const getSavedSelection = useCallback(() => {
+        return selectionRef.current;
+    }, []);
 
     /**
      * Removes the link from the selected text.
+     * If cursor is inside a link without selection, selects the entire link first.
      */
     const removeLink = useCallback(() => {
         if (!restoreSelection()) return;
+
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+
+        const range = sel.getRangeAt(0);
+
+        // If selection is collapsed (just cursor), check if inside a link
+        if (range.collapsed) {
+            const node = sel.anchorNode;
+            const linkEl = node?.nodeType === Node.TEXT_NODE
+                ? node.parentElement?.closest('a')
+                : node?.closest?.('a');
+
+            if (linkEl) {
+                // Select the entire link content
+                const linkRange = document.createRange();
+                linkRange.selectNodeContents(linkEl);
+                sel.removeAllRanges();
+                sel.addRange(linkRange);
+            }
+        }
+
         document.execCommand('unlink', false, null);
         // Menu stays open
     }, [restoreSelection]);
@@ -770,9 +807,12 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         applyFormat,
         applyHighlight,
         clearHighlight,
-        insertLink,
+        applyLinkToSelection,
         removeLink,
         changeBlockType,
+        getMenuPosition,
+        getSavedSelection,
+        restoreSelection,
     };
 }
 

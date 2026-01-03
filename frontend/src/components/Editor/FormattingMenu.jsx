@@ -60,7 +60,7 @@ const FormattingMenu = ({
     onFormat,
     onHighlight,
     onClearHighlight,
-    onInsertLink,
+    onOpenLinkPopover,
     onRemoveLink,
     onChangeBlockType,
     onClose,
@@ -241,8 +241,8 @@ const FormattingMenu = ({
                     <div className="formatting-menu-group">
                         <button
                             className={`formatting-menu-button ${activeFormats.link ? 'active' : ''}`}
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onInsertLink(); }}
-                            title="Insert link"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenLinkPopover(); }}
+                            title="Insert link (⌘K)"
                         >
                             <Link size={16} />
                         </button>

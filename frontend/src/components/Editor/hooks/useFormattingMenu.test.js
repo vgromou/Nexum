@@ -25,15 +25,29 @@ describe('useFormattingMenu', () => {
             current: document.createElement('div'),
         };
 
-        // Setup mock range
+        // Setup block element first (needed for range setup)
+        const blockEl = document.createElement('p');
+        blockEl.setAttribute('data-block-id', '1');
+        blockEl.setAttribute('data-block-type', 'paragraph');
+        blockEl.textContent = 'Test content';
+        mockEditorRef.current.appendChild(blockEl);
+
+        // Setup mock range with proper properties for getValidSelection
         mockRange = {
             collapsed: false,
-            commonAncestorContainer: document.createTextNode('test'),
+            commonAncestorContainer: blockEl.firstChild,
+            startContainer: blockEl.firstChild,
+            endContainer: blockEl.firstChild,
+            startOffset: 0,
+            endOffset: 12,
             getBoundingClientRect: vi.fn(() => ({
                 top: 100,
                 left: 200,
                 width: 50,
             })),
+            getClientRects: vi.fn(() => [
+                { top: 100, left: 200, width: 50 },
+            ]),
             cloneRange: vi.fn(() => mockRange),
             toString: vi.fn(() => 'selected text'),
             surroundContents: vi.fn(),
@@ -47,16 +61,8 @@ describe('useFormattingMenu', () => {
             getRangeAt: vi.fn(() => mockRange),
             removeAllRanges: vi.fn(),
             addRange: vi.fn(),
+            anchorNode: blockEl.firstChild,
         };
-
-        // Setup block element
-        const blockEl = document.createElement('p');
-        blockEl.setAttribute('data-block-id', '1');
-        blockEl.textContent = 'Test content';
-        mockEditorRef.current.appendChild(blockEl);
-
-        // Mock commonAncestorContainer to be within the block
-        mockRange.commonAncestorContainer = blockEl.firstChild;
 
         // Mock window.getSelection
         vi.spyOn(window, 'getSelection').mockImplementation(() => mockSelection);
@@ -128,7 +134,7 @@ describe('useFormattingMenu', () => {
         expect(typeof result.current.applyFormat).toBe('function');
         expect(typeof result.current.applyHighlight).toBe('function');
         expect(typeof result.current.clearHighlight).toBe('function');
-        expect(typeof result.current.insertLink).toBe('function');
+        expect(typeof result.current.applyLinkToSelection).toBe('function');
         expect(typeof result.current.removeLink).toBe('function');
         expect(typeof result.current.changeBlockType).toBe('function');
     });
@@ -186,8 +192,8 @@ describe('useFormattingMenu', () => {
         });
     });
 
-    describe('insertLink and removeLink', () => {
-        it('should provide insertLink function', () => {
+    describe('applyLinkToSelection and removeLink', () => {
+        it('should provide applyLinkToSelection function', () => {
             const { result } = renderHook(() =>
                 useFormattingMenu({
                     editorRef: mockEditorRef,
@@ -196,7 +202,7 @@ describe('useFormattingMenu', () => {
                 })
             );
 
-            expect(typeof result.current.insertLink).toBe('function');
+            expect(typeof result.current.applyLinkToSelection).toBe('function');
         });
 
         it('should provide removeLink function', () => {
@@ -274,6 +280,303 @@ describe('useFormattingMenu', () => {
             );
 
             expect(typeof result.current.clearHighlight).toBe('function');
+        });
+
+        it('should not throw when called without valid selection', () => {
+            mockSelection.isCollapsed = true;
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(() => {
+                act(() => {
+                    result.current.clearHighlight('highlight');
+                });
+            }).not.toThrow();
+        });
+    });
+
+    describe('applyLinkToSelection', () => {
+        it('should provide applyLinkToSelection function', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(typeof result.current.applyLinkToSelection).toBe('function');
+        });
+
+        it('should not apply link with empty URL', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            act(() => {
+                result.current.applyLinkToSelection('');
+            });
+
+            expect(document.execCommand).not.toHaveBeenCalledWith('createLink', false, '');
+        });
+
+        it('should not apply link with whitespace-only URL', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            act(() => {
+                result.current.applyLinkToSelection('   ');
+            });
+
+            expect(document.execCommand).not.toHaveBeenCalledWith('createLink', false, '   ');
+        });
+
+        it('should call execCommand with createLink when valid URL is provided', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // First open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            act(() => {
+                result.current.applyLinkToSelection('https://example.com');
+            });
+
+            expect(document.execCommand).toHaveBeenCalledWith('createLink', false, 'https://example.com');
+        });
+    });
+
+    describe('getMenuPosition', () => {
+        it('should provide getMenuPosition function', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(typeof result.current.getMenuPosition).toBe('function');
+        });
+
+        it('should return menu position with top and left', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            const position = result.current.getMenuPosition();
+
+            expect(position).toHaveProperty('top');
+            expect(position).toHaveProperty('left');
+        });
+
+        it('should return updated position after opening menu', () => {
+            mockRange.getClientRects = vi.fn(() => [
+                { top: 150, left: 250, width: 100 },
+            ]);
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            act(() => {
+                result.current.openMenu();
+            });
+
+            const position = result.current.getMenuPosition();
+
+            // Position should be above selection (top - 8) and centered
+            expect(position.top).toBe(150 - 8);
+            expect(position.left).toBe(250 + 100 / 2);
+        });
+    });
+
+    describe('getSavedSelection', () => {
+        it('should provide getSavedSelection function', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(typeof result.current.getSavedSelection).toBe('function');
+        });
+
+        it('should return null initially', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            const selection = result.current.getSavedSelection();
+
+            expect(selection).toBe(null);
+        });
+
+        it('should return saved selection after opening menu', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            act(() => {
+                result.current.openMenu();
+            });
+
+            const selection = result.current.getSavedSelection();
+
+            expect(selection).toBe(mockRange);
+        });
+    });
+
+    describe('restoreSelection', () => {
+        it('should provide restoreSelection function', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(typeof result.current.restoreSelection).toBe('function');
+        });
+
+        it('should return false when no selection is saved', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            let restored;
+            act(() => {
+                restored = result.current.restoreSelection();
+            });
+
+            expect(restored).toBe(false);
+        });
+
+        it('should return true and restore selection when selection is saved', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // First open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            let restored;
+            act(() => {
+                restored = result.current.restoreSelection();
+            });
+
+            expect(restored).toBe(true);
+            expect(mockSelection.removeAllRanges).toHaveBeenCalled();
+            expect(mockSelection.addRange).toHaveBeenCalledWith(mockRange);
+        });
+    });
+
+    describe('removeLink enhanced behavior', () => {
+        it('should call execCommand unlink when selection is not collapsed', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // First open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            act(() => {
+                result.current.removeLink();
+            });
+
+            expect(document.execCommand).toHaveBeenCalledWith('unlink', false, null);
+        });
+
+        it('should handle collapsed selection inside a link', () => {
+            // Create a link element
+            const linkEl = document.createElement('a');
+            linkEl.href = 'https://example.com';
+            linkEl.textContent = 'link text';
+
+            const blockEl = mockEditorRef.current.querySelector('[data-block-id]');
+            blockEl.appendChild(linkEl);
+
+            // Mock collapsed selection inside link
+            const linkTextNode = linkEl.firstChild;
+            mockRange.collapsed = true;
+            mockRange.commonAncestorContainer = linkTextNode;
+            mockSelection.anchorNode = linkTextNode;
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // First open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            act(() => {
+                result.current.removeLink();
+            });
+
+            expect(document.execCommand).toHaveBeenCalledWith('unlink', false, null);
         });
     });
 });

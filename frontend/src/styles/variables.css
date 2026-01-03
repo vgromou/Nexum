@@ -162,4 +162,13 @@
   --font-size-tag: 13px;
   --line-height-tag: 1.38;
   --border-radius-tag: 4px;
+
+  /* Z-index layers */
+  --z-index-menu: 1100;
+  --z-index-popover: 1110;
+  --z-index-link-popover: 1120;
+
+  /* Danger/Error colors */
+  --color-danger: #ef4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
 }
