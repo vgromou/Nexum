@@ -9,9 +9,9 @@ describe('useCrossBlockSelection', () => {
     beforeEach(() => {
         mockState = {
             blocks: [
-                { id: 'block-1', type: 'paragraph', content: 'First block content' },
-                { id: 'block-2', type: 'h1', content: 'Heading block' },
-                { id: 'block-3', type: 'paragraph', content: 'Third block content' },
+                { id: 'block-1', type: 'paragraph', content: 'First block content', indentLevel: 0 },
+                { id: 'block-2', type: 'bulleted-list', content: 'List item', indentLevel: 1 },
+                { id: 'block-3', type: 'paragraph', content: 'Third block content', indentLevel: 0 },
             ],
             focusedBlockId: 'block-1',
             textSelectionBlockIds: [],

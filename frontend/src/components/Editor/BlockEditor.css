@@ -807,3 +807,58 @@
     font-weight: bold;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
+/* ==========================================
+   NESTED LIST STYLES (indentLevel 0-2)
+   ========================================== */
+
+/* Indent level margins for list blocks */
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="1"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="1"] {
+    margin-left: 24px;
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="2"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="2"] {
+    margin-left: 48px;
+}
+
+/* Different bullet markers per indent level */
+/* Level 0: filled circle (•) - already defined */
+/* Level 1: empty circle (◦) */
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="1"]::before {
+    content: '◦';
+}
+
+/* Level 2: filled square (▪) */
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="2"]::before {
+    content: '▪';
+}
+
+/* Nested numbered list counter management */
+/* Counter reset for nested levels */
+.unified-content-area .block-content[data-list-reset-1="true"] {
+    counter-reset: list-counter-1;
+}
+
+.unified-content-area .block-content[data-list-reset-2="true"] {
+    counter-reset: list-counter-2;
+}
+
+/* Level 1 numbered list counter */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="1"] {
+    counter-increment: list-counter-1;
+}
+
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="1"]::before {
+    content: counter(list-counter-1) ".";
+}
+
+/* Level 2 numbered list counter */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="2"] {
+    counter-increment: list-counter-2;
+}
+
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="2"]::before {
+    content: counter(list-counter-2) ".";
+}

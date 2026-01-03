@@ -50,6 +50,7 @@ export const ACTIONS = {
     INSERT_BLOCKS: 'INSERT_BLOCKS',
     DELETE_CROSS_SELECTION: 'DELETE_CROSS_SELECTION',
     SPLIT_AND_INSERT_BLOCKS: 'SPLIT_AND_INSERT_BLOCKS',
+    SET_INDENT_LEVEL: 'SET_INDENT_LEVEL',
 };
 
 /**
@@ -356,10 +357,13 @@ function blockReducer(state, action) {
             const { afterBlockId, blocksToInsert, focusFirst = true } = action.payload;
             if (!blocksToInsert || blocksToInsert.length === 0) return state;
 
-            // Generate new IDs for inserted blocks
+            // Generate new IDs for inserted blocks, preserving all properties
             const newBlocks = blocksToInsert.map(b => ({
                 ...b,
                 id: generateBlockId(),
+                type: b.type || 'paragraph',
+                content: b.content || '',
+                indentLevel: b.indentLevel ?? 0,
             }));
 
             let insertIndex;
@@ -438,6 +442,18 @@ function blockReducer(state, action) {
                 textSelectionBlockIds: [],
                 focusedBlockId: startBlock.id,
                 focusVersion: state.focusVersion + 1,
+            };
+        }
+
+        case ACTIONS.SET_INDENT_LEVEL: {
+            const { blockId, indentLevel } = action.payload;
+            // Clamp to valid range 0-2
+            const clampedLevel = Math.max(0, Math.min(2, indentLevel));
+            return {
+                ...state,
+                blocks: state.blocks.map(b =>
+                    b.id === blockId ? { ...b, indentLevel: clampedLevel } : b
+                ),
             };
         }
 
@@ -652,6 +668,13 @@ export function useBlockReducer(initialBlocks = null) {
         });
     }, []);
 
+    const setIndentLevel = useCallback((blockId, indentLevel) => {
+        dispatch({
+            type: ACTIONS.SET_INDENT_LEVEL,
+            payload: { blockId, indentLevel }
+        });
+    }, []);
+
     return {
         state,
         dispatch,
@@ -679,6 +702,7 @@ export function useBlockReducer(initialBlocks = null) {
             insertBlocks,
             deleteCrossSelection,
             splitAndInsertBlocks,
+            setIndentLevel,
         },
     };
 }

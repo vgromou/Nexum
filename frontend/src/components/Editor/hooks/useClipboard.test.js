@@ -136,7 +136,9 @@ describe('useClipboard', () => {
             { type: 'h1', content: 'Stored heading' },
             { type: 'paragraph', content: 'Stored paragraph' },
         ];
-        sessionStorageMock.getItem.mockReturnValue(JSON.stringify(storedBlocks));
+        sessionStorageMock.getItem.mockReturnValue(JSON.stringify({ blocks: storedBlocks }));
+        // Clipboard text must match stored blocks content for validation
+        clipboardMock.readText.mockResolvedValue('Stored heading\nStored paragraph');
 
         const { result } = renderHook(() =>
             useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
@@ -146,12 +148,17 @@ describe('useClipboard', () => {
             await result.current.pasteFromClipboard(false);
         });
 
-        expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-1', storedBlocks);
+        expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-1', expect.arrayContaining([
+            expect.objectContaining({ type: 'h1', content: 'Stored heading' }),
+            expect.objectContaining({ type: 'paragraph', content: 'Stored paragraph' }),
+        ]));
     });
 
     it('pastes structured blocks after last block when no focused block', async () => {
         const storedBlocks = [{ type: 'paragraph', content: 'New block' }];
-        sessionStorageMock.getItem.mockReturnValue(JSON.stringify(storedBlocks));
+        sessionStorageMock.getItem.mockReturnValue(JSON.stringify({ blocks: storedBlocks }));
+        // Clipboard text must match stored blocks content for validation
+        clipboardMock.readText.mockResolvedValue('New block');
 
         const stateWithoutFocus = { ...mockState, focusedBlockId: null };
         const { result } = renderHook(() =>
@@ -166,7 +173,9 @@ describe('useClipboard', () => {
             await result.current.pasteFromClipboard(false);
         });
 
-        expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-3', storedBlocks);
+        expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-3', expect.arrayContaining([
+            expect.objectContaining({ type: 'paragraph', content: 'New block' }),
+        ]));
     });
 
     it('handles paste error gracefully', async () => {
@@ -196,5 +205,89 @@ describe('useClipboard', () => {
 
         // ClipboardItem should have been called with proper HTML structure
         expect(global.ClipboardItem).toHaveBeenCalled();
+    });
+
+    it('preserves indentLevel when copying blocks', async () => {
+        const stateWithIndent = {
+            ...mockState,
+            blocks: [
+                { id: 'block-1', type: 'bulleted-list', content: 'Item 1', indentLevel: 0 },
+                { id: 'block-2', type: 'bulleted-list', content: 'Nested', indentLevel: 1 },
+                { id: 'block-3', type: 'bulleted-list', content: 'Deep nested', indentLevel: 2 },
+            ],
+        };
+
+        const { result } = renderHook(() =>
+            useClipboard({ state: stateWithIndent, actions: mockActions, editorRef: mockEditorRef })
+        );
+
+        await act(async () => {
+            await result.current.copyBlocksToClipboard(['block-1', 'block-2', 'block-3']);
+        });
+
+        const savedData = JSON.parse(sessionStorageMock.setItem.mock.calls[0][1]);
+        expect(savedData.blocks[0].indentLevel).toBe(0);
+        expect(savedData.blocks[1].indentLevel).toBe(1);
+        expect(savedData.blocks[2].indentLevel).toBe(2);
+    });
+
+    it('rejects stale stored blocks when clipboard text does not match', async () => {
+        const storedBlocks = [
+            { type: 'h1', content: 'Old heading' },
+            { type: 'paragraph', content: 'Old paragraph' },
+        ];
+        sessionStorageMock.getItem.mockReturnValue(JSON.stringify({ blocks: storedBlocks }));
+        // Clipboard text is DIFFERENT from stored blocks (multi-line to trigger insertBlocks)
+        clipboardMock.readText.mockResolvedValue('Completely different content\nSecond line of new content');
+
+        const { result } = renderHook(() =>
+            useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
+        );
+
+        await act(async () => {
+            await result.current.pasteFromClipboard(false);
+        });
+
+        // Should create paragraph blocks from clipboard text instead of using stale stored blocks
+        expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-1', expect.arrayContaining([
+            expect.objectContaining({ type: 'paragraph', content: 'Completely different content' }),
+            expect.objectContaining({ type: 'paragraph', content: 'Second line of new content' }),
+        ]));
+    });
+
+    it('pastes multi-line external content as separate blocks', async () => {
+        sessionStorageMock.getItem.mockReturnValue(null);
+        clipboardMock.readText.mockResolvedValue('Line 1\nLine 2\nLine 3');
+
+        const { result } = renderHook(() =>
+            useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
+        );
+
+        await act(async () => {
+            await result.current.pasteFromClipboard(false);
+        });
+
+        expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-1', expect.arrayContaining([
+            expect.objectContaining({ type: 'paragraph', content: 'Line 1' }),
+            expect.objectContaining({ type: 'paragraph', content: 'Line 2' }),
+            expect.objectContaining({ type: 'paragraph', content: 'Line 3' }),
+        ]));
+    });
+
+    it('filters empty lines when pasting multi-line content', async () => {
+        sessionStorageMock.getItem.mockReturnValue(null);
+        clipboardMock.readText.mockResolvedValue('Line 1\n\n\nLine 2\n   \nLine 3');
+
+        const { result } = renderHook(() =>
+            useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
+        );
+
+        await act(async () => {
+            await result.current.pasteFromClipboard(false);
+        });
+
+        const insertedBlocks = mockActions.insertBlocks.mock.calls[0][1];
+        expect(insertedBlocks).toHaveLength(3);
+        expect(insertedBlocks.every(b => b.content.trim() !== '')).toBe(true);
     });
 });

@@ -286,4 +286,36 @@ describe('useKeyboardNavigation', () => {
 
         expect(mockCopyBlocksToClipboard).not.toHaveBeenCalled();
     });
+
+    it('always intercepts paste to ensure block structure preservation', () => {
+        // Even without any selections, paste should be intercepted
+        renderNavigationHook({
+            state: { selectedBlockIds: [], textSelectionBlockIds: [] },
+        });
+
+        const event = createKeyboardEvent('v', { metaKey: true });
+        const handler = addEventListenerSpy.mock.calls.find(
+            (call) => call[0] === 'keydown'
+        )[1];
+
+        handler(event);
+
+        // Paste should always be called to maintain block structure
+        expect(mockPasteFromClipboard).toHaveBeenCalledWith(false);
+    });
+
+    it('uses plain text paste with Ctrl+Shift+V', () => {
+        renderNavigationHook({
+            state: { selectedBlockIds: [], textSelectionBlockIds: [] },
+        });
+
+        const event = createKeyboardEvent('v', { ctrlKey: true, shiftKey: true });
+        const handler = addEventListenerSpy.mock.calls.find(
+            (call) => call[0] === 'keydown'
+        )[1];
+
+        handler(event);
+
+        expect(mockPasteFromClipboard).toHaveBeenCalledWith(true);
+    });
 });

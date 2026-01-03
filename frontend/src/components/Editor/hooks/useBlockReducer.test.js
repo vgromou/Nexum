@@ -111,4 +111,55 @@ describe('useBlockReducer', () => {
         expect(result.current.state.blocks[0].id).toBe(secondBlockId);
         expect(result.current.state.blocks[1].id).toBe(firstBlockId);
     });
+
+    it('sets indent level for a block', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const blockId = result.current.state.blocks[0].id;
+
+        // Change to list type first
+        act(() => {
+            result.current.actions.changeBlockType(blockId, 'bulleted-list');
+        });
+
+        act(() => {
+            result.current.actions.setIndentLevel(blockId, 1);
+        });
+
+        expect(result.current.state.blocks[0].indentLevel).toBe(1);
+    });
+
+    it('clamps indent level to 0-2 range', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const blockId = result.current.state.blocks[0].id;
+
+        // Try to set indent level above max
+        act(() => {
+            result.current.actions.setIndentLevel(blockId, 5);
+        });
+        expect(result.current.state.blocks[0].indentLevel).toBe(2);
+
+        // Try to set indent level below min
+        act(() => {
+            result.current.actions.setIndentLevel(blockId, -1);
+        });
+        expect(result.current.state.blocks[0].indentLevel).toBe(0);
+    });
+
+    it('preserves indentLevel when inserting blocks', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const firstBlockId = result.current.state.blocks[0].id;
+
+        act(() => {
+            result.current.actions.insertBlocks(firstBlockId, [
+                { type: 'bulleted-list', content: 'Nested item', indentLevel: 1 },
+                { type: 'bulleted-list', content: 'More nested', indentLevel: 2 },
+            ]);
+        });
+
+        expect(result.current.state.blocks).toHaveLength(3);
+        expect(result.current.state.blocks[1].type).toBe('bulleted-list');
+        expect(result.current.state.blocks[1].indentLevel).toBe(1);
+        expect(result.current.state.blocks[2].indentLevel).toBe(2);
+    });
 });
+

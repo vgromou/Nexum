@@ -25,6 +25,7 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
         const blocksData = blocksToCopy.map(b => ({
             type: b.type,
             content: b.content,
+            indentLevel: b.indentLevel ?? 0,
             isPartial: { start: false, end: false },
         }));
 
@@ -166,12 +167,26 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
                 return preRange.toString().length;
             };
 
-            // If structured paste and we have stored blocks
-            if (!asPlainText && storedBlocks && storedBlocks.length > 0) {
+            // Validate that stored blocks match current clipboard
+            // (protects against stale sessionStorage data from previous copies)
+            const storedPlainText = storedBlocks?.map(b => {
+                const div = document.createElement('div');
+                div.innerHTML = b.content || '';
+                return div.textContent || '';
+            }).join('\n') || '';
+
+            const isOurData = storedBlocks &&
+                storedBlocks.length > 0 &&
+                storedPlainText.trim() === clipboardText.trim();
+
+            // If structured paste and we have VALID stored blocks
+            if (!asPlainText && isOurData) {
                 // Sanitize stored content before inserting
                 const sanitizedBlocks = storedBlocks.map(block => ({
-                    ...block,
-                    content: DOMPurify.sanitize(block.content),
+                    type: block.type || 'paragraph',
+                    content: DOMPurify.sanitize(block.content || ''),
+                    indentLevel: block.indentLevel ?? 0,
+                    isPartial: block.isPartial || { start: false, end: false },
                 }));
 
                 const hasPartialBlocks = sanitizedBlocks.some(
@@ -190,8 +205,11 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
                     actions.insertBlocks(state.blocks[state.blocks.length - 1].id, sanitizedBlocks);
                 }
             } else {
-                // Plain text paste into current block
-                if (focusedBlockId) {
+                // External content or plain text paste
+                const lines = clipboardText.split('\n');
+
+                if (lines.length === 1 && focusedBlockId) {
+                    // Single line: insert into current block at cursor
                     const element = editorRef.current?.querySelector(
                         `[data-block-id="${focusedBlockId}"] .block-content`
                     );
@@ -204,11 +222,25 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
                             range.insertNode(document.createTextNode(clipboardText));
                             range.collapse(false);
 
-                            const block = state.blocks.find(b => b.id === focusedBlockId);
-                            if (block) {
-                                actions.updateBlock(focusedBlockId, element.innerHTML);
-                            }
+                            actions.updateBlock(focusedBlockId, element.innerHTML);
                         }
+                    }
+                } else if (lines.length > 1) {
+                    // Multiple lines: create separate blocks for each
+                    const nonEmptyLines = lines.filter(line => line.trim() !== '');
+                    if (nonEmptyLines.length === 0) return;
+
+                    const newBlocks = nonEmptyLines.map(line => ({
+                        type: 'paragraph',
+                        content: DOMPurify.sanitize(line),
+                        indentLevel: 0,
+                        isPartial: { start: false, end: false },
+                    }));
+
+                    if (focusedBlockId) {
+                        actions.insertBlocks(focusedBlockId, newBlocks);
+                    } else if (state.blocks.length > 0) {
+                        actions.insertBlocks(state.blocks[state.blocks.length - 1].id, newBlocks);
                     }
                 }
             }

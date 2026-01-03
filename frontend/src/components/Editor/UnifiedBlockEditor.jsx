@@ -174,18 +174,23 @@ const UnifiedBlockEditor = () => {
             const blockId = el.getAttribute('data-block-id');
             const blockType = el.getAttribute('data-block-type') || 'paragraph';
             const content = el.innerHTML;
+            const indentLevel = parseInt(el.getAttribute('data-indent-level') || '0', 10);
 
             newBlocks.push({
                 id: blockId,
                 type: blockType,
                 content,
+                indentLevel,
             });
         });
 
-        // Only update if content or type actually changed
+        // Only update if content, type, or indentLevel actually changed
         const hasChanges = newBlocks.some((newBlock, i) => {
             const oldBlock = state.blocks[i];
-            return !oldBlock || oldBlock.content !== newBlock.content || oldBlock.type !== newBlock.type;
+            return !oldBlock ||
+                oldBlock.content !== newBlock.content ||
+                oldBlock.type !== newBlock.type ||
+                (oldBlock.indentLevel ?? 0) !== newBlock.indentLevel;
         }) || newBlocks.length !== state.blocks.length;
 
         if (hasChanges && newBlocks.length > 0) {
@@ -380,6 +385,42 @@ const UnifiedBlockEditor = () => {
         const blockId = blockEl.getAttribute('data-block-id');
         const blockType = blockEl.getAttribute('data-block-type') || 'paragraph';
         const textContent = blockEl.textContent || '';
+        const currentIndentLevel = parseInt(blockEl.getAttribute('data-indent-level') || '0', 10);
+
+        // Tab key - increase indent level for lists
+        if (e.key === 'Tab' && !e.shiftKey) {
+            // Only for list types
+            if (['bulleted-list', 'numbered-list'].includes(blockType)) {
+                e.preventDefault();
+
+                // Find previous block to determine max allowed indent
+                const blockIndex = state.blocks.findIndex(b => b.id === blockId);
+                const prevBlock = blockIndex > 0 ? state.blocks[blockIndex - 1] : null;
+                const prevIndent = prevBlock?.indentLevel ?? 0;
+                // Can't be more than prev+1 and max is 2
+                const maxAllowedIndent = Math.min(prevIndent + 1, 2);
+
+                if (currentIndentLevel < maxAllowedIndent) {
+                    actions.setIndentLevel(blockId, currentIndentLevel + 1);
+                }
+                return;
+            }
+            // For non-list blocks, let default Tab behavior (or do nothing)
+            return;
+        }
+
+        // Shift+Tab - decrease indent level for lists
+        if (e.key === 'Tab' && e.shiftKey) {
+            if (['bulleted-list', 'numbered-list'].includes(blockType)) {
+                e.preventDefault();
+
+                if (currentIndentLevel > 0) {
+                    actions.setIndentLevel(blockId, currentIndentLevel - 1);
+                }
+                return;
+            }
+            return;
+        }
 
         // Slash command trigger
         if (e.key === '/' && !slashMenu.isOpen) {
@@ -422,16 +463,26 @@ const UnifiedBlockEditor = () => {
 
             e.preventDefault();
 
-            // For lists and quotes: convert to paragraph if empty
+            // For lists and quotes: handle empty block behavior
             if (['bulleted-list', 'numbered-list', 'quote'].includes(blockType)) {
                 if (textContent.trim() === '') {
+                    // For nested lists - first decrease indent level
+                    if (['bulleted-list', 'numbered-list'].includes(blockType) && currentIndentLevel > 0) {
+                        actions.setIndentLevel(blockId, currentIndentLevel - 1);
+                        debouncedSync();
+                        return;
+                    }
+
+                    // At indent level 0 or for quotes - convert to paragraph
                     blockEl.setAttribute('data-block-type', 'paragraph');
+                    blockEl.setAttribute('data-indent-level', '0');
                     const newTag = BLOCK_TYPE_TAGS['paragraph'];
                     if (blockEl.tagName.toLowerCase() !== newTag) {
                         const newEl = document.createElement(newTag);
                         newEl.className = 'block-content';
                         newEl.setAttribute('data-block-id', blockId);
                         newEl.setAttribute('data-block-type', 'paragraph');
+                        newEl.setAttribute('data-indent-level', '0');
                         blockEl.replaceWith(newEl);
 
                         // Focus the new element
@@ -476,6 +527,7 @@ const UnifiedBlockEditor = () => {
             newBlockEl.className = 'block-content';
             newBlockEl.setAttribute('data-block-id', newBlockId);
             newBlockEl.setAttribute('data-block-type', newBlockType);
+            newBlockEl.setAttribute('data-indent-level', currentIndentLevel); // Inherit indent level
             newBlockEl.innerHTML = afterHtml; // Insert formatted HTML
 
             // Insert after current block
@@ -521,15 +573,24 @@ const UnifiedBlockEditor = () => {
             if (e.key === 'Backspace' && cursorPos === 0) {
                 e.preventDefault();
 
-                // First convert non-paragraph blocks to paragraph
+                // For lists with indent level > 0, first decrease indent
+                if (['bulleted-list', 'numbered-list'].includes(blockType) && currentIndentLevel > 0) {
+                    actions.setIndentLevel(blockId, currentIndentLevel - 1);
+                    debouncedSync();
+                    return;
+                }
+
+                // Then convert non-paragraph blocks to paragraph
                 if (blockType !== 'paragraph') {
                     blockEl.setAttribute('data-block-type', 'paragraph');
+                    blockEl.setAttribute('data-indent-level', '0');
                     const newTag = BLOCK_TYPE_TAGS['paragraph'];
                     if (blockEl.tagName.toLowerCase() !== newTag) {
                         const newEl = document.createElement(newTag);
                         newEl.className = 'block-content';
                         newEl.setAttribute('data-block-id', blockId);
                         newEl.setAttribute('data-block-type', 'paragraph');
+                        newEl.setAttribute('data-indent-level', '0');
                         newEl.innerHTML = blockEl.innerHTML;
                         blockEl.replaceWith(newEl);
 
@@ -647,12 +708,8 @@ const UnifiedBlockEditor = () => {
             return;
         }
 
-        // Paste (Ctrl/Cmd+V)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-            // Let native paste work, sync after
-            setTimeout(debouncedSync, 0);
-            return;
-        }
+        // Paste (Ctrl/Cmd+V) is handled by useKeyboardNavigation
+        // to ensure proper block structure is maintained
 
         // Link shortcut (Ctrl/Cmd+K)
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -672,7 +729,7 @@ const UnifiedBlockEditor = () => {
             }
             return;
         }
-    }, [slashMenu, openSlashMenu, closeSlashMenu, updateSlashMenuFilter, debouncedSync, checkCursorInLink, openLinkPopoverForLink, openLinkPopoverForSelection, getMenuPosition]);
+    }, [slashMenu, openSlashMenu, closeSlashMenu, updateSlashMenuFilter, debouncedSync, checkCursorInLink, openLinkPopoverForLink, openLinkPopoverForSelection, getMenuPosition, state.blocks, actions]);
 
     /**
      * Gets cursor position within a block element.
@@ -805,13 +862,33 @@ const UnifiedBlockEditor = () => {
                 el.setAttribute('data-block-id', block.id);
                 el.setAttribute('data-block-type', block.type);
                 el.setAttribute('data-block-index', index);
+                el.setAttribute('data-indent-level', block.indentLevel ?? 0);
                 el.setAttribute('data-placeholder', 'Type / for commands');
                 el.innerHTML = block.content;
 
-                // Handle List Reset
+                const indentLevel = block.indentLevel ?? 0;
+
+                // Handle List Reset for numbered lists
                 if (block.type === 'numbered-list') {
-                    if (!isPrevNumbered) {
+                    // Level 0 reset - only when previous block is NOT numbered-list
+                    if (indentLevel === 0 && !isPrevNumbered) {
                         el.setAttribute('data-list-reset', 'true');
+                    }
+                    // Level 1 reset - only when coming from level < 1 (i.e. level 0 or non-list)
+                    if (indentLevel === 1) {
+                        const prevBlock = state.blocks[index - 1];
+                        const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
+                        if (prevLevel < 1) {
+                            el.setAttribute('data-list-reset-1', 'true');
+                        }
+                    }
+                    // Level 2 reset - only when coming from level < 2
+                    if (indentLevel === 2) {
+                        const prevBlock = state.blocks[index - 1];
+                        const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
+                        if (prevLevel < 2) {
+                            el.setAttribute('data-list-reset-2', 'true');
+                        }
                     }
                     isPrevNumbered = true;
                 } else {
@@ -850,38 +927,59 @@ const UnifiedBlockEditor = () => {
                 const block = state.blocks[i];
                 if (!block) return;
 
+                const indentLevel = block.indentLevel ?? 0;
+
                 if (el.innerHTML !== block.content) {
                     el.innerHTML = block.content;
                 }
                 if (el.getAttribute('data-block-type') !== block.type) {
                     el.setAttribute('data-block-type', block.type);
                 }
+                // Update indent level
+                if (el.getAttribute('data-indent-level') !== String(indentLevel)) {
+                    el.setAttribute('data-indent-level', indentLevel);
+                }
                 if (el.getAttribute('data-placeholder') !== 'Type / for commands') {
                     el.setAttribute('data-placeholder', 'Type / for commands');
                 }
 
-                // Handle List Reset Update
+                // Handle List Reset Update for all levels
                 if (block.type === 'numbered-list') {
-                    if (!isPrevNumbered) {
-                        // Start of group
+                    // Level 0 reset
+                    if (indentLevel === 0 && !isPrevNumbered) {
                         if (el.getAttribute('data-list-reset') !== 'true') {
                             el.setAttribute('data-list-reset', 'true');
                         }
-                    } else {
-                        // Continuation
-                        if (el.hasAttribute('data-list-reset')) {
-                            el.removeAttribute('data-list-reset');
-                        }
+                    } else if (el.hasAttribute('data-list-reset') && indentLevel !== 0) {
+                        el.removeAttribute('data-list-reset');
                     }
+
+                    // Level 1 reset - only when coming from level < 1
+                    const prevBlock = state.blocks[i - 1];
+                    const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
+                    if (indentLevel === 1 && prevLevel < 1) {
+                        el.setAttribute('data-list-reset-1', 'true');
+                    } else {
+                        el.removeAttribute('data-list-reset-1');
+                    }
+
+                    // Level 2 reset - only when coming from level < 2
+                    if (indentLevel === 2 && prevLevel < 2) {
+                        el.setAttribute('data-list-reset-2', 'true');
+                    } else {
+                        el.removeAttribute('data-list-reset-2');
+                    }
+
                     if (el.hasAttribute('data-list-number')) {
                         el.removeAttribute('data-list-number'); // Clean up old attr
                     }
                     isPrevNumbered = true;
                 } else {
                     isPrevNumbered = false;
-                    if (el.hasAttribute('data-list-reset')) {
-                        el.removeAttribute('data-list-reset');
-                    }
+                    // Clean up list reset attrs for non-list blocks
+                    el.removeAttribute('data-list-reset');
+                    el.removeAttribute('data-list-reset-1');
+                    el.removeAttribute('data-list-reset-2');
                 }
             });
         }

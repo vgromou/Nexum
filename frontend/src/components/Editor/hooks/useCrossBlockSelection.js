@@ -40,38 +40,52 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
 
     /**
      * Gets partial content from a block based on selection range.
+     * Uses cloneContents() for safe DOM reading without modification.
      * @param {Element} blockEl - The block element
      * @param {Range} range - The selection range
      * @param {string} position - 'start', 'middle', or 'end'
      */
     const getPartialContent = useCallback((blockEl, range, position) => {
-        const contentEl = blockEl.querySelector('.block-content');
+        const contentEl = blockEl.querySelector('.block-content') || blockEl;
         if (!contentEl) return { content: '', isPartial: { start: false, end: false } };
-
-        const blockRange = document.createRange();
-        blockRange.selectNodeContents(contentEl);
 
         let content = '';
         let isPartial = { start: false, end: false };
 
-        if (position === 'start') {
-            // From selection start to end of block
-            blockRange.setStart(range.startContainer, range.startOffset);
-            content = blockRange.toString();
-            isPartial = { start: true, end: false };
-        } else if (position === 'end') {
-            // From block start to selection end
-            blockRange.setEnd(range.endContainer, range.endOffset);
-            content = blockRange.toString();
-            isPartial = { start: false, end: true };
-        } else {
-            // Full block content
-            content = extractTextContent(contentEl);
-            isPartial = { start: false, end: false };
+        try {
+            if (position === 'start') {
+                // From selection start to end of block
+                const blockRange = document.createRange();
+                blockRange.selectNodeContents(contentEl);
+                blockRange.setStart(range.startContainer, range.startOffset);
+                // Use cloneContents() for safe reading
+                const clonedContent = blockRange.cloneContents();
+                content = clonedContent.textContent || '';
+                isPartial = { start: true, end: false };
+            } else if (position === 'end') {
+                // From block start to selection end
+                const blockRange = document.createRange();
+                blockRange.selectNodeContents(contentEl);
+                blockRange.setEnd(range.endContainer, range.endOffset);
+                // Use cloneContents() for safe reading
+                const clonedContent = blockRange.cloneContents();
+                content = clonedContent.textContent || '';
+                isPartial = { start: false, end: true };
+            } else {
+                // Full block content - safe read via textContent
+                content = contentEl.textContent || '';
+                isPartial = { start: false, end: false };
+            }
+        } catch (e) {
+            // Fallback to safe reading if range operations fail
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('Error reading partial content:', e);
+            }
+            content = contentEl.textContent || '';
         }
 
         return { content, isPartial };
-    }, [extractTextContent]);
+    }, []);
 
     /**
      * Extracts selected content across multiple blocks.
@@ -97,6 +111,7 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
                 blocks: [{
                     type: block.type,
                     content,
+                    indentLevel: block.indentLevel ?? 0,
                     isPartial: { start: true, end: true },
                 }],
                 plainText: content,
@@ -134,6 +149,7 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
             blocks.push({
                 type: block.type,
                 content,
+                indentLevel: block.indentLevel ?? 0,
                 isPartial,
                 originalId: block.id,
             });
@@ -322,16 +338,32 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
 
     /**
      * Updates cross-selection state when selection changes.
+     * Also syncs textSelectionBlockIds to global state for keyboard navigation.
      */
     useEffect(() => {
         const handleSelectionChange = () => {
             const content = getSelectedContent();
             setCrossSelection(content);
+
+            // Sync textSelectionBlockIds to global state
+            if (content && !content.isSingleBlock && content.blocks.length > 1) {
+                const blockIds = content.blocks
+                    .map(b => b.originalId)
+                    .filter(Boolean);
+                if (blockIds.length > 0) {
+                    actions.setTextSelectionBlocks(blockIds);
+                }
+            } else {
+                // Clear if single block selection or no selection
+                if (state.textSelectionBlockIds.length > 0) {
+                    actions.clearTextSelection();
+                }
+            }
         };
 
         document.addEventListener('selectionchange', handleSelectionChange);
         return () => document.removeEventListener('selectionchange', handleSelectionChange);
-    }, [getSelectedContent]);
+    }, [getSelectedContent, actions, state.textSelectionBlockIds.length]);
 
     return {
         crossSelection,

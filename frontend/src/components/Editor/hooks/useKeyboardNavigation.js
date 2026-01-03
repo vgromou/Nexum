@@ -75,29 +75,18 @@ export function useKeyboardNavigation({
         }
 
         // Paste: Cmd/Ctrl + V
+        // Always intercept to ensure proper block structure is maintained
         if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
-            const activeEl = document.activeElement;
-            const isInContentEditable = activeEl?.closest?.('.block-content');
+            e.preventDefault();
 
             // Shift+V = plain text paste
             if (e.shiftKey) {
-                e.preventDefault();
                 pasteFromClipboard(true);
                 return;
             }
 
-            // If in contentEditable with focus, use smart paste
-            if (isInContentEditable) {
-                e.preventDefault();
-                pasteFromClipboard(false);
-                return;
-            }
-
-            // Otherwise let browser handle it or do nothing
-            if (hasSelectedBlocks || hasTextSelection) {
-                e.preventDefault();
-                pasteFromClipboard(false);
-            }
+            // Normal paste with block structure preservation
+            pasteFromClipboard(false);
             return;
         }
 
