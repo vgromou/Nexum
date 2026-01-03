@@ -162,7 +162,7 @@
     user-select: text;
     -webkit-user-select: text;
     -moz-user-select: text;
-    min-height: var(--line-height-body, 26px);
+    min-height: calc(var(--font-size-body, 16px) * var(--line-height-body, 1.625));
     box-sizing: border-box;
 }
 
