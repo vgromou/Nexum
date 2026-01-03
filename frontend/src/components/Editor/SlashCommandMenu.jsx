@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import {
     Type,
     Heading1,
@@ -21,7 +21,52 @@ const MENU_ITEMS = [
 
 const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [adjustedPosition, setAdjustedPosition] = useState(null);
     const menuRef = useRef(null);
+
+    // Adjust position if menu doesn't fit below cursor
+    useLayoutEffect(() => {
+        if (!menuRef.current) return;
+
+        const menu = menuRef.current;
+        const menuRect = menu.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+
+        let newTop = position.top;
+        let newLeft = position.left;
+
+        // Check if menu extends beyond bottom of viewport
+        const bottomOverflow = (position.top + menuRect.height) - viewportHeight;
+
+        if (bottomOverflow > 0) {
+            // Not enough space below - position to the right of the cursor
+            // Move menu above the cursor position (position.top is bottom of cursor line)
+            // We place menu so its bottom aligns near the cursor top
+            const cursorLineHeight = 26; // Approximate line height
+            newTop = position.top - cursorLineHeight - menuRect.height;
+
+            // Move to the right of cursor
+            newLeft = position.left + 8;
+
+            // If still goes above viewport, position at top
+            if (newTop < 8) {
+                newTop = 8;
+            }
+
+            // If goes off right edge, position at right edge
+            if (newLeft + menuRect.width > viewportWidth - 8) {
+                newLeft = viewportWidth - menuRect.width - 8;
+            }
+        }
+
+        // Check right edge overflow (for default position)
+        if (newLeft + menuRect.width > viewportWidth - 8) {
+            newLeft = viewportWidth - menuRect.width - 8;
+        }
+
+        setAdjustedPosition({ top: newTop, left: newLeft });
+    }, [position]);
 
     // Filter menu items based on search - memoized to avoid recalculation
     const filteredItems = useMemo(() =>
@@ -85,12 +130,15 @@ const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
         }
     }, [selectedIndex]);
 
+    // Use adjusted position if available, otherwise fallback to original
+    const displayPosition = adjustedPosition || position;
+
     if (filteredItems.length === 0) {
         return (
             <div
                 className="slash-command-menu"
                 ref={menuRef}
-                style={{ top: position.top, left: position.left }}
+                style={{ top: displayPosition.top, left: displayPosition.left }}
             >
                 <div className="slash-menu-empty">No results</div>
             </div>
@@ -101,7 +149,7 @@ const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
         <div
             className="slash-command-menu"
             ref={menuRef}
-            style={{ top: position.top, left: position.left }}
+            style={{ top: displayPosition.top, left: displayPosition.left }}
         >
             <div className="slash-menu-header">Basic blocks</div>
             <div className="slash-menu-items">
