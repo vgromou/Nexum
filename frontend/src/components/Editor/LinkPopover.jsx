@@ -13,6 +13,7 @@ const LinkPopover = ({
     position,
     currentUrl = '',
     isEditing = false,
+    autoFocusInput = true,
     onApply,
     onUnlink,
     onClose,
@@ -28,16 +29,16 @@ const LinkPopover = ({
         setUrl(currentUrl);
     }, [currentUrl, isOpen]);
 
-    // Auto-focus input when opened
+    // Auto-focus input when opened (if autoFocusInput is true)
     useEffect(() => {
-        if (isOpen && inputRef.current) {
+        if (isOpen && autoFocusInput && inputRef.current) {
             // Small delay to ensure popover is rendered
             requestAnimationFrame(() => {
                 inputRef.current?.focus();
                 inputRef.current?.select();
             });
         }
-    }, [isOpen]);
+    }, [isOpen, autoFocusInput]);
 
     // Handle click outside to close
     useEffect(() => {
@@ -124,7 +125,6 @@ const LinkPopover = ({
                 top: position.top,
                 left: position.left,
             }}
-            onMouseDown={(e) => e.preventDefault()}
         >
             <div className="link-popover-content">
                 <input
@@ -140,6 +140,7 @@ const LinkPopover = ({
                     <button
                         className="link-popover-button link-popover-apply"
                         onClick={handleApply}
+                        onMouseDown={(e) => e.preventDefault()}
                         title="Apply link"
                     >
                         <Check size={16} />
@@ -148,6 +149,7 @@ const LinkPopover = ({
                         <button
                             className="link-popover-button link-popover-unlink"
                             onClick={handleUnlink}
+                            onMouseDown={(e) => e.preventDefault()}
                             title="Remove link"
                         >
                             <Unlink size={16} />
@@ -157,6 +159,7 @@ const LinkPopover = ({
                         <button
                             className="link-popover-button link-popover-open"
                             onClick={handleOpen}
+                            onMouseDown={(e) => e.preventDefault()}
                             title="Open in new tab"
                         >
                             <ExternalLink size={16} />
@@ -176,6 +179,7 @@ LinkPopover.propTypes = {
     }).isRequired,
     currentUrl: PropTypes.string,
     isEditing: PropTypes.bool,
+    autoFocusInput: PropTypes.bool,
     onApply: PropTypes.func.isRequired,
     onUnlink: PropTypes.func,
     onClose: PropTypes.func.isRequired,

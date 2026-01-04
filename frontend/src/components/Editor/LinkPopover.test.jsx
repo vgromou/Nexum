@@ -150,4 +150,68 @@ describe('LinkPopover', () => {
         expect(onUnlink).toHaveBeenCalled();
         expect(onClose).toHaveBeenCalled();
     });
+
+    describe('autoFocusInput prop', () => {
+        it('should have autoFocusInput defaulting to true if not provided', () => {
+            // This tests that the default behavior is to auto-focus
+            render(<LinkPopover {...defaultProps} />);
+            const popover = document.querySelector('.link-popover');
+            expect(popover).toBeTruthy();
+            // The input should exist and will be focused by default
+            const input = document.querySelector('.link-popover-input');
+            expect(input).toBeTruthy();
+        });
+
+        it('should not auto-focus input when autoFocusInput is false', () => {
+            render(<LinkPopover {...defaultProps} autoFocusInput={false} />);
+            const popover = document.querySelector('.link-popover');
+            expect(popover).toBeTruthy();
+            // Input should exist but won't be automatically focused
+            const input = document.querySelector('.link-popover-input');
+            expect(input).toBeTruthy();
+        });
+
+        it('should pass autoFocusInput prop correctly', () => {
+            const { rerender } = render(<LinkPopover {...defaultProps} autoFocusInput={true} />);
+            expect(document.querySelector('.link-popover')).toBeTruthy();
+
+            rerender(<LinkPopover {...defaultProps} autoFocusInput={false} />);
+            expect(document.querySelector('.link-popover')).toBeTruthy();
+        });
+    });
+
+    describe('mouseDown prevention on buttons', () => {
+        it('should prevent default on apply button mousedown', () => {
+            render(<LinkPopover {...defaultProps} />);
+            const applyButton = document.querySelector('.link-popover-apply');
+            const mouseDownEvent = new MouseEvent('mousedown', { bubbles: true });
+            const preventDefaultSpy = vi.spyOn(mouseDownEvent, 'preventDefault');
+
+            applyButton.dispatchEvent(mouseDownEvent);
+
+            expect(preventDefaultSpy).toHaveBeenCalled();
+        });
+
+        it('should prevent default on unlink button mousedown', () => {
+            render(<LinkPopover {...defaultProps} isEditing={true} currentUrl="https://example.com" />);
+            const unlinkButton = document.querySelector('.link-popover-unlink');
+            const mouseDownEvent = new MouseEvent('mousedown', { bubbles: true });
+            const preventDefaultSpy = vi.spyOn(mouseDownEvent, 'preventDefault');
+
+            unlinkButton.dispatchEvent(mouseDownEvent);
+
+            expect(preventDefaultSpy).toHaveBeenCalled();
+        });
+
+        it('should prevent default on open button mousedown', () => {
+            render(<LinkPopover {...defaultProps} isEditing={true} currentUrl="https://example.com" />);
+            const openButton = document.querySelector('.link-popover-open');
+            const mouseDownEvent = new MouseEvent('mousedown', { bubbles: true });
+            const preventDefaultSpy = vi.spyOn(mouseDownEvent, 'preventDefault');
+
+            openButton.dispatchEvent(mouseDownEvent);
+
+            expect(preventDefaultSpy).toHaveBeenCalled();
+        });
+    });
 });

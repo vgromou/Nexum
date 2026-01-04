@@ -10,6 +10,7 @@ export function useLinkPopover({ editorRef, onApplyLink }) {
         position: { top: 0, left: 0 },
         currentUrl: '',
         isEditing: false, // true if editing an existing link
+        autoFocusInput: true, // whether to auto-focus input when opened
     });
 
     const savedRangeRef = useRef(null);
@@ -75,8 +76,9 @@ export function useLinkPopover({ editorRef, onApplyLink }) {
     /**
      * Opens the popover for editing an existing link.
      * @param {HTMLAnchorElement} linkElement - The link element to edit
+     * @param {boolean} preserveCursor - If true, keeps cursor position instead of selecting link
      */
-    const openForLink = useCallback((linkElement) => {
+    const openForLink = useCallback((linkElement, preserveCursor = false) => {
         if (!linkElement) return;
 
         // Cancel any scheduled close first
@@ -98,23 +100,29 @@ export function useLinkPopover({ editorRef, onApplyLink }) {
             top = rect.bottom + GAP + 44; // 44 is approx popover height
         }
 
-        // Save selection that includes the link
-        const range = document.createRange();
-        range.selectNodeContents(linkElement);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        savedRangeRef.current = range.cloneRange();
+        if (!preserveCursor) {
+            // Save selection that includes the link (original behavior)
+            const range = document.createRange();
+            range.selectNodeContents(linkElement);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            savedRangeRef.current = range.cloneRange();
+        } else {
+            // Just save current selection without changing it
+            saveSelection();
+        }
 
         setState({
             isOpen: true,
             position: { top, left },
             currentUrl: linkElement.href || '',
             isEditing: true,
+            autoFocusInput: !preserveCursor, // Don't auto-focus if preserving cursor
         });
 
         activeLinkRef.current = linkElement;
-    }, []);
+    }, [saveSelection]);
 
     /**
      * Applies a link to the saved selection.

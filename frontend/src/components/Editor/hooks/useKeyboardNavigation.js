@@ -1,4 +1,7 @@
 import { useEffect, useCallback } from 'react';
+import { createLogger } from '../utils/debugLog';
+
+const log = createLogger('KeyboardNav');
 
 /**
  * Custom hook for handling global keyboard shortcuts in the Block Editor.
@@ -32,6 +35,23 @@ export function useKeyboardNavigation({
             if (handleKeyboardSelection?.(e)) {
                 return;
             }
+        }
+
+        // Undo: Cmd/Ctrl + Z (without Shift)
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            actions.undo?.();
+            return;
+        }
+
+        // Redo: Cmd/Ctrl + Shift + Z OR Ctrl + Y
+        if (
+            ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'z') ||
+            (e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'y')
+        ) {
+            e.preventDefault();
+            actions.redo?.();
+            return;
         }
 
         // Copy: Cmd/Ctrl + C
@@ -76,7 +96,38 @@ export function useKeyboardNavigation({
 
         // Paste: Cmd/Ctrl + V
         // Always intercept to ensure proper block structure is maintained
-        if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') {
+            // Don't intercept if focus is in an input/textarea or popover
+            // Check both activeElement and event target for most reliable detection
+            const activeEl = document.activeElement;
+            const targetEl = e.target;
+
+            // Check activeElement
+            const activeTagName = activeEl?.tagName?.toUpperCase();
+            const isActiveInput = activeTagName === 'INPUT' || activeTagName === 'TEXTAREA';
+
+            // Check e.target 
+            const targetTagName = targetEl?.tagName?.toUpperCase();
+            const isTargetInput = targetTagName === 'INPUT' || targetTagName === 'TEXTAREA';
+
+            const isInInput = isActiveInput || isTargetInput;
+
+            // Check if inside any popover or dialog (check both elements)
+            const checkPopover = (el) => {
+                if (!el) return false;
+                return el.closest('.link-popover') ||
+                    el.closest('.slash-command-menu') ||
+                    el.closest('.formatting-popup') ||
+                    el.closest('[role="dialog"]') ||
+                    el.classList?.contains('link-popover-input');
+            };
+
+            const isInPopover = checkPopover(activeEl) || checkPopover(targetEl);
+
+            if (isInInput || isInPopover) {
+                return; // Allow native paste in inputs and popovers
+            }
+
             e.preventDefault();
 
             // Shift+V = plain text paste
@@ -100,20 +151,30 @@ export function useKeyboardNavigation({
         }
 
         // Delete/Backspace when text is selected across blocks
-        if ((e.key === 'Delete' || e.key === 'Backspace') && hasActualTextSelection && hasTextSelection) {
-            e.preventDefault();
-            const selectionInfo = getSelectionForDeletion?.();
-            if (selectionInfo && !selectionInfo.isSingleBlock) {
-                actions.deleteCrossSelection(
-                    selectionInfo.startBlockId,
-                    selectionInfo.endBlockId,
-                    selectionInfo.startOffset,
-                    selectionInfo.endOffset
-                );
-                window.getSelection()?.removeAllRanges();
-                actions.clearTextSelection();
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            // DEBUG: Log state values
+            log('Delete pressed:', {
+                hasActualTextSelection,
+                hasTextSelection,
+                textSelectionBlockIds: state.textSelectionBlockIds
+            });
+
+            if (hasActualTextSelection && hasTextSelection) {
+                e.preventDefault();
+                const selectionInfo = getSelectionForDeletion?.();
+                log('selectionInfo:', selectionInfo);
+                if (selectionInfo && !selectionInfo.isSingleBlock) {
+                    actions.deleteCrossSelection(
+                        selectionInfo.startBlockId,
+                        selectionInfo.endBlockId,
+                        selectionInfo.startOffset,
+                        selectionInfo.endOffset
+                    );
+                    window.getSelection()?.removeAllRanges();
+                    actions.clearTextSelection();
+                }
+                return;
             }
-            return;
         }
 
         // Delete/Backspace when blocks are selected

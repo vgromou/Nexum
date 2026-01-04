@@ -5,6 +5,7 @@ import { useFormattingMenu } from './useFormattingMenu';
 // Mock actions
 const mockActions = {
     changeBlockType: vi.fn(),
+    updateBlock: vi.fn(),
 };
 
 // Mock state
@@ -579,7 +580,84 @@ describe('useFormattingMenu', () => {
             expect(document.execCommand).toHaveBeenCalledWith('unlink', false, null);
         });
     });
+
+    describe('state sync for undo history', () => {
+        it('should call actions.updateBlock after applyFormat', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply a format
+            act(() => {
+                result.current.applyFormat('bold');
+            });
+
+            // Should call updateBlock to sync changes to state
+            expect(mockActions.updateBlock).toHaveBeenCalledWith(
+                '1',
+                expect.any(String)
+            );
+        });
+
+        it('should call actions.updateBlock after applyLinkToSelection', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply a link
+            act(() => {
+                result.current.applyLinkToSelection('https://example.com');
+            });
+
+            // Should call updateBlock to sync changes to state
+            expect(mockActions.updateBlock).toHaveBeenCalledWith(
+                '1',
+                expect.any(String)
+            );
+        });
+
+        it('should call actions.updateBlock after clearHighlight', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Clear highlight
+            act(() => {
+                result.current.clearHighlight('highlight');
+            });
+
+            // Should call updateBlock to sync changes to state
+            expect(mockActions.updateBlock).toHaveBeenCalledWith(
+                '1',
+                expect.any(String)
+            );
+        });
+    });
 });
-
-
-

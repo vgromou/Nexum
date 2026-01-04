@@ -318,4 +318,256 @@ describe('useKeyboardNavigation', () => {
 
         expect(mockPasteFromClipboard).toHaveBeenCalledWith(true);
     });
+
+    describe('undo/redo handlers', () => {
+        it('calls undo on Cmd+Z', () => {
+            const undoMock = vi.fn();
+            renderNavigationHook({
+                actions: { ...mockActions, undo: undoMock },
+            });
+
+            const event = createKeyboardEvent('z', { metaKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(undoMock).toHaveBeenCalled();
+        });
+
+        it('calls undo on Ctrl+Z', () => {
+            const undoMock = vi.fn();
+            renderNavigationHook({
+                actions: { ...mockActions, undo: undoMock },
+            });
+
+            const event = createKeyboardEvent('z', { ctrlKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(undoMock).toHaveBeenCalled();
+        });
+
+        it('calls redo on Cmd+Shift+Z', () => {
+            const redoMock = vi.fn();
+            renderNavigationHook({
+                actions: { ...mockActions, redo: redoMock },
+            });
+
+            const event = createKeyboardEvent('z', { metaKey: true, shiftKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(redoMock).toHaveBeenCalled();
+        });
+
+        it('calls redo on Ctrl+Shift+Z', () => {
+            const redoMock = vi.fn();
+            renderNavigationHook({
+                actions: { ...mockActions, redo: redoMock },
+            });
+
+            const event = createKeyboardEvent('z', { ctrlKey: true, shiftKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(redoMock).toHaveBeenCalled();
+        });
+
+        it('calls redo on Ctrl+Y', () => {
+            const redoMock = vi.fn();
+            renderNavigationHook({
+                actions: { ...mockActions, redo: redoMock },
+            });
+
+            const event = createKeyboardEvent('y', { ctrlKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(redoMock).toHaveBeenCalled();
+        });
+
+        it('does not call undo when undo action is not available', () => {
+            renderNavigationHook({
+                actions: { ...mockActions, undo: undefined },
+            });
+
+            const event = createKeyboardEvent('z', { metaKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            // Should not throw
+            expect(() => handler(event)).not.toThrow();
+        });
+    });
+
+    describe('paste bypass for inputs and popovers', () => {
+        it('allows native paste in INPUT elements', () => {
+            renderNavigationHook();
+
+            const inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            document.body.appendChild(inputEl);
+
+            Object.defineProperty(document, 'activeElement', {
+                value: inputEl,
+                configurable: true,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            Object.defineProperty(event, 'target', { value: inputEl, configurable: true });
+
+            const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            // Should NOT call pasteFromClipboard and NOT prevent default
+            expect(mockPasteFromClipboard).not.toHaveBeenCalled();
+
+            document.body.removeChild(inputEl);
+        });
+
+        it('allows native paste in TEXTAREA elements', () => {
+            renderNavigationHook();
+
+            const textareaEl = document.createElement('textarea');
+            document.body.appendChild(textareaEl);
+
+            Object.defineProperty(document, 'activeElement', {
+                value: textareaEl,
+                configurable: true,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            Object.defineProperty(event, 'target', { value: textareaEl, configurable: true });
+
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            // Should NOT call pasteFromClipboard
+            expect(mockPasteFromClipboard).not.toHaveBeenCalled();
+
+            document.body.removeChild(textareaEl);
+        });
+
+        it('allows native paste inside link-popover', () => {
+            renderNavigationHook();
+
+            const popoverEl = document.createElement('div');
+            popoverEl.className = 'link-popover';
+            const inputEl = document.createElement('input');
+            inputEl.className = 'link-popover-input';
+            popoverEl.appendChild(inputEl);
+            document.body.appendChild(popoverEl);
+
+            // Mock closest to return the popover
+            inputEl.closest = vi.fn((selector) => {
+                if (selector === '.link-popover') return popoverEl;
+                return null;
+            });
+
+            Object.defineProperty(document, 'activeElement', {
+                value: inputEl,
+                configurable: true,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            Object.defineProperty(event, 'target', { value: inputEl, configurable: true });
+
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            // Should NOT call pasteFromClipboard
+            expect(mockPasteFromClipboard).not.toHaveBeenCalled();
+
+            document.body.removeChild(popoverEl);
+        });
+
+        it('allows native paste inside slash-command-menu', () => {
+            renderNavigationHook();
+
+            const menuEl = document.createElement('div');
+            menuEl.className = 'slash-command-menu';
+            const inputEl = document.createElement('input');
+            menuEl.appendChild(inputEl);
+            document.body.appendChild(menuEl);
+
+            inputEl.closest = vi.fn((selector) => {
+                if (selector === '.slash-command-menu') return menuEl;
+                return null;
+            });
+
+            Object.defineProperty(document, 'activeElement', {
+                value: inputEl,
+                configurable: true,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            Object.defineProperty(event, 'target', { value: inputEl, configurable: true });
+
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            // Should NOT call pasteFromClipboard
+            expect(mockPasteFromClipboard).not.toHaveBeenCalled();
+
+            document.body.removeChild(menuEl);
+        });
+
+        it('intercepts paste for regular editor content', () => {
+            renderNavigationHook();
+
+            const blockEl = document.createElement('div');
+            blockEl.setAttribute('contenteditable', 'true');
+            blockEl.setAttribute('data-block-id', 'block-1');
+            document.body.appendChild(blockEl);
+
+            // Mock activeElement to be a content block (not input or popover)
+            blockEl.closest = vi.fn().mockReturnValue(null);
+            Object.defineProperty(document, 'activeElement', {
+                value: blockEl,
+                configurable: true,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            Object.defineProperty(event, 'target', { value: blockEl, configurable: true });
+
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            // Should call pasteFromClipboard
+            expect(mockPasteFromClipboard).toHaveBeenCalledWith(false);
+
+            document.body.removeChild(blockEl);
+        });
+    });
 });

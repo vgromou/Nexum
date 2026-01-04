@@ -132,11 +132,55 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
 
     /**
      * Pastes content from clipboard.
+     * If the pasted content is a URL and text is selected, wraps the text in a link.
      * @param {boolean} asPlainText - If true, pastes as plain text only
      */
     const pasteFromClipboard = useCallback(async (asPlainText = false) => {
         try {
             const clipboardText = await navigator.clipboard.readText();
+
+            // Check if clipboard content is a URL
+            const urlPattern = /^(https?:\/\/|www\.)[^\s]+$/i;
+            const isUrl = urlPattern.test(clipboardText.trim());
+
+            // Check if there's a text selection
+            const sel = window.getSelection();
+            const hasTextSelection = sel && !sel.isCollapsed && sel.toString().length > 0;
+
+            // Smart URL paste: if pasting a URL on selected text, wrap it as a link
+            // Only apply if selection contains non-whitespace text
+            const selectedText = hasTextSelection ? sel.toString().trim() : '';
+            if (isUrl && hasTextSelection && !asPlainText && selectedText) {
+                const range = sel.getRangeAt(0);
+                const url = clipboardText.trim().startsWith('http')
+                    ? clipboardText.trim()
+                    : 'https://' + clipboardText.trim();
+
+                // Create a link element
+                const linkHtml = `<a href="${DOMPurify.sanitize(url)}">${DOMPurify.sanitize(selectedText)}</a>`;
+
+                // Delete the selected content and insert the link
+                range.deleteContents();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = linkHtml;
+                const linkNode = tempDiv.firstChild;
+                range.insertNode(linkNode);
+
+                // Move cursor after the link
+                range.setStartAfter(linkNode);
+                range.setEndAfter(linkNode);
+                sel.removeAllRanges();
+                sel.addRange(range);
+
+                // Update the block content
+                const blockEl = linkNode.closest('[data-block-id]');
+                if (blockEl) {
+                    const blockId = blockEl.getAttribute('data-block-id');
+                    actions.updateBlock(blockId, blockEl.innerHTML);
+                }
+                return;
+            }
+
             const storedBlocksJson = sessionStorage.getItem(CLIPBOARD_STORAGE_KEY);
             let storedData = null;
 

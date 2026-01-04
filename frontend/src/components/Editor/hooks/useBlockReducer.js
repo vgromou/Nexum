@@ -12,6 +12,32 @@ export const generateBlockId = () => {
     return `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
+// History constants
+const MAX_HISTORY_LENGTH = 100;
+const HISTORY_DEBOUNCE_MS = 500;
+const MIN_HISTORY_INTERVAL_MS = 100;
+
+// Helper to extract text from HTML for word boundary detection
+function extractTextFromHtml(html) {
+    if (!html) return '';
+    // Simple text extraction - works in both browser and test environments
+    if (typeof document !== 'undefined') {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div.textContent || '';
+    }
+    // Fallback: strip HTML tags
+    return html.replace(/<[^>]*>/g, '');
+}
+
+// Actions that always create a new snapshot
+const STRUCTURAL_ACTIONS = [
+    'ADD_BLOCK', 'DELETE_BLOCK', 'MOVE_BLOCK', 'MOVE_BLOCKS',
+    'CHANGE_BLOCK_TYPE', 'SET_INDENT_LEVEL', 'INSERT_BLOCKS',
+    'DELETE_CROSS_SELECTION', 'SPLIT_AND_INSERT_BLOCKS',
+    'SPLIT_BLOCK', 'MERGE_BLOCKS', 'DELETE_SELECTED_BLOCKS'
+];
+
 // Initial editor state with one empty paragraph
 const initialState = {
     blocks: [
@@ -23,6 +49,11 @@ const initialState = {
     focusVersion: 0, // Incremented to trigger focus updates
     draggedBlockId: null,
     draggedBlockIds: [], // Multiple blocks being dragged
+    // History state for undo/redo
+    history: [],
+    historyIndex: -1,
+    lastCursor: null,
+    pendingCursor: null,
 };
 
 // Action type constants
@@ -51,7 +82,115 @@ export const ACTIONS = {
     DELETE_CROSS_SELECTION: 'DELETE_CROSS_SELECTION',
     SPLIT_AND_INSERT_BLOCKS: 'SPLIT_AND_INSERT_BLOCKS',
     SET_INDENT_LEVEL: 'SET_INDENT_LEVEL',
+    // History actions
+    UNDO: 'UNDO',
+    REDO: 'REDO',
+    SET_LAST_CURSOR: 'SET_LAST_CURSOR',
+    CLEAR_PENDING_CURSOR: 'CLEAR_PENDING_CURSOR',
+    SAVE_SNAPSHOT: 'SAVE_SNAPSHOT',
 };
+
+/**
+ * Determines if a new snapshot should be created based on the action type and timing.
+ */
+function shouldCreateNewSnapshot(lastSnapshot, state, action) {
+    // No history yet - always create
+    if (!lastSnapshot) return true;
+
+    // Structural changes always create new snapshot
+    if (STRUCTURAL_ACTIONS.includes(action.type)) {
+        return true;
+    }
+
+    // For UPDATE_BLOCK and SET_BLOCKS - apply debounce logic
+    if (action.type === 'UPDATE_BLOCK' || action.type === 'SET_BLOCKS') {
+        const timeDiff = Date.now() - lastSnapshot.timestamp;
+
+        // Minimum interval protection
+        if (timeDiff < MIN_HISTORY_INTERVAL_MS) {
+            return false;
+        }
+
+        // For UPDATE_BLOCK, check if same block and word boundaries
+        if (action.type === 'UPDATE_BLOCK') {
+            const sameBlock = lastSnapshot.cursor?.blockId === action.payload.blockId;
+
+            // New snapshot if different block
+            if (!sameBlock) return true;
+
+            // New snapshot if enough time passed
+            if (timeDiff > HISTORY_DEBOUNCE_MS) return true;
+
+            // Check for word boundary - create snapshot when a word ends
+            // This makes undo work on a per-word basis
+            const content = action.payload.content || '';
+            const textContent = extractTextFromHtml(content);
+
+            // Get previous content to compare
+            const prevBlock = state.blocks.find(b => b.id === action.payload.blockId);
+            const prevTextContent = prevBlock ? extractTextFromHtml(prevBlock.content || '') : '';
+
+            // If new content ends with word boundary and previous didn't, create snapshot
+            const wordBoundaryChars = [' ', '.', ',', '!', '?', ';', ':', '\n'];
+            const endsWithBoundary = wordBoundaryChars.some(char => textContent.endsWith(char));
+            const prevEndedWithBoundary = wordBoundaryChars.some(char => prevTextContent.endsWith(char));
+
+            if (endsWithBoundary && !prevEndedWithBoundary) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // For SET_BLOCKS, apply time-based debounce
+        return timeDiff > HISTORY_DEBOUNCE_MS;
+    }
+
+    return false;
+}
+
+/**
+ * Creates history update for state changes.
+ * Returns an object with history and historyIndex to merge into new state.
+ */
+function withHistory(state, action) {
+    const lastSnapshot = state.history[state.historyIndex] || state.history[state.history.length - 1];
+
+    if (!shouldCreateNewSnapshot(lastSnapshot, state, action)) {
+        // Update the timestamp of the last snapshot without creating new one
+        if (lastSnapshot && state.history.length > 0) {
+            const updatedHistory = [...state.history];
+            updatedHistory[state.historyIndex >= 0 ? state.historyIndex : updatedHistory.length - 1] = {
+                ...lastSnapshot,
+                timestamp: Date.now(),
+            };
+            return {
+                history: updatedHistory,
+                historyIndex: state.historyIndex >= 0 ? state.historyIndex : updatedHistory.length - 1,
+            };
+        }
+        return {};
+    }
+
+    // Create new snapshot with current state BEFORE the change
+    const newSnapshot = {
+        blocks: structuredClone(state.blocks), // Deep copy
+        cursor: state.lastCursor,
+        timestamp: Date.now(),
+    };
+
+    // Truncate history after current position (remove redo history after new action)
+    const truncatedHistory = state.historyIndex >= 0
+        ? state.history.slice(0, state.historyIndex + 1)
+        : state.history;
+
+    const newHistory = [...truncatedHistory, newSnapshot].slice(-MAX_HISTORY_LENGTH);
+
+    return {
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+    };
+}
 
 /**
  * Block reducer - handles all state mutations for the block editor.
@@ -550,9 +689,192 @@ function blockReducer(state, action) {
             };
         }
 
+        // History actions
+        case ACTIONS.UNDO: {
+            if (state.history.length === 0) return state;
+
+            let newHistory = state.history;
+            let currentIndex = state.historyIndex;
+
+            // If historyIndex is -1 or at the end, we're at the "current" state
+            // Save current state first so we can redo back to it
+            if (currentIndex === -1 || currentIndex === state.history.length - 1) {
+                // Check if current state differs from last snapshot
+                const lastSnapshot = state.history[state.history.length - 1];
+                const currentBlocksStr = JSON.stringify(state.blocks);
+                const lastBlocksStr = lastSnapshot ? JSON.stringify(lastSnapshot.blocks) : '';
+
+                if (currentBlocksStr !== lastBlocksStr) {
+                    // Save current state
+                    const currentSnapshot = {
+                        blocks: structuredClone(state.blocks),
+                        cursor: state.lastCursor,
+                        timestamp: Date.now(),
+                    };
+                    newHistory = [...state.history, currentSnapshot].slice(-MAX_HISTORY_LENGTH);
+                    currentIndex = newHistory.length - 1;
+                } else {
+                    currentIndex = state.history.length - 1;
+                }
+            }
+
+            // Can't undo if at the beginning
+            if (currentIndex <= 0) return state;
+
+            // Go to previous snapshot
+            const targetIndex = currentIndex - 1;
+            const snapshot = newHistory[targetIndex];
+
+            if (!snapshot) return state;
+
+            return {
+                ...state,
+                blocks: structuredClone(snapshot.blocks),
+                history: newHistory,
+                historyIndex: targetIndex,
+                pendingCursor: snapshot.cursor,
+            };
+        }
+
+        case ACTIONS.REDO: {
+            // Can't redo if no history or already at the end
+            if (state.history.length === 0) return state;
+            if (state.historyIndex === -1) return state;
+            if (state.historyIndex >= state.history.length - 1) return state;
+
+            const targetIndex = state.historyIndex + 1;
+            const snapshot = state.history[targetIndex];
+
+            if (!snapshot) return state;
+
+            return {
+                ...state,
+                blocks: structuredClone(snapshot.blocks),
+                historyIndex: targetIndex,
+                pendingCursor: snapshot.cursor,
+            };
+        }
+
+        case ACTIONS.SET_LAST_CURSOR: {
+            return {
+                ...state,
+                lastCursor: action.payload.cursor,
+            };
+        }
+
+        case ACTIONS.CLEAR_PENDING_CURSOR: {
+            return {
+                ...state,
+                pendingCursor: null,
+            };
+        }
+
+        case ACTIONS.SAVE_SNAPSHOT: {
+            const snapshot = {
+                blocks: structuredClone(state.blocks),
+                cursor: state.lastCursor,
+                timestamp: Date.now(),
+            };
+
+            const truncatedHistory = state.historyIndex >= 0
+                ? state.history.slice(0, state.historyIndex + 1)
+                : state.history;
+            const newHistory = [...truncatedHistory, snapshot].slice(-MAX_HISTORY_LENGTH);
+
+            return {
+                ...state,
+                history: newHistory,
+                historyIndex: newHistory.length - 1,
+            };
+        }
+
         default:
             return state;
     }
+}
+
+// Actions that modify blocks and should trigger history saves
+const HISTORY_TRIGGERING_ACTIONS = [
+    ACTIONS.ADD_BLOCK,
+    ACTIONS.DELETE_BLOCK,
+    ACTIONS.UPDATE_BLOCK,
+    ACTIONS.MOVE_BLOCK,
+    ACTIONS.MOVE_BLOCKS,
+    ACTIONS.CHANGE_BLOCK_TYPE,
+    ACTIONS.SPLIT_BLOCK,
+    ACTIONS.MERGE_BLOCKS,
+    ACTIONS.DELETE_SELECTED_BLOCKS,
+    ACTIONS.SET_BLOCKS,
+    ACTIONS.INSERT_BLOCKS,
+    ACTIONS.DELETE_CROSS_SELECTION,
+    ACTIONS.SPLIT_AND_INSERT_BLOCKS,
+    ACTIONS.SET_INDENT_LEVEL,
+];
+
+/**
+ * Wrapper reducer that automatically handles history for block-modifying actions.
+ */
+function blockReducerWithHistory(state, action) {
+    // For history actions, just call the base reducer
+    if ([ACTIONS.UNDO, ACTIONS.REDO, ACTIONS.SET_LAST_CURSOR,
+    ACTIONS.CLEAR_PENDING_CURSOR, ACTIONS.SAVE_SNAPSHOT].includes(action.type)) {
+        return blockReducer(state, action);
+    }
+
+    // For non-history-triggering actions, just call base reducer
+    if (!HISTORY_TRIGGERING_ACTIONS.includes(action.type)) {
+        return blockReducer(state, action);
+    }
+
+    // Ensure there's an initial snapshot if history is empty
+    let currentState = state;
+    if (state.history.length === 0) {
+        const initialSnapshot = {
+            blocks: structuredClone(state.blocks),
+            cursor: state.lastCursor,
+            timestamp: Date.now() - 10000, // Set far enough back to ensure new snapshots create
+        };
+        currentState = {
+            ...state,
+            history: [initialSnapshot],
+            historyIndex: 0,
+        };
+    }
+
+    // For STRUCTURAL_ACTIONS, ALWAYS create a new snapshot (no debounce)
+    if (STRUCTURAL_ACTIONS.includes(action.type)) {
+        const snapshot = {
+            blocks: structuredClone(currentState.blocks),
+            cursor: currentState.lastCursor,
+            timestamp: Date.now(),
+        };
+
+        // Truncate history after current position (clear redo)
+        const truncateAt = currentState.historyIndex >= 0
+            ? currentState.historyIndex + 1
+            : currentState.history.length;
+        const newHistory = [...currentState.history.slice(0, truncateAt), snapshot]
+            .slice(-MAX_HISTORY_LENGTH);
+
+        // Apply the actual change
+        const newState = blockReducer(state, action);
+
+        return {
+            ...newState,
+            history: newHistory,
+            historyIndex: newHistory.length - 1,
+        };
+    }
+
+    // For UPDATE_BLOCK and similar - use withHistory with debounce logic
+    const historyUpdate = withHistory(currentState, action);
+    const newState = blockReducer(state, action);
+
+    return {
+        ...newState,
+        history: historyUpdate.history ?? currentState.history,
+        historyIndex: historyUpdate.historyIndex ?? currentState.historyIndex,
+    };
 }
 
 /**
@@ -564,7 +886,7 @@ export function useBlockReducer(initialBlocks = null) {
         ? { ...initialState, blocks: initialBlocks }
         : initialState;
 
-    const [state, dispatch] = useReducer(blockReducer, init);
+    const [state, dispatch] = useReducer(blockReducerWithHistory, init);
 
     // Action creators
     const addBlock = useCallback((afterBlockId, blockType = 'paragraph', content = '', focusNew = true) => {
@@ -675,6 +997,27 @@ export function useBlockReducer(initialBlocks = null) {
         });
     }, []);
 
+    // History action creators
+    const undo = useCallback(() => {
+        dispatch({ type: ACTIONS.UNDO });
+    }, []);
+
+    const redo = useCallback(() => {
+        dispatch({ type: ACTIONS.REDO });
+    }, []);
+
+    const setLastCursor = useCallback((cursor) => {
+        dispatch({ type: ACTIONS.SET_LAST_CURSOR, payload: { cursor } });
+    }, []);
+
+    const clearPendingCursor = useCallback(() => {
+        dispatch({ type: ACTIONS.CLEAR_PENDING_CURSOR });
+    }, []);
+
+    const saveSnapshot = useCallback(() => {
+        dispatch({ type: ACTIONS.SAVE_SNAPSHOT });
+    }, []);
+
     return {
         state,
         dispatch,
@@ -703,6 +1046,11 @@ export function useBlockReducer(initialBlocks = null) {
             deleteCrossSelection,
             splitAndInsertBlocks,
             setIndentLevel,
+            undo,
+            redo,
+            setLastCursor,
+            clearPendingCursor,
+            saveSnapshot,
         },
     };
 }

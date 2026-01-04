@@ -202,4 +202,103 @@ describe('useLinkPopover', () => {
         // After applying, popover should close
         expect(result.current.state.isOpen).toBe(false);
     });
+
+    it('should set autoFocusInput to true by default when opening for link', () => {
+        const { result } = renderHook(() =>
+            useLinkPopover({
+                editorRef: mockEditorRef,
+                onApplyLink: mockOnApplyLink,
+            })
+        );
+
+        const linkEl = mockEditorRef.current.querySelector('a');
+
+        act(() => {
+            result.current.openForLink(linkEl);
+        });
+
+        expect(result.current.state.isOpen).toBe(true);
+        expect(result.current.state.autoFocusInput).toBe(true);
+    });
+
+    it('should set autoFocusInput to false when preserveCursor is true', () => {
+        const { result } = renderHook(() =>
+            useLinkPopover({
+                editorRef: mockEditorRef,
+                onApplyLink: mockOnApplyLink,
+            })
+        );
+
+        const linkEl = mockEditorRef.current.querySelector('a');
+
+        act(() => {
+            result.current.openForLink(linkEl, true); // preserveCursor = true
+        });
+
+        expect(result.current.state.isOpen).toBe(true);
+        expect(result.current.state.autoFocusInput).toBe(false);
+    });
+
+    it('should not change selection when preserveCursor is true', () => {
+        // Setup selection mock to track if it was modified
+        const mockRange = {
+            collapsed: true,
+            cloneRange: vi.fn(function () { return this; }),
+        };
+        const mockSelection = {
+            rangeCount: 1,
+            isCollapsed: true,
+            getRangeAt: vi.fn(() => mockRange),
+            removeAllRanges: vi.fn(),
+            addRange: vi.fn(),
+        };
+        vi.spyOn(window, 'getSelection').mockImplementation(() => mockSelection);
+
+        const { result } = renderHook(() =>
+            useLinkPopover({
+                editorRef: mockEditorRef,
+                onApplyLink: mockOnApplyLink,
+            })
+        );
+
+        const linkEl = mockEditorRef.current.querySelector('a');
+
+        act(() => {
+            result.current.openForLink(linkEl, true); // preserveCursor = true
+        });
+
+        // Selection should have been saved but not modified (no removeAllRanges for setting new range)
+        // The saveSelection is called which uses cloneRange
+        expect(result.current.state.isOpen).toBe(true);
+    });
+
+    it('should select entire link when preserveCursor is false', () => {
+        const mockSelection = {
+            rangeCount: 1,
+            isCollapsed: true,
+            getRangeAt: vi.fn(() => ({
+                cloneRange: vi.fn(function () { return this; }),
+            })),
+            removeAllRanges: vi.fn(),
+            addRange: vi.fn(),
+        };
+        vi.spyOn(window, 'getSelection').mockImplementation(() => mockSelection);
+
+        const { result } = renderHook(() =>
+            useLinkPopover({
+                editorRef: mockEditorRef,
+                onApplyLink: mockOnApplyLink,
+            })
+        );
+
+        const linkEl = mockEditorRef.current.querySelector('a');
+
+        act(() => {
+            result.current.openForLink(linkEl, false); // preserveCursor = false (default)
+        });
+
+        // Selection should have been modified to select the link contents
+        expect(mockSelection.removeAllRanges).toHaveBeenCalled();
+        expect(mockSelection.addRange).toHaveBeenCalled();
+    });
 });

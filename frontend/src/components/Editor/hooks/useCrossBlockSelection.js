@@ -1,4 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { createLogger } from '../utils/debugLog';
+
+const log = createLogger('CrossBlockSelection');
 
 /**
  * Custom clipboard format identifier for wiki blocks.
@@ -98,6 +101,10 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
         const range = sel.getRangeAt(0);
         const startBlock = getBlockFromNode(range.startContainer);
         const endBlock = getBlockFromNode(range.endContainer);
+
+        // DEBUG: Trace block detection
+        log('getSelectedContent startBlock:', startBlock?.id, 'endBlock:', endBlock?.id);
+        log('state.blocks ids:', state.blocks.map(b => b.id));
 
         if (!startBlock || !endBlock) return null;
 
@@ -303,9 +310,10 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
 
         if (startIndex === -1 || endIndex === -1) return null;
 
-        // Get position info within blocks
-        const startContentEl = startBlock.element.querySelector('.block-content');
-        const endContentEl = endBlock.element.querySelector('.block-content');
+        // The block element IS the .block-content element (it has data-block-id)
+        // So we use it directly instead of querying for a child
+        const startContentEl = startBlock.element;
+        const endContentEl = endBlock.element;
 
         if (!startContentEl || !endContentEl) return null;
 
@@ -345,13 +353,34 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
             const content = getSelectedContent();
             setCrossSelection(content);
 
+            // DEBUG: Trace selection tracking
+            log('content:', content ? {
+                isSingleBlock: content.isSingleBlock,
+                startBlockId: content.startBlockId,
+                endBlockId: content.endBlockId,
+                blocksCount: content.blocks?.length
+            } : null);
+
             // Sync textSelectionBlockIds to global state
-            if (content && !content.isSingleBlock && content.blocks.length > 1) {
-                const blockIds = content.blocks
-                    .map(b => b.originalId)
-                    .filter(Boolean);
-                if (blockIds.length > 0) {
-                    actions.setTextSelectionBlocks(blockIds);
+            if (content && !content.isSingleBlock) {
+                // Get all block IDs involved in the selection
+                // Use startBlockId and endBlockId to find all blocks in between
+                const startIndex = state.blocks.findIndex(b => b.id === content.startBlockId);
+                const endIndex = state.blocks.findIndex(b => b.id === content.endBlockId);
+
+                log('indices:', { startIndex, endIndex, blocksLen: state.blocks.length });
+
+                if (startIndex !== -1 && endIndex !== -1) {
+                    const minIdx = Math.min(startIndex, endIndex);
+                    const maxIdx = Math.max(startIndex, endIndex);
+                    const blockIds = [];
+                    for (let i = minIdx; i <= maxIdx; i++) {
+                        blockIds.push(state.blocks[i].id);
+                    }
+                    if (blockIds.length > 1) {
+                        log('Setting textSelectionBlockIds:', blockIds);
+                        actions.setTextSelectionBlocks(blockIds);
+                    }
                 }
             } else {
                 // Clear if single block selection or no selection
@@ -363,7 +392,8 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
 
         document.addEventListener('selectionchange', handleSelectionChange);
         return () => document.removeEventListener('selectionchange', handleSelectionChange);
-    }, [getSelectedContent, actions, state.textSelectionBlockIds.length]);
+    }, [getSelectedContent, actions, state.textSelectionBlockIds.length, state.blocks]);
+
 
     return {
         crossSelection,

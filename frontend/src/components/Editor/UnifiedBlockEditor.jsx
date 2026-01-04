@@ -13,6 +13,7 @@ import { useCrossBlockSelection } from './hooks/useCrossBlockSelection';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { debounce } from '../../utils/debounce';
 import { isValidUrl, normalizeUrl } from '../../utils/urlUtils';
+import { getCursorState, restoreCursor } from './utils/cursor';
 import './BlockEditor.css';
 
 // Markdown shortcuts for quick block conversion
@@ -49,6 +50,15 @@ const UnifiedBlockEditor = () => {
     const [hoveredBlockId, setHoveredBlockId] = useState(null);
     const [handlePositions, setHandlePositions] = useState({});
     const [focusedBlockId, setFocusedBlockId] = useState(null);
+
+    // Cleanup auto-open link timeout on unmount only
+    useEffect(() => {
+        return () => {
+            if (autoOpenLinkTimeoutRef.current) {
+                clearTimeout(autoOpenLinkTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Block Selection Hooks
     const {
@@ -990,6 +1000,17 @@ const UnifiedBlockEditor = () => {
         updateEmptyState();
     }, [state.blocks, updateHandlePositions, updateEmptyState]);
 
+    // Restore cursor position after undo/redo
+    useEffect(() => {
+        if (state.pendingCursor) {
+            // Use requestAnimationFrame to ensure DOM has been updated
+            requestAnimationFrame(() => {
+                restoreCursor(editorRef, state.pendingCursor);
+                actions.clearPendingCursor?.();
+            });
+        }
+    }, [state.pendingCursor, actions]);
+
     // Clear selection when clicking outside editor
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -1031,12 +1052,11 @@ const UnifiedBlockEditor = () => {
             }
 
             // Check for cursor inside link (collapsed selection only)
-            // Only auto-open popover if not already open
             // Skip if focus is inside the link popover (input is focused)
             const activeElement = document.activeElement;
             const isPopoverInputFocused = activeElement?.closest('.link-popover');
 
-            if (sel.isCollapsed && !linkPopoverState.isOpen && !isPopoverInputFocused) {
+            if (sel.isCollapsed && !isPopoverInputFocused) {
                 const linkEl = checkCursorInLink();
                 if (linkEl) {
                     // Cancel any scheduled close
@@ -1045,15 +1065,26 @@ const UnifiedBlockEditor = () => {
                     if (autoOpenLinkTimeoutRef.current) {
                         clearTimeout(autoOpenLinkTimeoutRef.current);
                     }
+                    // Store the href and block ID for comparison
+                    const targetHref = linkEl.href;
+                    const targetBlockId = linkEl.closest('[data-block-id]')?.getAttribute('data-block-id');
                     // Open popover for this link with a slight delay
-                    // to avoid opening while user is just passing through
                     autoOpenLinkTimeoutRef.current = setTimeout(() => {
                         const currentLink = checkCursorInLink();
-                        if (currentLink === linkEl) {
-                            openLinkPopoverForLink(linkEl);
+                        // Compare both href AND block ID to handle multiple links with same URL
+                        const currentBlockId = currentLink?.closest('[data-block-id]')?.getAttribute('data-block-id');
+                        if (currentLink && currentLink.href === targetHref && currentBlockId === targetBlockId) {
+                            // Open popover but keep cursor in text
+                            openLinkPopoverForLink(currentLink, true); // pass true to preserve cursor
                         }
                         autoOpenLinkTimeoutRef.current = null;
                     }, 300);
+                } else {
+                    // Cursor moved away from links - clear pending auto-open
+                    if (autoOpenLinkTimeoutRef.current) {
+                        clearTimeout(autoOpenLinkTimeoutRef.current);
+                        autoOpenLinkTimeoutRef.current = null;
+                    }
                 }
             } else if (sel.isCollapsed && linkPopoverState.isOpen && linkPopoverState.isEditing && !isPopoverInputFocused) {
                 // Only close if popover was opened for EDITING (cursor on existing link)
@@ -1067,6 +1098,14 @@ const UnifiedBlockEditor = () => {
 
             // Update empty state after selection change
             updateEmptyState();
+
+            // Track cursor position for undo/redo history
+            if (editorRef.current?.contains(sel.anchorNode)) {
+                const cursor = getCursorState({ current: editorRef.current });
+                if (cursor) {
+                    actions.setLastCursor?.(cursor);
+                }
+            }
         };
 
         const debouncedHandler = debounce(handleSelectionChange, 10);
@@ -1076,12 +1115,10 @@ const UnifiedBlockEditor = () => {
             document.removeEventListener('selectionchange', debouncedHandler);
             // Cancel any pending debounced calls to prevent memory leaks
             debouncedHandler.cancel?.();
-            // Clear auto-open timeout
-            if (autoOpenLinkTimeoutRef.current) {
-                clearTimeout(autoOpenLinkTimeoutRef.current);
-            }
+            // DO NOT clear auto-open timeout here - it needs to survive dependency changes
+            // The timeout will be cleared on next selectionchange or component unmount
         };
-    }, [updateEmptyState, checkCursorInLink, openLinkPopoverForLink, linkPopoverState.isOpen, linkPopoverState.isEditing, cancelLinkPopoverClose, scheduleLinkPopoverClose]);
+    }, [updateEmptyState, checkCursorInLink, openLinkPopoverForLink, linkPopoverState.isOpen, linkPopoverState.isEditing, cancelLinkPopoverClose, scheduleLinkPopoverClose, actions]);
 
     // Sync selection state and focused state to DOM
     useEffect(() => {
@@ -1354,6 +1391,7 @@ const UnifiedBlockEditor = () => {
                 position={linkPopoverState.position}
                 currentUrl={linkPopoverState.currentUrl}
                 isEditing={linkPopoverState.isEditing}
+                autoFocusInput={linkPopoverState.autoFocusInput}
                 onApply={applyLinkFromPopover}
                 onUnlink={unlinkCurrentLink}
                 onClose={closeLinkPopover}

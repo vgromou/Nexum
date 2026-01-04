@@ -163,3 +163,158 @@ describe('useBlockReducer', () => {
     });
 });
 
+describe('Undo/Redo functionality', () => {
+    it('undo restores previous state after adding a block', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const initialBlockId = result.current.state.blocks[0].id;
+
+        // Add a block
+        act(() => {
+            result.current.actions.addBlock(initialBlockId, 'h1', 'New Block');
+        });
+        expect(result.current.state.blocks).toHaveLength(2);
+
+        // Undo
+        act(() => {
+            result.current.actions.undo();
+        });
+        expect(result.current.state.blocks).toHaveLength(1);
+    });
+
+    it('redo restores undone state', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const initialBlockId = result.current.state.blocks[0].id;
+
+        // Add a block
+        act(() => {
+            result.current.actions.addBlock(initialBlockId, 'h1', 'New Block');
+        });
+        expect(result.current.state.blocks).toHaveLength(2);
+
+        // Undo
+        act(() => {
+            result.current.actions.undo();
+        });
+        expect(result.current.state.blocks).toHaveLength(1);
+
+        // Redo
+        act(() => {
+            result.current.actions.redo();
+        });
+        expect(result.current.state.blocks).toHaveLength(2);
+        expect(result.current.state.blocks[1].type).toBe('h1');
+    });
+
+    it('multiple undo operations work correctly', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const initialBlockId = result.current.state.blocks[0].id;
+
+        // Add first block
+        act(() => {
+            result.current.actions.addBlock(initialBlockId, 'h1', 'Block 1');
+        });
+
+        // Add second block
+        act(() => {
+            result.current.actions.addBlock(result.current.state.blocks[1].id, 'h2', 'Block 2');
+        });
+
+        expect(result.current.state.blocks).toHaveLength(3);
+
+        // Undo twice
+        act(() => {
+            result.current.actions.undo();
+        });
+        expect(result.current.state.blocks).toHaveLength(2);
+
+        act(() => {
+            result.current.actions.undo();
+        });
+        expect(result.current.state.blocks).toHaveLength(1);
+    });
+
+    it('new action after undo clears redo history', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const initialBlockId = result.current.state.blocks[0].id;
+
+        // Add a block
+        act(() => {
+            result.current.actions.addBlock(initialBlockId, 'h1', 'Block 1');
+        });
+
+        // Undo
+        act(() => {
+            result.current.actions.undo();
+        });
+        expect(result.current.state.blocks).toHaveLength(1);
+
+        // Add a new block (different action)
+        act(() => {
+            result.current.actions.addBlock(initialBlockId, 'h2', 'Block 2');
+        });
+        expect(result.current.state.blocks).toHaveLength(2);
+        expect(result.current.state.blocks[1].type).toBe('h2');
+
+        // Redo should not bring back the h1 block
+        act(() => {
+            result.current.actions.redo();
+        });
+        // State should remain with h2 block, not get h1 back
+        expect(result.current.state.blocks[1].type).toBe('h2');
+    });
+
+    it('undo on empty history does nothing', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const initialState = result.current.state;
+
+        // Undo with no history
+        act(() => {
+            result.current.actions.undo();
+        });
+
+        // State should remain unchanged
+        expect(result.current.state.blocks).toHaveLength(1);
+    });
+
+    it('undo restores deleted block', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const initialBlockId = result.current.state.blocks[0].id;
+
+        // Add a block
+        act(() => {
+            result.current.actions.addBlock(initialBlockId, 'h1', 'To be deleted');
+        });
+        const addedBlockId = result.current.state.blocks[1].id;
+        expect(result.current.state.blocks).toHaveLength(2);
+
+        // Delete the block
+        act(() => {
+            result.current.actions.deleteBlock(addedBlockId);
+        });
+        expect(result.current.state.blocks).toHaveLength(1);
+
+        // Undo should restore the block
+        act(() => {
+            result.current.actions.undo();
+        });
+        expect(result.current.state.blocks).toHaveLength(2);
+        expect(result.current.state.blocks[1].content).toBe('To be deleted');
+    });
+
+    it('undo restores block type change', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const blockId = result.current.state.blocks[0].id;
+
+        // Change block type
+        act(() => {
+            result.current.actions.changeBlockType(blockId, 'h1');
+        });
+        expect(result.current.state.blocks[0].type).toBe('h1');
+
+        // Undo
+        act(() => {
+            result.current.actions.undo();
+        });
+        expect(result.current.state.blocks[0].type).toBe('paragraph');
+    });
+});

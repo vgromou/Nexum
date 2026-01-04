@@ -33,6 +33,27 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     }, []);
 
     /**
+     * Syncs a block's current innerHTML to state for undo history.
+     * @param {Element|null} blockEl - The block element to sync, or null to detect from selection.
+     */
+    const syncBlockToState = useCallback((blockEl = null) => {
+        const element = blockEl || (() => {
+            const sel = window.getSelection();
+            if (!sel?.anchorNode) return null;
+            return sel.anchorNode.nodeType === Node.TEXT_NODE
+                ? sel.anchorNode.parentElement?.closest('[data-block-id]')
+                : sel.anchorNode?.closest?.('[data-block-id]');
+        })();
+
+        if (element) {
+            const blockId = element.getAttribute('data-block-id');
+            if (blockId) {
+                actions.updateBlock(blockId, element.innerHTML);
+            }
+        }
+    }, [actions]);
+
+    /**
      * Gets the current text selection if it's within the editor.
      * Supports both single-block and cross-block selections.
      */
@@ -262,10 +283,13 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             selectionRef.current = sel.getRangeAt(0).cloneRange();
         }
 
+        // Sync formatting changes to state for undo history
+        syncBlockToState();
+
         // Update active formats after applying formatting
         const newFormats = getActiveFormats();
         setMenu(prev => ({ ...prev, activeFormats: newFormats }));
-    }, [restoreSelection, getActiveFormats]);
+    }, [restoreSelection, getActiveFormats, syncBlockToState]);
 
     /**
      * Applies a highlight or tag to the selected text.
@@ -522,6 +546,9 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             newSel.addRange(finalRange);
             selectionRef.current = finalRange.cloneRange();
 
+            // Sync formatting changes to state for undo history
+            syncBlockToState(blockEl);
+
             // Update active formats after applying highlight
             const newFormats = getActiveFormats();
             setMenu(prev => ({ ...prev, activeFormats: newFormats }));
@@ -587,10 +614,13 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             }
         });
 
+        // Sync formatting changes to state for all affected blocks
+        intersectingBlocks.forEach(blockEl => syncBlockToState(blockEl));
+
         // Clear selection after multi-block operation
         sel.removeAllRanges();
         selectionRef.current = null;
-    }, [restoreSelection, editorRef, getActiveFormats]);
+    }, [restoreSelection, editorRef, getActiveFormats, syncBlockToState]);
 
     /**
      * Clears highlights or tags from the selection.
@@ -598,12 +628,22 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      */
     const clearHighlight = useCallback((type = null) => {
         if (!restoreSelection()) return;
+
+        // Get the affected block before clearing
+        const sel = window.getSelection();
+        const blockEl = sel.anchorNode?.nodeType === Node.TEXT_NODE
+            ? sel.anchorNode.parentElement?.closest('[data-block-id]')
+            : sel.anchorNode?.closest?.('[data-block-id]');
+
         removeExistingHighlights(type);
+
+        // Sync clearing to state for undo history
+        syncBlockToState(blockEl);
 
         // Update active formats after clearing
         const newFormats = getActiveFormats();
         setMenu(prev => ({ ...prev, activeFormats: newFormats }));
-    }, [restoreSelection, removeExistingHighlights, getActiveFormats]);
+    }, [restoreSelection, removeExistingHighlights, getActiveFormats, syncBlockToState]);
 
     /**
      * Applies a link to the selected text with the given URL.
@@ -613,10 +653,14 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         if (!url || !url.trim()) return;
         if (!restoreSelection()) return;
         document.execCommand('createLink', false, url);
+
+        // Sync link changes to state for undo history
+        syncBlockToState();
+
         // Update active formats
         const newFormats = getActiveFormats();
         setMenu(prev => ({ ...prev, activeFormats: newFormats }));
-    }, [restoreSelection, getActiveFormats]);
+    }, [restoreSelection, getActiveFormats, syncBlockToState]);
 
     /**
      * Gets the current menu position for LinkPopover positioning.
