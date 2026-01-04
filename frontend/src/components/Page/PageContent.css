@@ -149,6 +149,40 @@
     letter-spacing: -0.02em;
     color: black;
     margin: 0;
+    margin-left: -6px;
+    padding: 2px 6px;
+    cursor: text;
+    outline: none;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    will-change: background-color;
+}
+
+/* Force consistent styling - no formatting allowed in title */
+.page-title-h1 b,
+.page-title-h1 strong,
+.page-title-h1 i,
+.page-title-h1 em,
+.page-title-h1 u,
+.page-title-h1 a,
+.page-title-h1 span {
+    font-weight: 700;
+    font-style: normal;
+    text-decoration: none;
+    color: inherit;
+}
+
+.page-title-h1:hover {
+    background-color: var(--color-gray-100, #f3f4f6);
+}
+
+.page-title-h1:focus {
+    background-color: transparent;
+}
+
+.page-title-h1:empty::before {
+    content: attr(data-placeholder);
+    color: var(--color-gray-400, #9ca3af);
 }
 
 .text-blocks {
