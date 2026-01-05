@@ -6,6 +6,15 @@ vi.mock('../Editor/UnifiedBlockEditor', () => ({
     default: () => <div data-testid="block-editor">Block Editor Content</div>
 }));
 
+// Mock IntersectionObserver for EmojiPicker
+class MockIntersectionObserver {
+    constructor() { }
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+}
+global.IntersectionObserver = MockIntersectionObserver;
+
 describe('PageContent', () => {
     it('renders page headers and block editor', () => {
         render(<PageContent />);
@@ -407,6 +416,285 @@ describe('PageContent', () => {
 
                 // Both h1 should show truncated title
                 expect(titleElement.textContent.length).toBe(100);
+            });
+        });
+    });
+
+    describe('Page Icon Feature', () => {
+        describe('Add Icon Button', () => {
+            it('should not show Add icon button by default', () => {
+                render(<PageContent />);
+                expect(screen.queryByText('Add icon')).not.toBeInTheDocument();
+            });
+
+            it('should show Add icon button on page header hover', async () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+
+                expect(screen.getByText('Add icon')).toBeInTheDocument();
+            });
+
+            it('should hide Add icon button on page header mouse leave', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                expect(screen.getByText('Add icon')).toBeInTheDocument();
+
+                act(() => {
+                    fireEvent.mouseLeave(pageHeader);
+                });
+                expect(screen.queryByText('Add icon')).not.toBeInTheDocument();
+            });
+        });
+
+        describe('Emoji Picker Integration', () => {
+            it('should open emoji picker when Add icon button is clicked', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Hover to show button
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+
+                // Click Add icon button
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                // Emoji picker should open
+                expect(container.querySelector('.emoji-picker')).toBeInTheDocument();
+            });
+
+            it('should close emoji picker when clicking outside', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Open picker
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                expect(container.querySelector('.emoji-picker')).toBeInTheDocument();
+
+                // Click outside (on page content card)
+                act(() => {
+                    fireEvent.mouseDown(container.querySelector('.content-wrapper'));
+                });
+
+                expect(container.querySelector('.emoji-picker')).not.toBeInTheDocument();
+            });
+        });
+
+        describe('Icon Display', () => {
+            it('should display selected emoji as page icon', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Open picker
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                // Click an emoji
+                const emojiButtons = container.querySelectorAll('.emoji-grid-item');
+                if (emojiButtons.length > 0) {
+                    act(() => {
+                        fireEvent.click(emojiButtons[0]);
+                    });
+
+                    // Page icon should be displayed
+                    expect(container.querySelector('.page-icon-emoji')).toBeInTheDocument();
+                }
+            });
+
+            it('should show Change page icon button when icon is set', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Open picker and select emoji
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                const emojiButtons = container.querySelectorAll('.emoji-grid-item');
+                if (emojiButtons.length > 0) {
+                    act(() => {
+                        fireEvent.click(emojiButtons[0]);
+                    });
+
+                    expect(screen.getByLabelText('Change page icon')).toBeInTheDocument();
+                }
+            });
+
+            it('should open emoji picker when clicking on existing icon', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // First, set an icon
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                const emojiButtons = container.querySelectorAll('.emoji-grid-item');
+                if (emojiButtons.length > 0) {
+                    act(() => {
+                        fireEvent.click(emojiButtons[0]);
+                    });
+
+                    // Click on the icon button
+                    act(() => {
+                        fireEvent.click(screen.getByLabelText('Change page icon'));
+                    });
+
+                    // Emoji picker should open again
+                    expect(container.querySelector('.emoji-picker')).toBeInTheDocument();
+                }
+            });
+        });
+
+        describe('Icon Removal', () => {
+            it('should show Remove button in emoji picker when icon is set', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Set an icon first
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                const emojiButtons = container.querySelectorAll('.emoji-grid-item');
+                if (emojiButtons.length > 0) {
+                    act(() => {
+                        fireEvent.click(emojiButtons[0]);
+                    });
+
+                    // Reopen picker by clicking on icon
+                    act(() => {
+                        fireEvent.click(screen.getByLabelText('Change page icon'));
+                    });
+
+                    // Remove button should be visible
+                    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+                }
+            });
+
+            it('should remove icon when Remove button is clicked', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Set an icon first
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                const emojiButtons = container.querySelectorAll('.emoji-grid-item');
+                if (emojiButtons.length > 0) {
+                    act(() => {
+                        fireEvent.click(emojiButtons[0]);
+                    });
+
+                    expect(container.querySelector('.page-icon-emoji')).toBeInTheDocument();
+
+                    // Reopen picker and click Remove
+                    act(() => {
+                        fireEvent.click(screen.getByLabelText('Change page icon'));
+                    });
+                    act(() => {
+                        fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+                    });
+
+                    // Icon should be removed
+                    expect(container.querySelector('.page-icon-emoji')).not.toBeInTheDocument();
+                }
+            });
+        });
+
+        describe('Icon Types', () => {
+            it('should display Lucide icon with correct color', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Open picker
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                // Switch to Icons tab
+                act(() => {
+                    fireEvent.click(screen.getByRole('button', { name: 'Icons' }));
+                });
+
+                // Click an icon
+                const iconButtons = container.querySelectorAll('.icon-item');
+                if (iconButtons.length > 0) {
+                    act(() => {
+                        fireEvent.click(iconButtons[0]);
+                    });
+
+                    // SVG icon should be displayed
+                    const iconButton = container.querySelector('.page-icon-button');
+                    expect(iconButton?.querySelector('svg')).toBeInTheDocument();
+                }
+            });
+        });
+
+        describe('Page Header Layout', () => {
+            it('should show small hover area when no icon is set', () => {
+                const { container } = render(<PageContent />);
+                expect(container.querySelector('.page-icon-hover-area')).toBeInTheDocument();
+                expect(container.querySelector('.page-icon-area')).not.toBeInTheDocument();
+            });
+
+            it('should show expanded icon area when icon is set', () => {
+                const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                // Set an icon
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+                act(() => {
+                    fireEvent.click(screen.getByText('Add icon'));
+                });
+
+                const emojiButtons = container.querySelectorAll('.emoji-grid-item');
+                if (emojiButtons.length > 0) {
+                    act(() => {
+                        fireEvent.click(emojiButtons[0]);
+                    });
+
+                    expect(container.querySelector('.page-icon-area')).toBeInTheDocument();
+                    expect(container.querySelector('.page-icon-hover-area')).not.toBeInTheDocument();
+                }
             });
         });
     });

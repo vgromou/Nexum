@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useDeferredValue } from 'react';
+import * as LucideIcons from 'lucide-react';
 import {
     Heart,
     Star,
@@ -6,8 +7,10 @@ import {
     MoreHorizontal,
     ChevronsRight,
     PanelLeft,
+    Smile,
 } from 'lucide-react';
 import BlockEditor from '../Editor/UnifiedBlockEditor';
+import { EmojiPicker, ICON_COLORS, toPascalCase } from '../EmojiPicker';
 import './PageContent.css';
 
 const INITIAL_TITLE = 'Page Title';
@@ -19,6 +22,13 @@ const PageContent = () => {
     const deferredTitle = useDeferredValue(displayTitle);
     const titleRef = useRef(null);
     const isInitializedRef = useRef(false);
+
+    // Page icon state
+    const [pageIcon, setPageIcon] = useState(null);
+    const [showAddIcon, setShowAddIcon] = useState(false);
+    const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+    const [emojiPickerPosition, setEmojiPickerPosition] = useState({ top: 0, left: 0 });
+    const iconButtonRef = useRef(null);
 
     // Set initial content only once
     useEffect(() => {
@@ -113,6 +123,46 @@ const PageContent = () => {
         }
     }, []);
 
+    // Open emoji picker with position
+    const openEmojiPicker = useCallback((e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setEmojiPickerPosition({
+            top: rect.bottom + 8,
+            left: rect.left,
+        });
+        setEmojiPickerOpen(true);
+    }, []);
+
+    // Handle emoji/icon selection
+    const handleIconSelect = useCallback((selection) => {
+        setPageIcon(selection);
+        setEmojiPickerOpen(false);
+    }, []);
+
+    // Handle icon removal
+    const handleIconRemove = useCallback(() => {
+        setPageIcon(null);
+        setEmojiPickerOpen(false);
+    }, []);
+
+    // Render the page icon
+    const renderPageIcon = () => {
+        if (!pageIcon) return null;
+
+        if (pageIcon.type === 'emoji') {
+            return <span className="page-icon-emoji">{pageIcon.value}</span>;
+        }
+
+        // Use shared utility to convert kebab-case to PascalCase
+        const iconName = toPascalCase(pageIcon.value);
+        const IconComponent = LucideIcons[iconName];
+
+        if (IconComponent) {
+            return <IconComponent size={48} color={pageIcon.color} strokeWidth={1.5} />;
+        }
+        return null;
+    };
+
     return (
         <div className="page-content-card">
             {/* Top Navigation Bar */}
@@ -150,10 +200,39 @@ const PageContent = () => {
                 <div className="content-wrapper">
 
                     {/* Page Icon & Title */}
-                    <div className="page-header">
-                        <div className="page-icon-large">
-                            <Heart size={48} strokeWidth={1} color="black" />
-                        </div>
+                    <div
+                        className="page-header"
+                        onMouseEnter={() => setShowAddIcon(true)}
+                        onMouseLeave={() => setShowAddIcon(false)}
+                    >
+                        {/* Icon/Add icon area */}
+                        {pageIcon ? (
+                            /* Icon area - expanded when icon is set */
+                            <div className="page-icon-area">
+                                <button
+                                    ref={iconButtonRef}
+                                    className="page-icon-button"
+                                    onClick={openEmojiPicker}
+                                    aria-label="Change page icon"
+                                >
+                                    {renderPageIcon()}
+                                </button>
+                            </div>
+                        ) : (
+                            /* Small hover area for Add icon button */
+                            <div className="page-icon-hover-area">
+                                {showAddIcon && (
+                                    <button
+                                        className="add-icon-button"
+                                        onClick={openEmojiPicker}
+                                    >
+                                        <Smile size={16} />
+                                        <span>Add icon</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         <h1
                             ref={titleRef}
                             className="page-title-h1"
@@ -176,6 +255,17 @@ const PageContent = () => {
                     <div className="spacer-bottom"></div>
                 </div>
             </div>
+
+            {/* Emoji Picker */}
+            <EmojiPicker
+                isOpen={emojiPickerOpen}
+                position={emojiPickerPosition}
+                onSelect={handleIconSelect}
+                onRemove={handleIconRemove}
+                onClose={() => setEmojiPickerOpen(false)}
+                currentValue={pageIcon}
+                showRemove={!!pageIcon}
+            />
         </div>
     );
 };
