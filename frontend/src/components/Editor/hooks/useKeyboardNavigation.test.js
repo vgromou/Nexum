@@ -63,6 +63,7 @@ describe('useKeyboardNavigation', () => {
                 pasteFromClipboard: overrides.pasteFromClipboard || mockPasteFromClipboard,
                 handleKeyboardSelection: overrides.handleKeyboardSelection || mockHandleKeyboardSelection,
                 getSelectionForDeletion: overrides.getSelectionForDeletion || mockGetSelectionForDeletion,
+                readOnly: overrides.readOnly || false,
             })
         );
     };
@@ -412,6 +413,87 @@ describe('useKeyboardNavigation', () => {
 
             // Should not throw
             expect(() => handler(event)).not.toThrow();
+        });
+    });
+
+    describe('readOnly mode', () => {
+        it('blocks paste when readOnly is true', () => {
+            renderNavigationHook({
+                readOnly: true,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(preventDefaultSpy).toHaveBeenCalled();
+            expect(mockPasteFromClipboard).not.toHaveBeenCalled();
+        });
+
+        it('blocks paste with Ctrl+V when readOnly is true', () => {
+            renderNavigationHook({
+                readOnly: true,
+            });
+
+            const event = createKeyboardEvent('v', { ctrlKey: true });
+            const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(preventDefaultSpy).toHaveBeenCalled();
+            expect(mockPasteFromClipboard).not.toHaveBeenCalled();
+        });
+
+        it('blocks paste with Shift+V when readOnly is true', () => {
+            renderNavigationHook({
+                readOnly: true,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true, shiftKey: true });
+            const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(preventDefaultSpy).toHaveBeenCalled();
+            expect(mockPasteFromClipboard).not.toHaveBeenCalled();
+        });
+
+        it('allows paste when readOnly is false', () => {
+            renderNavigationHook({
+                readOnly: false,
+            });
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(mockPasteFromClipboard).toHaveBeenCalled();
+        });
+
+        it('allows paste when readOnly is not specified (defaults to false)', () => {
+            renderNavigationHook({});
+
+            const event = createKeyboardEvent('v', { metaKey: true });
+            const handler = addEventListenerSpy.mock.calls.find(
+                (call) => call[0] === 'keydown'
+            )[1];
+
+            handler(event);
+
+            expect(mockPasteFromClipboard).toHaveBeenCalled();
         });
     });
 

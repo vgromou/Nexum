@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useState, useLayoutEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useState, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
 import { GripVertical } from 'lucide-react';
 import SlashCommandMenu from './SlashCommandMenu';
 import FormattingMenu from './FormattingMenu';
@@ -42,7 +42,7 @@ const BLOCK_TYPE_TAGS = {
  * UnifiedBlockEditor - A single contentEditable editor that enables
  * native cross-block text selection while maintaining block structure.
  */
-const UnifiedBlockEditor = () => {
+const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
     const { state, actions } = useBlockReducer();
     const editorRef = useRef(null);
     const isUpdatingFromDOM = useRef(false);
@@ -59,6 +59,21 @@ const UnifiedBlockEditor = () => {
             }
         };
     }, []);
+
+    // Expose block state methods to parent via ref
+    useImperativeHandle(ref, () => ({
+        /**
+         * Get a deep copy of the current blocks state.
+         * Used for snapshotting before edit mode.
+         */
+        getBlocks: () => structuredClone(state.blocks),
+        /**
+         * Replace all blocks with the provided blocks array.
+         * Used for restoring state on cancel.
+         */
+        setBlocks: (blocks) => actions.setBlocks(blocks),
+    }), [state.blocks, actions]);
+
 
     // Block Selection Hooks
     const {
@@ -133,6 +148,7 @@ const UnifiedBlockEditor = () => {
         pasteFromClipboard,
         handleKeyboardSelection,
         getSelectionForDeletion,
+        readOnly,
     });
 
 
@@ -1157,6 +1173,9 @@ const UnifiedBlockEditor = () => {
         if (!editor) return;
 
         const handlePaste = (e) => {
+            // Disable smart URL paste in read-only mode
+            if (readOnly) return;
+
             const sel = window.getSelection();
             if (!sel.rangeCount) return;
 
@@ -1188,7 +1207,7 @@ const UnifiedBlockEditor = () => {
         return () => {
             editor.removeEventListener('paste', handlePaste);
         };
-    }, []);
+    }, [readOnly]);
 
 
     // Update positions when blocks change
@@ -1248,38 +1267,55 @@ const UnifiedBlockEditor = () => {
         'block-editor',
         'unified-editor',
         dragState.isDragging ? 'is-dragging' : '',
+        readOnly ? 'read-only' : '',
     ].filter(Boolean).join(' ');
+
+    // Handle click on links in read-only mode
+    const handleEditorClick = useCallback((e) => {
+        if (!readOnly) return;
+
+        // Check if clicked on a link
+        const linkEl = e.target.closest('a');
+        if (linkEl && linkEl.href) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(linkEl.href, '_blank', 'noopener,noreferrer');
+        }
+    }, [readOnly]);
 
     return (
         <div className={editorClassName}>
-            {/* Block handles layer */}
-            <div className="block-handles-layer">
-                {state.blocks.map((block, index) => (
-                    <div
-                        key={block.id}
-                        className={`block-handle-wrapper ${state.selectedBlockIds.includes(block.id) ? 'selected' : ''} ${hoveredBlockId === block.id ? 'hovered' : ''}`}
-                        data-handle-for={block.id}
-                        style={{ top: handlePositions[block.id] ?? 0, display: handlePositions[block.id] !== undefined ? 'block' : 'none' }}
-                    >
+            {/* Block handles layer - hidden in read-only mode */}
+            {!readOnly && (
+                <div className="block-handles-layer">
+                    {state.blocks.map((block, index) => (
                         <div
-                            className="block-handle"
-                            onMouseDown={(e) => handleHandleMouseDown(e, block.id, index)}
+                            key={block.id}
+                            className={`block-handle-wrapper ${state.selectedBlockIds.includes(block.id) ? 'selected' : ''} ${hoveredBlockId === block.id ? 'hovered' : ''}`}
+                            data-handle-for={block.id}
+                            style={{ top: handlePositions[block.id] ?? 0, display: handlePositions[block.id] !== undefined ? 'block' : 'none' }}
                         >
-                            <GripVertical size={16} />
+                            <div
+                                className="block-handle"
+                                onMouseDown={(e) => handleHandleMouseDown(e, block.id, index)}
+                            >
+                                <GripVertical size={16} />
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Main contentEditable area */}
             <div
                 ref={editorRef}
                 className="unified-content-area"
-                contentEditable
+                contentEditable={!readOnly}
                 suppressContentEditableWarning
-                onInput={handleInput}
-                onKeyDown={handleKeyDown}
-                onKeyUp={(e) => {
+                onInput={readOnly ? undefined : handleInput}
+                onKeyDown={readOnly ? undefined : handleKeyDown}
+                onClick={handleEditorClick}
+                onKeyUp={readOnly ? undefined : (e) => {
                     // Clean up formatting after Backspace/Delete if block becomes empty
                     if (e.key === 'Backspace' || e.key === 'Delete') {
                         const sel = window.getSelection();
@@ -1294,7 +1330,7 @@ const UnifiedBlockEditor = () => {
                         }
                     }
                 }}
-                onMouseDown={(e) => {
+                onMouseDown={readOnly ? undefined : (e) => {
                     // Clear block selection when clicking inside editor text/empty space
                     // Only if not holding modifiers (which might be for selection extension)
                     if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
@@ -1307,7 +1343,7 @@ const UnifiedBlockEditor = () => {
                         actions.clearSelection();
                     }
                 }}
-                onMouseMove={(e) => {
+                onMouseMove={readOnly ? undefined : (e) => {
                     const blockEl = e.target.closest?.('[data-block-id]');
                     if (blockEl) {
                         const blockId = blockEl.getAttribute('data-block-id');
@@ -1318,8 +1354,8 @@ const UnifiedBlockEditor = () => {
                         setHoveredBlockId(null);
                     }
                 }}
-                onMouseLeave={() => setHoveredBlockId(null)}
-                data-placeholder="Type '/' for commands..."
+                onMouseLeave={readOnly ? undefined : () => setHoveredBlockId(null)}
+                data-placeholder={readOnly ? '' : "Type '/' for commands..."}
             />
 
             {/* Drop indicator line */}
@@ -1355,8 +1391,8 @@ const UnifiedBlockEditor = () => {
                 </div>
             )}
 
-            {/* Slash command menu */}
-            {slashMenu.isOpen && (
+            {/* Slash command menu - hidden in read-only mode */}
+            {!readOnly && slashMenu.isOpen && (
                 <SlashCommandMenu
                     position={slashMenu.position}
                     filter={slashMenu.filter}
@@ -1365,8 +1401,8 @@ const UnifiedBlockEditor = () => {
                 />
             )}
 
-            {/* Formatting menu */}
-            {formattingMenu.isOpen && (
+            {/* Formatting menu - hidden in read-only mode */}
+            {!readOnly && formattingMenu.isOpen && (
                 <FormattingMenu
                     position={formattingMenu.position}
                     currentBlockType={formattingMenu.currentBlockType}
@@ -1385,20 +1421,25 @@ const UnifiedBlockEditor = () => {
                 />
             )}
 
-            {/* Link popover */}
-            <LinkPopover
-                isOpen={linkPopoverState.isOpen}
-                position={linkPopoverState.position}
-                currentUrl={linkPopoverState.currentUrl}
-                isEditing={linkPopoverState.isEditing}
-                autoFocusInput={linkPopoverState.autoFocusInput}
-                onApply={applyLinkFromPopover}
-                onUnlink={unlinkCurrentLink}
-                onClose={closeLinkPopover}
-                formattingMenuHeight={40}
-            />
+            {/* Link popover - hidden in read-only mode */}
+            {!readOnly && (
+                <LinkPopover
+                    isOpen={linkPopoverState.isOpen}
+                    position={linkPopoverState.position}
+                    currentUrl={linkPopoverState.currentUrl}
+                    isEditing={linkPopoverState.isEditing}
+                    autoFocusInput={linkPopoverState.autoFocusInput}
+                    onApply={applyLinkFromPopover}
+                    onUnlink={unlinkCurrentLink}
+                    onClose={closeLinkPopover}
+                    formattingMenuHeight={40}
+                />
+            )}
         </div>
     );
-};
+});
+
+// Display name for debugging
+UnifiedBlockEditor.displayName = 'UnifiedBlockEditor';
 
 export default UnifiedBlockEditor;

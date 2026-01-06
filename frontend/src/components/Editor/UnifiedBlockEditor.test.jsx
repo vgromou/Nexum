@@ -606,5 +606,120 @@ describe('UnifiedBlockEditor', () => {
             expect(document.execCommand).toHaveBeenCalledWith('removeFormat', false, null);
         });
     });
+
+    describe('Read-Only Mode', () => {
+        it('adds read-only class when readOnly prop is true', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={true} />);
+            const editor = container.querySelector('.block-editor');
+            expect(editor).toHaveClass('read-only');
+        });
+
+        it('does not add read-only class when readOnly prop is false', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={false} />);
+            const editor = container.querySelector('.block-editor');
+            expect(editor).not.toHaveClass('read-only');
+        });
+
+        it('sets contentEditable to false in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={true} />);
+            const contentArea = container.querySelector('.unified-content-area');
+            expect(contentArea).toHaveAttribute('contenteditable', 'false');
+        });
+
+        it('sets contentEditable to true when not in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={false} />);
+            const contentArea = container.querySelector('.unified-content-area');
+            expect(contentArea).toHaveAttribute('contenteditable', 'true');
+        });
+
+        it('hides block handles in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={true} />);
+            const handlesLayer = container.querySelector('.block-handles-layer');
+            expect(handlesLayer).not.toBeInTheDocument();
+        });
+
+        it('shows block handles when not in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={false} />);
+            const handlesLayer = container.querySelector('.block-handles-layer');
+            expect(handlesLayer).toBeInTheDocument();
+        });
+
+        it('has empty placeholder in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={true} />);
+            const contentArea = container.querySelector('.unified-content-area');
+            expect(contentArea).toHaveAttribute('data-placeholder', '');
+        });
+
+        it('has command placeholder when not in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={false} />);
+            const contentArea = container.querySelector('.unified-content-area');
+            expect(contentArea).toHaveAttribute('data-placeholder', "Type '/' for commands...");
+        });
+
+        it('opens link in new window when clicked in read-only mode', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '<a href="https://example.com">Link Text</a>' },
+            ];
+
+            const mockWindowOpen = vi.fn();
+            window.open = mockWindowOpen;
+
+            const { container } = render(<UnifiedBlockEditor readOnly={true} />);
+            const link = container.querySelector('a');
+
+            fireEvent.click(link);
+
+            // JSDOM normalizes URLs by adding trailing slash
+            expect(mockWindowOpen).toHaveBeenCalledWith(
+                expect.stringMatching(/^https:\/\/example\.com\/?$/),
+                '_blank',
+                'noopener,noreferrer'
+            );
+        });
+
+        it('does not open link on click when not in read-only mode', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '<a href="https://example.com">Link Text</a>' },
+            ];
+
+            const mockWindowOpen = vi.fn();
+            window.open = mockWindowOpen;
+
+            const { container } = render(<UnifiedBlockEditor readOnly={false} />);
+            const link = container.querySelector('a');
+
+            fireEvent.click(link);
+
+            expect(mockWindowOpen).not.toHaveBeenCalled();
+        });
+
+        it('does not trigger input events in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={true} />);
+            const contentArea = container.querySelector('.unified-content-area');
+            const block = container.querySelector('[data-block-id="1"]');
+
+            // Clear previous mocks
+            vi.clearAllMocks();
+
+            // Try to input
+            block.textContent = 'Changed content';
+            fireEvent.input(contentArea);
+
+            // setBlocks should not be called in read-only mode
+            expect(mockActions.setBlocks).not.toHaveBeenCalled();
+        });
+
+        it('does not process key events in read-only mode', () => {
+            const { container } = render(<UnifiedBlockEditor readOnly={true} />);
+            const contentArea = container.querySelector('.unified-content-area');
+
+            vi.clearAllMocks();
+
+            fireEvent.keyDown(contentArea, { key: 'Enter' });
+
+            expect(mockActions.setBlocks).not.toHaveBeenCalled();
+            expect(mockActions.addBlock).not.toHaveBeenCalled();
+        });
+    });
 });
 

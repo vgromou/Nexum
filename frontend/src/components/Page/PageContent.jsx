@@ -8,6 +8,8 @@ import {
     ChevronsRight,
     PanelLeft,
     Smile,
+    X,
+    Check,
 } from 'lucide-react';
 import BlockEditor from '../Editor/UnifiedBlockEditor';
 import { EmojiPicker, ICON_COLORS, toPascalCase } from '../EmojiPicker';
@@ -29,6 +31,14 @@ const PageContent = () => {
     const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
     const [emojiPickerPosition, setEmojiPickerPosition] = useState({ top: 0, left: 0 });
     const iconButtonRef = useRef(null);
+
+    // Edit mode state
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const originalTitleRef = useRef(INITIAL_TITLE);
+    const originalIconRef = useRef(null);
+    const originalBlocksRef = useRef(null);
+    const blockEditorRef = useRef(null);
 
     // Set initial content only once
     useEffect(() => {
@@ -145,6 +155,49 @@ const PageContent = () => {
         setEmojiPickerOpen(false);
     }, []);
 
+    // Enter edit mode
+    const enterEditMode = useCallback(() => {
+        originalTitleRef.current = displayTitle;
+        originalIconRef.current = pageIcon;
+        // Snapshot current blocks state
+        if (blockEditorRef.current) {
+            originalBlocksRef.current = blockEditorRef.current.getBlocks();
+        }
+        setIsEditMode(true);
+    }, [displayTitle, pageIcon]);
+
+    // Save changes and exit edit mode
+    const handleSave = useCallback(() => {
+        setIsEditMode(false);
+    }, []);
+
+    // Request cancel (shows modal)
+    const handleCancelRequest = useCallback(() => {
+        setShowCancelModal(true);
+    }, []);
+
+    // Confirm cancel - discard changes
+    const handleConfirmCancel = useCallback(() => {
+        // Restore original title
+        setDisplayTitle(originalTitleRef.current);
+        if (titleRef.current) {
+            titleRef.current.textContent = originalTitleRef.current;
+        }
+        // Restore original icon
+        setPageIcon(originalIconRef.current);
+        // Restore original blocks
+        if (blockEditorRef.current && originalBlocksRef.current) {
+            blockEditorRef.current.setBlocks(originalBlocksRef.current);
+        }
+        setShowCancelModal(false);
+        setIsEditMode(false);
+    }, []);
+
+    // Close cancel modal without discarding
+    const handleCloseModal = useCallback(() => {
+        setShowCancelModal(false);
+    }, []);
+
     // Render the page icon
     const renderPageIcon = () => {
         if (!pageIcon) return null;
@@ -183,9 +236,32 @@ const PageContent = () => {
                     <button className="nav-btn" aria-label="Add to favorites">
                         <Star size={18} />
                     </button>
-                    <button className="nav-btn" aria-label="Edit page">
-                        <PenLine size={18} />
-                    </button>
+                    {isEditMode ? (
+                        <>
+                            <button
+                                className="nav-btn nav-btn-cancel"
+                                aria-label="Cancel editing"
+                                onClick={handleCancelRequest}
+                            >
+                                <X size={18} />
+                            </button>
+                            <button
+                                className="nav-btn nav-btn-save"
+                                aria-label="Save changes"
+                                onClick={handleSave}
+                            >
+                                <Check size={18} />
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            className="nav-btn"
+                            aria-label="Edit page"
+                            onClick={enterEditMode}
+                        >
+                            <PenLine size={18} />
+                        </button>
+                    )}
                     <button className="nav-btn" aria-label="More options">
                         <MoreHorizontal size={18} />
                     </button>
@@ -201,27 +277,33 @@ const PageContent = () => {
 
                     {/* Page Icon & Title */}
                     <div
-                        className="page-header"
-                        onMouseEnter={() => setShowAddIcon(true)}
+                        className={`page-header ${!isEditMode ? 'read-mode' : ''}`}
+                        onMouseEnter={() => isEditMode && setShowAddIcon(true)}
                         onMouseLeave={() => setShowAddIcon(false)}
                     >
                         {/* Icon/Add icon area */}
                         {pageIcon ? (
                             /* Icon area - expanded when icon is set */
                             <div className="page-icon-area">
-                                <button
-                                    ref={iconButtonRef}
-                                    className="page-icon-button"
-                                    onClick={openEmojiPicker}
-                                    aria-label="Change page icon"
-                                >
-                                    {renderPageIcon()}
-                                </button>
+                                {isEditMode ? (
+                                    <button
+                                        ref={iconButtonRef}
+                                        className="page-icon-button"
+                                        onClick={openEmojiPicker}
+                                        aria-label="Change page icon"
+                                    >
+                                        {renderPageIcon()}
+                                    </button>
+                                ) : (
+                                    <div className="page-icon-display">
+                                        {renderPageIcon()}
+                                    </div>
+                                )}
                             </div>
                         ) : (
-                            /* Small hover area for Add icon button */
+                            /* Small hover area for Add icon button - only in edit mode */
                             <div className="page-icon-hover-area">
-                                {showAddIcon && (
+                                {isEditMode && showAddIcon && (
                                     <button
                                         className="add-icon-button"
                                         onClick={openEmojiPicker}
@@ -235,21 +317,21 @@ const PageContent = () => {
 
                         <h1
                             ref={titleRef}
-                            className="page-title-h1"
-                            contentEditable
+                            className={`page-title-h1 ${!isEditMode ? 'read-mode' : ''}`}
+                            contentEditable={isEditMode}
                             suppressContentEditableWarning
-                            onInput={handleTitleInput}
-                            onKeyDown={handleTitleKeyDown}
-                            onBlur={handleTitleBlur}
-                            onPaste={handleTitlePaste}
+                            onInput={isEditMode ? handleTitleInput : undefined}
+                            onKeyDown={isEditMode ? handleTitleKeyDown : undefined}
+                            onBlur={isEditMode ? handleTitleBlur : undefined}
+                            onPaste={isEditMode ? handleTitlePaste : undefined}
                             spellCheck={false}
-                            aria-label="Page title, click to edit"
+                            aria-label={isEditMode ? 'Page title, click to edit' : 'Page title'}
                             data-placeholder="Untitled"
                         />
                     </div>
 
                     {/* Block-based Editor */}
-                    <BlockEditor />
+                    <BlockEditor ref={blockEditorRef} readOnly={!isEditMode} />
 
                     {/* Added extra space at bottom for scrolling feel */}
                     <div className="spacer-bottom"></div>
@@ -266,6 +348,30 @@ const PageContent = () => {
                 currentValue={pageIcon}
                 showRemove={!!pageIcon}
             />
+
+            {/* Cancel Confirmation Modal */}
+            {showCancelModal && (
+                <div className="modal-overlay" onClick={handleCloseModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <h3>Discard changes?</h3>
+                        <p>Your unsaved changes will be lost.</p>
+                        <div className="modal-actions">
+                            <button
+                                className="modal-btn modal-btn-secondary"
+                                onClick={handleCloseModal}
+                            >
+                                Keep editing
+                            </button>
+                            <button
+                                className="modal-btn modal-btn-danger"
+                                onClick={handleConfirmCancel}
+                            >
+                                Discard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

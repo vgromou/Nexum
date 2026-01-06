@@ -18,6 +18,7 @@ export function useKeyboardNavigation({
     pasteFromClipboard,
     handleKeyboardSelection,
     getSelectionForDeletion,
+    readOnly = false,
 }) {
     /**
      * Global keyboard event handler for editor shortcuts.
@@ -97,6 +98,12 @@ export function useKeyboardNavigation({
         // Paste: Cmd/Ctrl + V
         // Always intercept to ensure proper block structure is maintained
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') {
+            // In read-only mode, block paste entirely
+            if (readOnly) {
+                e.preventDefault();
+                return;
+            }
+
             // Don't intercept if focus is in an input/textarea or popover
             // Check both activeElement and event target for most reliable detection
             const activeEl = document.activeElement;
@@ -207,6 +214,7 @@ export function useKeyboardNavigation({
         handleKeyboardSelection,
         getSelectionForDeletion,
         closeSlashMenu,
+        readOnly,
     ]);
 
     // Attach global keyboard listener

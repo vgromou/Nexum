@@ -276,3 +276,133 @@
 .spacer-bottom {
     height: 200px;
 }
+
+/* Read mode styles */
+.page-title-h1.read-mode {
+    cursor: default;
+}
+
+.page-title-h1.read-mode:hover {
+    background-color: transparent;
+}
+
+.page-icon-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 78px;
+    height: 78px;
+}
+
+/* Nav button variants */
+.nav-btn-cancel {
+    color: var(--color-red-500, #ef4444);
+}
+
+.nav-btn-cancel:hover {
+    background-color: var(--color-red-50, #fef2f2);
+    color: var(--color-red-600, #dc2626);
+}
+
+.nav-btn-save {
+    color: var(--color-green-500, #22c55e);
+}
+
+.nav-btn-save:hover {
+    background-color: var(--color-green-50, #f0fdf4);
+    color: var(--color-green-600, #16a34a);
+}
+
+/* Confirmation Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-gray-900, #111827);
+}
+
+.modal-content p {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: var(--color-gray-500, #6b7280);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.modal-btn-secondary {
+    background-color: var(--color-gray-100, #f3f4f6);
+    color: var(--color-gray-700, #374151);
+}
+
+.modal-btn-secondary:hover {
+    background-color: var(--color-gray-200, #e5e7eb);
+}
+
+.modal-btn-danger {
+    background-color: var(--color-red-500, #ef4444);
+    color: white;
+}
+
+.modal-btn-danger:hover {
+    background-color: var(--color-red-600, #dc2626);
+}

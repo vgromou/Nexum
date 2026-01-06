@@ -862,3 +862,29 @@
 .unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="2"]::before {
     content: counter(list-counter-2) ".";
 }
+
+/* ==========================================
+   READ-ONLY MODE STYLES
+   ========================================== */
+
+/* Read-only editor - allow text selection for copying */
+.block-editor.read-only .unified-content-area {
+    cursor: default;
+}
+
+/* Links in read-only mode - pointer cursor for clickability */
+.block-editor.read-only .unified-content-area a {
+    cursor: pointer;
+}
+
+/* Links in read-only mode - extra visual feedback on hover */
+.block-editor.read-only .unified-content-area a:hover {
+    background-color: rgba(37, 99, 235, 0.08);
+    border-radius: 2px;
+}
+
+/* Hide placeholders in read-only mode */
+.block-editor.read-only .block-content.is-empty.is-focused::before,
+.block-editor.read-only .block-content.is-empty.is-focused::after {
+    content: none;
+}

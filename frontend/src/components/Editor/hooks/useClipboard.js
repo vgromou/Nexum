@@ -192,7 +192,21 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
 
             // Normalize stored data structure
             const storedBlocks = storedData?.blocks || (Array.isArray(storedData) ? storedData : null);
-            const focusedBlockId = state.focusedBlockId;
+
+            // Dynamically determine focused block from DOM selection
+            // This is more reliable than state.focusedBlockId which may not be synced
+            const getFocusedBlockId = () => {
+                const sel = window.getSelection();
+                if (!sel.rangeCount) return null;
+
+                const anchorNode = sel.anchorNode;
+                const blockEl = anchorNode?.nodeType === Node.TEXT_NODE
+                    ? anchorNode.parentElement?.closest('[data-block-id]')
+                    : anchorNode?.closest?.('[data-block-id]');
+                return blockEl?.getAttribute('data-block-id') || null;
+            };
+
+            const focusedBlockId = getFocusedBlockId();
 
             // Get current cursor position for smart paste
             const getCursorOffset = () => {
@@ -200,8 +214,9 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
                 if (!sel.rangeCount) return 0;
 
                 const range = sel.getRangeAt(0);
+                // In UnifiedBlockEditor, data-block-id IS on the block-content element directly
                 const focusedEl = editorRef.current?.querySelector(
-                    `[data-block-id="${focusedBlockId}"] .block-content`
+                    `[data-block-id="${focusedBlockId}"]`
                 );
                 if (!focusedEl) return 0;
 
@@ -254,8 +269,9 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
 
                 if (lines.length === 1 && focusedBlockId) {
                     // Single line: insert into current block at cursor
+                    // In UnifiedBlockEditor, data-block-id IS on the block-content element directly
                     const element = editorRef.current?.querySelector(
-                        `[data-block-id="${focusedBlockId}"] .block-content`
+                        `[data-block-id="${focusedBlockId}"]`
                     );
                     if (element) {
                         const sel = window.getSelection();
@@ -291,7 +307,7 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
         } catch (err) {
             console.error('Failed to paste:', err);
         }
-    }, [state.focusedBlockId, state.blocks, actions, editorRef]);
+    }, [state.blocks, actions, editorRef]);
 
     /**
      * Handles cut operation for cross-block selection.

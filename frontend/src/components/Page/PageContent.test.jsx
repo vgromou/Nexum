@@ -2,9 +2,30 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import PageContent from './PageContent';
 
 // Mock BlockEditor as it's complex and tested separately
-vi.mock('../Editor/UnifiedBlockEditor', () => ({
-    default: () => <div data-testid="block-editor">Block Editor Content</div>
-}));
+// Supports ref with getBlocks/setBlocks for state snapshot/restore testing
+vi.mock('../Editor/UnifiedBlockEditor', () => {
+    const React = require('react');
+    const { forwardRef, useImperativeHandle, useState } = React;
+
+    const MockBlockEditor = forwardRef(({ readOnly }, ref) => {
+        const [blocks, setBlocks] = useState([{ id: 'block-1', type: 'paragraph', content: 'Initial content' }]);
+
+        useImperativeHandle(ref, () => ({
+            getBlocks: () => structuredClone(blocks),
+            setBlocks: (newBlocks) => setBlocks(newBlocks),
+        }), [blocks]);
+
+        return React.createElement('div', {
+            'data-testid': 'block-editor',
+            'data-readonly': readOnly ? 'true' : 'false',
+            'data-blocks': JSON.stringify(blocks),
+        }, 'Block Editor Content');
+    });
+    MockBlockEditor.displayName = 'MockBlockEditor';
+
+    return { default: MockBlockEditor };
+});
+
 
 // Mock IntersectionObserver for EmojiPicker
 class MockIntersectionObserver {
@@ -14,6 +35,14 @@ class MockIntersectionObserver {
     disconnect() { }
 }
 global.IntersectionObserver = MockIntersectionObserver;
+
+// Helper to enter edit mode
+const enterEditMode = () => {
+    const editButton = screen.getByLabelText('Edit page');
+    act(() => {
+        fireEvent.click(editButton);
+    });
+};
 
 describe('PageContent', () => {
     it('renders page headers and block editor', () => {
@@ -39,9 +68,103 @@ describe('PageContent', () => {
         expect(screen.getByLabelText('Toggle properties panel')).toBeInTheDocument();
     });
 
-    describe('Editable Page Title', () => {
-        it('renders title as contentEditable', () => {
+    describe('Edit Mode', () => {
+        it('starts in read mode by default', () => {
             render(<PageContent />);
+
+            const titleElement = screen.getByRole('heading', { level: 1 });
+            expect(titleElement).toHaveAttribute('contenteditable', 'false');
+            expect(screen.getByTestId('block-editor')).toHaveAttribute('data-readonly', 'true');
+        });
+
+        it('enters edit mode when pencil button is clicked', () => {
+            render(<PageContent />);
+
+            enterEditMode();
+
+            const titleElement = screen.getByRole('heading', { level: 1 });
+            expect(titleElement).toHaveAttribute('contenteditable', 'true');
+            expect(screen.getByTestId('block-editor')).toHaveAttribute('data-readonly', 'false');
+        });
+
+        it('shows save and cancel buttons in edit mode', () => {
+            render(<PageContent />);
+
+            enterEditMode();
+
+            expect(screen.getByLabelText('Save changes')).toBeInTheDocument();
+            expect(screen.getByLabelText('Cancel editing')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Edit page')).not.toBeInTheDocument();
+        });
+
+        it('exits edit mode when save is clicked', () => {
+            render(<PageContent />);
+
+            enterEditMode();
+            act(() => {
+                fireEvent.click(screen.getByLabelText('Save changes'));
+            });
+
+            expect(screen.getByLabelText('Edit page')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Save changes')).not.toBeInTheDocument();
+        });
+
+        it('shows cancel confirmation modal when cancel is clicked', () => {
+            render(<PageContent />);
+
+            enterEditMode();
+            act(() => {
+                fireEvent.click(screen.getByLabelText('Cancel editing'));
+            });
+
+            expect(screen.getByText('Discard changes?')).toBeInTheDocument();
+            expect(screen.getByText('Keep editing')).toBeInTheDocument();
+            expect(screen.getByText('Discard')).toBeInTheDocument();
+        });
+
+        it('closes modal and stays in edit mode when Keep editing is clicked', () => {
+            render(<PageContent />);
+
+            enterEditMode();
+            act(() => {
+                fireEvent.click(screen.getByLabelText('Cancel editing'));
+            });
+            act(() => {
+                fireEvent.click(screen.getByText('Keep editing'));
+            });
+
+            expect(screen.queryByText('Discard changes?')).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Save changes')).toBeInTheDocument();
+        });
+
+        it('discards changes and exits edit mode when Discard is clicked', () => {
+            render(<PageContent />);
+
+            enterEditMode();
+
+            // Modify title
+            const titleElement = screen.getByRole('heading', { level: 1 });
+            titleElement.textContent = 'Modified Title';
+            fireEvent.input(titleElement);
+
+            // Cancel with discard
+            act(() => {
+                fireEvent.click(screen.getByLabelText('Cancel editing'));
+            });
+            act(() => {
+                fireEvent.click(screen.getByText('Discard'));
+            });
+
+            // Should be back in read mode with original title
+            expect(screen.getByLabelText('Edit page')).toBeInTheDocument();
+            expect(titleElement.textContent).toBe('Page Title');
+        });
+    });
+
+    describe('Editable Page Title', () => {
+        it('renders title as contentEditable in edit mode', () => {
+            render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
             expect(titleElement).toHaveAttribute('contenteditable', 'true');
@@ -49,6 +172,7 @@ describe('PageContent', () => {
 
         it('updates breadcrumb when title is edited', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -63,6 +187,7 @@ describe('PageContent', () => {
 
         it('prevents Enter key from creating new lines and blurs the element', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
             titleElement.focus();
@@ -84,6 +209,7 @@ describe('PageContent', () => {
 
         it('sets title to "Untitled" when blurred with empty content', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -97,6 +223,7 @@ describe('PageContent', () => {
 
         it('sets title to "Untitled" when blurred with only whitespace', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -110,6 +237,7 @@ describe('PageContent', () => {
 
         it('trims whitespace from title on blur', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -139,6 +267,7 @@ describe('PageContent', () => {
 
         it('updates breadcrumb to show "Untitled" when title is emptied', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -151,15 +280,24 @@ describe('PageContent', () => {
             expect(untitledElements.length).toBeGreaterThanOrEqual(2); // h1 + breadcrumb
         });
 
-        it('has aria-label for accessibility', () => {
+        it('has aria-label for accessibility in edit mode', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
             expect(titleElement).toHaveAttribute('aria-label', 'Page title, click to edit');
         });
 
+        it('has simplified aria-label in read mode', () => {
+            render(<PageContent />);
+
+            const titleElement = screen.getByRole('heading', { level: 1 });
+            expect(titleElement).toHaveAttribute('aria-label', 'Page title');
+        });
+
         it('syncs DOM when trimming whitespace on blur', () => {
             render(<PageContent />);
+            enterEditMode();
 
             const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -178,6 +316,7 @@ describe('PageContent', () => {
                 ['u', 'underline']
             ])('prevents Cmd+%s (%s) formatting shortcut', (key) => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -200,6 +339,7 @@ describe('PageContent', () => {
                 ['u', 'underline']
             ])('prevents Ctrl+%s (%s) formatting shortcut', (key) => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -268,6 +408,7 @@ describe('PageContent', () => {
 
             it('pastes plain text only, stripping formatting', () => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
                 titleElement.focus();
@@ -289,6 +430,7 @@ describe('PageContent', () => {
 
             it('removes newlines from pasted text', () => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
                 titleElement.focus();
@@ -306,6 +448,7 @@ describe('PageContent', () => {
 
             it('trims whitespace from pasted text', () => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
                 titleElement.focus();
@@ -337,6 +480,7 @@ describe('PageContent', () => {
 
             it('limits pasted text to max available length', () => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
                 // Set initial title closer to max (100 chars)
@@ -378,6 +522,7 @@ describe('PageContent', () => {
         describe('max title length', () => {
             it('truncates title when exceeding 100 characters', () => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -391,6 +536,7 @@ describe('PageContent', () => {
 
             it('allows title up to max length', () => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -406,6 +552,7 @@ describe('PageContent', () => {
 
             it('updates breadcrumb with truncated title', () => {
                 render(<PageContent />);
+                enterEditMode();
 
                 const titleElement = screen.getByRole('heading', { level: 1 });
 
@@ -427,8 +574,20 @@ describe('PageContent', () => {
                 expect(screen.queryByText('Add icon')).not.toBeInTheDocument();
             });
 
-            it('should show Add icon button on page header hover', async () => {
+            it('should not show Add icon button on hover in read mode', () => {
                 const { container } = render(<PageContent />);
+                const pageHeader = container.querySelector('.page-header');
+
+                act(() => {
+                    fireEvent.mouseEnter(pageHeader);
+                });
+
+                expect(screen.queryByText('Add icon')).not.toBeInTheDocument();
+            });
+
+            it('should show Add icon button on page header hover in edit mode', async () => {
+                const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 act(() => {
@@ -440,6 +599,7 @@ describe('PageContent', () => {
 
             it('should hide Add icon button on page header mouse leave', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 act(() => {
@@ -457,6 +617,7 @@ describe('PageContent', () => {
         describe('Emoji Picker Integration', () => {
             it('should open emoji picker when Add icon button is clicked', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Hover to show button
@@ -475,6 +636,7 @@ describe('PageContent', () => {
 
             it('should close emoji picker when clicking outside', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Open picker
@@ -499,6 +661,7 @@ describe('PageContent', () => {
         describe('Icon Display', () => {
             it('should display selected emoji as page icon', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Open picker
@@ -521,8 +684,9 @@ describe('PageContent', () => {
                 }
             });
 
-            it('should show Change page icon button when icon is set', () => {
+            it('should show Change page icon button when icon is set in edit mode', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Open picker and select emoji
@@ -545,6 +709,7 @@ describe('PageContent', () => {
 
             it('should open emoji picker when clicking on existing icon', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // First, set an icon
@@ -575,6 +740,7 @@ describe('PageContent', () => {
         describe('Icon Removal', () => {
             it('should show Remove button in emoji picker when icon is set', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Set an icon first
@@ -603,6 +769,7 @@ describe('PageContent', () => {
 
             it('should remove icon when Remove button is clicked', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Set an icon first
@@ -638,6 +805,7 @@ describe('PageContent', () => {
         describe('Icon Types', () => {
             it('should display Lucide icon with correct color', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Open picker
@@ -676,6 +844,7 @@ describe('PageContent', () => {
 
             it('should show expanded icon area when icon is set', () => {
                 const { container } = render(<PageContent />);
+                enterEditMode();
                 const pageHeader = container.querySelector('.page-header');
 
                 // Set an icon
@@ -699,3 +868,4 @@ describe('PageContent', () => {
         });
     });
 });
+

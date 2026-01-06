@@ -140,6 +140,20 @@ describe('useClipboard', () => {
         // Clipboard text must match stored blocks content for validation
         clipboardMock.readText.mockResolvedValue('Stored heading\nStored paragraph');
 
+        // Setup mock editorRef with block element for focusedBlockId detection
+        const blockEl = document.createElement('p');
+        blockEl.setAttribute('data-block-id', 'block-1');
+        mockEditorRef.current = document.createElement('div');
+        mockEditorRef.current.appendChild(blockEl);
+
+        // Mock Selection API to return block-1 as the focused block
+        const mockSelection = {
+            rangeCount: 1,
+            anchorNode: blockEl, // This determines focusedBlockId in useClipboard
+            getRangeAt: vi.fn(() => ({ collapsed: true })),
+        };
+        vi.spyOn(window, 'getSelection').mockReturnValue(mockSelection);
+
         const { result } = renderHook(() =>
             useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
         );
@@ -159,6 +173,14 @@ describe('useClipboard', () => {
         sessionStorageMock.getItem.mockReturnValue(JSON.stringify({ blocks: storedBlocks }));
         // Clipboard text must match stored blocks content for validation
         clipboardMock.readText.mockResolvedValue('New block');
+
+        // Mock Selection API to return null for anchorNode (no focused block)
+        const mockSelection = {
+            rangeCount: 0,
+            anchorNode: null,
+            getRangeAt: vi.fn(() => ({ collapsed: true })),
+        };
+        vi.spyOn(window, 'getSelection').mockReturnValue(mockSelection);
 
         const stateWithoutFocus = { ...mockState, focusedBlockId: null };
         const { result } = renderHook(() =>
@@ -240,6 +262,20 @@ describe('useClipboard', () => {
         // Clipboard text is DIFFERENT from stored blocks (multi-line to trigger insertBlocks)
         clipboardMock.readText.mockResolvedValue('Completely different content\nSecond line of new content');
 
+        // Setup mock editorRef with block element for focusedBlockId detection
+        const blockEl = document.createElement('p');
+        blockEl.setAttribute('data-block-id', 'block-1');
+        mockEditorRef.current = document.createElement('div');
+        mockEditorRef.current.appendChild(blockEl);
+
+        // Mock Selection API to return block-1 as the focused block
+        const mockSelection = {
+            rangeCount: 1,
+            anchorNode: blockEl,
+            getRangeAt: vi.fn(() => ({ collapsed: true })),
+        };
+        vi.spyOn(window, 'getSelection').mockReturnValue(mockSelection);
+
         const { result } = renderHook(() =>
             useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
         );
@@ -258,6 +294,20 @@ describe('useClipboard', () => {
     it('pastes multi-line external content as separate blocks', async () => {
         sessionStorageMock.getItem.mockReturnValue(null);
         clipboardMock.readText.mockResolvedValue('Line 1\nLine 2\nLine 3');
+
+        // Setup mock editorRef with block element for focusedBlockId detection
+        const blockEl = document.createElement('p');
+        blockEl.setAttribute('data-block-id', 'block-1');
+        mockEditorRef.current = document.createElement('div');
+        mockEditorRef.current.appendChild(blockEl);
+
+        // Mock Selection API to return block-1 as the focused block
+        const mockSelection = {
+            rangeCount: 1,
+            anchorNode: blockEl,
+            getRangeAt: vi.fn(() => ({ collapsed: true })),
+        };
+        vi.spyOn(window, 'getSelection').mockReturnValue(mockSelection);
 
         const { result } = renderHook(() =>
             useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
