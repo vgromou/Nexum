@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import UnifiedBlockEditor from './UnifiedBlockEditor';
 
@@ -719,6 +720,107 @@ describe('UnifiedBlockEditor', () => {
 
             expect(mockActions.setBlocks).not.toHaveBeenCalled();
             expect(mockActions.addBlock).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('focusFirstEmptyBlock', () => {
+        it('focuses single empty block and returns true', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '' },
+            ];
+
+            const originalRAF = window.requestAnimationFrame;
+            window.requestAnimationFrame = (cb) => { cb(); return 0; };
+
+            const mockRemoveAllRanges = vi.fn();
+            const mockAddRange = vi.fn();
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 0,
+                getRangeAt: () => null,
+                removeAllRanges: mockRemoveAllRanges,
+                addRange: mockAddRange,
+            }));
+
+            const ref = React.createRef();
+            const { container } = render(<UnifiedBlockEditor ref={ref} />);
+
+            // Call focusFirstEmptyBlock via ref
+            const result = ref.current.focusFirstEmptyBlock();
+
+            expect(result).toBe(true);
+            expect(mockRemoveAllRanges).toHaveBeenCalled();
+            expect(mockAddRange).toHaveBeenCalled();
+
+            // Block should have is-focused class
+            const block = container.querySelector('[data-block-id="1"]');
+            expect(block).toHaveClass('is-focused');
+
+            window.requestAnimationFrame = originalRAF;
+        });
+
+        it('returns false when there are multiple blocks', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '' },
+                { id: '2', type: 'paragraph', content: '' },
+            ];
+
+            const ref = React.createRef();
+            render(<UnifiedBlockEditor ref={ref} />);
+
+            const result = ref.current.focusFirstEmptyBlock();
+
+            expect(result).toBe(false);
+        });
+
+        it('returns false when single block has content', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: 'Some text' },
+            ];
+
+            const ref = React.createRef();
+            render(<UnifiedBlockEditor ref={ref} />);
+
+            const result = ref.current.focusFirstEmptyBlock();
+
+            expect(result).toBe(false);
+        });
+
+        it('returns false when single block has HTML content', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '<b>Bold text</b>' },
+            ];
+
+            const ref = React.createRef();
+            render(<UnifiedBlockEditor ref={ref} />);
+
+            const result = ref.current.focusFirstEmptyBlock();
+
+            expect(result).toBe(false);
+        });
+
+        it('returns true when single block has only HTML tags with no text', () => {
+            mockBlocks = [
+                { id: '1', type: 'paragraph', content: '<br>' },
+            ];
+
+            const originalRAF = window.requestAnimationFrame;
+            window.requestAnimationFrame = (cb) => { cb(); return 0; };
+
+            window.getSelection = vi.fn(() => ({
+                rangeCount: 0,
+                getRangeAt: () => null,
+                removeAllRanges: vi.fn(),
+                addRange: vi.fn(),
+            }));
+
+            const ref = React.createRef();
+            render(<UnifiedBlockEditor ref={ref} />);
+
+            const result = ref.current.focusFirstEmptyBlock();
+
+            expect(result).toBe(true);
+
+            window.requestAnimationFrame = originalRAF;
         });
     });
 });

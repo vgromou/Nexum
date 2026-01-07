@@ -1,8 +1,11 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import PageContent from './PageContent';
 
+// Track calls to focusFirstEmptyBlock for testing
+let focusFirstEmptyBlockCalls = [];
+
 // Mock BlockEditor as it's complex and tested separately
-// Supports ref with getBlocks/setBlocks for state snapshot/restore testing
+// Supports ref with getBlocks/setBlocks/focusFirstEmptyBlock for state snapshot/restore testing
 vi.mock('../Editor/UnifiedBlockEditor', () => {
     const React = require('react');
     const { forwardRef, useImperativeHandle, useState } = React;
@@ -13,6 +16,10 @@ vi.mock('../Editor/UnifiedBlockEditor', () => {
         useImperativeHandle(ref, () => ({
             getBlocks: () => structuredClone(blocks),
             setBlocks: (newBlocks) => setBlocks(newBlocks),
+            focusFirstEmptyBlock: () => {
+                focusFirstEmptyBlockCalls.push({ calledAt: Date.now() });
+                return blocks.length === 1 && blocks[0].content === '';
+            },
         }), [blocks]);
 
         return React.createElement('div', {
@@ -45,6 +52,16 @@ const enterEditMode = () => {
 };
 
 describe('PageContent', () => {
+    beforeEach(() => {
+        // Reset tracking array
+        focusFirstEmptyBlockCalls = [];
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('renders page headers and block editor', () => {
         render(<PageContent />);
 
@@ -158,6 +175,51 @@ describe('PageContent', () => {
             // Should be back in read mode with original title
             expect(screen.getByLabelText('Edit page')).toBeInTheDocument();
             expect(titleElement.textContent).toBe('Page Title');
+        });
+
+        it('calls focusFirstEmptyBlock when entering edit mode', () => {
+            render(<PageContent />);
+
+            // Verify no calls before entering edit mode
+            expect(focusFirstEmptyBlockCalls.length).toBe(0);
+
+            // Enter edit mode
+            enterEditMode();
+
+            // Advance timers to trigger setTimeout(0)
+            act(() => {
+                vi.runAllTimers();
+            });
+
+            // focusFirstEmptyBlock should have been called
+            expect(focusFirstEmptyBlockCalls.length).toBe(1);
+        });
+
+        it('calls focusFirstEmptyBlock only once per edit mode entry', () => {
+            render(<PageContent />);
+
+            // Enter edit mode first time
+            enterEditMode();
+            act(() => {
+                vi.runAllTimers();
+            });
+
+            // Exit edit mode
+            act(() => {
+                fireEvent.click(screen.getByLabelText('Save changes'));
+            });
+
+            // Reset call tracking
+            const callsAfterFirst = focusFirstEmptyBlockCalls.length;
+
+            // Enter edit mode second time
+            enterEditMode();
+            act(() => {
+                vi.runAllTimers();
+            });
+
+            // Should have one more call
+            expect(focusFirstEmptyBlockCalls.length).toBe(callsAfterFirst + 1);
         });
     });
 

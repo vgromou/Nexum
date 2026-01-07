@@ -164,6 +164,13 @@ const PageContent = () => {
             originalBlocksRef.current = blockEditorRef.current.getBlocks();
         }
         setIsEditMode(true);
+        // Focus empty block if there's only one empty block
+        // Use setTimeout to ensure state update has been applied
+        setTimeout(() => {
+            if (blockEditorRef.current) {
+                blockEditorRef.current.focusFirstEmptyBlock();
+            }
+        }, 0);
     }, [displayTitle, pageIcon]);
 
     // Save changes and exit edit mode

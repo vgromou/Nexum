@@ -72,6 +72,44 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
          * Used for restoring state on cancel.
          */
         setBlocks: (blocks) => actions.setBlocks(blocks),
+        /**
+         * Focus the first block if it's the only block and is empty.
+         * Used when entering edit mode on an empty page.
+         * @returns {boolean} true if focused, false otherwise
+         */
+        focusFirstEmptyBlock: () => {
+            if (!editorRef.current) return false;
+
+            // Check if there's only one block and it's empty
+            const blocks = state.blocks;
+            if (blocks.length !== 1) return false;
+
+            const firstBlock = blocks[0];
+            const textContent = firstBlock.content?.replace(/<[^>]*>/g, '').trim() || '';
+            if (textContent !== '') return false;
+
+            // Focus the empty block
+            const blockEl = editorRef.current.querySelector('[data-block-id]');
+            if (!blockEl) return false;
+
+            requestAnimationFrame(() => {
+                blockEl.focus();
+                // Place cursor at the start
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.setStart(blockEl, 0);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+
+                // Update focused state for placeholder
+                const blockId = blockEl.getAttribute('data-block-id');
+                setFocusedBlockId(blockId);
+                blockEl.classList.add('is-focused');
+            });
+
+            return true;
+        },
     }), [state.blocks, actions]);
 
 
