@@ -128,15 +128,15 @@ describe('useBlockReducer', () => {
         expect(result.current.state.blocks[0].indentLevel).toBe(1);
     });
 
-    it('clamps indent level to 0-2 range', () => {
+    it('clamps indent level to 0-10 range', () => {
         const { result } = renderHook(() => useBlockReducer());
         const blockId = result.current.state.blocks[0].id;
 
         // Try to set indent level above max
         act(() => {
-            result.current.actions.setIndentLevel(blockId, 5);
+            result.current.actions.setIndentLevel(blockId, 15);
         });
-        expect(result.current.state.blocks[0].indentLevel).toBe(2);
+        expect(result.current.state.blocks[0].indentLevel).toBe(10);
 
         // Try to set indent level below min
         act(() => {

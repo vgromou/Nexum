@@ -5,15 +5,92 @@ import {
     Star,
     PenLine,
     MoreHorizontal,
-    ChevronsRight,
-    PanelLeft,
+    PanelRightClose,
+    PanelLeftClose,
     Smile,
     X,
     Check,
+    ChevronRight,
 } from 'lucide-react';
 import BlockEditor from '../Editor/UnifiedBlockEditor';
-import { EmojiPicker, ICON_COLORS, toPascalCase } from '../EmojiPicker';
+import { EmojiPicker, ICON_COLORS, toPascalCase, getAllEmojis } from '../EmojiPicker';
 import './PageContent.css';
+
+// Breadcrumbs component
+const Breadcrumbs = ({ collectionName, ancestors = [], currentPageName }) => {
+    const depth = ancestors.length;
+
+    // Level 1: collection > current page
+    // Level 2: collection > parent > current page (with ellipsis if too long)
+    // Level 3+: collection > ... > current page
+
+    const renderBreadcrumbs = () => {
+        const items = [];
+
+        // Always add collection
+        items.push(
+            <span key="collection" className="breadcrumb-item breadcrumb-link">
+                {collectionName}
+            </span>
+        );
+
+        if (depth === 0) {
+            // Level 1: just collection > current
+            items.push(
+                <ChevronRight key="sep-0" size={12} className="breadcrumb-separator" />
+            );
+            items.push(
+                <span key="current" className="breadcrumb-item breadcrumb-current">
+                    {currentPageName}
+                </span>
+            );
+        } else if (depth === 1) {
+            // Level 2: collection > parent > current
+            items.push(
+                <ChevronRight key="sep-0" size={12} className="breadcrumb-separator" />
+            );
+            items.push(
+                <span key="parent" className="breadcrumb-item breadcrumb-link breadcrumb-truncate">
+                    {ancestors[0]}
+                </span>
+            );
+            items.push(
+                <ChevronRight key="sep-1" size={12} className="breadcrumb-separator" />
+            );
+            items.push(
+                <span key="current" className="breadcrumb-item breadcrumb-current">
+                    {currentPageName}
+                </span>
+            );
+        } else {
+            // Level 3+: collection > ... > current
+            items.push(
+                <ChevronRight key="sep-0" size={12} className="breadcrumb-separator" />
+            );
+            items.push(
+                <span key="ellipsis" className="breadcrumb-item breadcrumb-ellipsis">
+                    ...
+                </span>
+            );
+            items.push(
+                <ChevronRight key="sep-1" size={12} className="breadcrumb-separator" />
+            );
+            items.push(
+                <span key="current" className="breadcrumb-item breadcrumb-current">
+                    {currentPageName}
+                </span>
+            );
+        }
+
+        return items;
+    };
+
+    return (
+        <nav className="breadcrumbs">
+            {renderBreadcrumbs()}
+        </nav>
+    );
+};
 
 const INITIAL_TITLE = 'Page Title';
 const FALLBACK_TITLE = 'Untitled';
@@ -143,7 +220,27 @@ const PageContent = () => {
         setEmojiPickerOpen(true);
     }, []);
 
-    // Handle emoji/icon selection
+    // Open emoji picker with random emoji pre-selected
+    const openEmojiPickerWithRandomEmoji = useCallback(() => {
+        // Select a random emoji
+        const allEmojis = getAllEmojis();
+        const randomEmoji = allEmojis[Math.floor(Math.random() * allEmojis.length)];
+        setPageIcon({ type: 'emoji', value: randomEmoji.e });
+
+        // Wait for icon to render, then open picker positioned under icon button
+        setTimeout(() => {
+            if (iconButtonRef.current) {
+                const rect = iconButtonRef.current.getBoundingClientRect();
+                setEmojiPickerPosition({
+                    top: rect.bottom + 8,
+                    left: rect.left,
+                });
+            }
+            setEmojiPickerOpen(true);
+        }, 0);
+    }, []);
+
+    // Handle emoji/icon selection (now keeps picker open)
     const handleIconSelect = useCallback((selection) => {
         setPageIcon(selection);
         setEmojiPickerOpen(false);
@@ -228,15 +325,12 @@ const PageContent = () => {
             {/* Top Navigation Bar */}
             <div className="top-nav-bar">
                 <div className="breadcrumbs-area">
-                    <PanelLeft size={18} className="sidebar-icon" />
-                    <div className="breadcrumbs">
-                        <span className="breadcrumb-link">Main</span>
-                        <span className="breadcrumb-separator">&gt;</span>
-                        <span className="current-page">
-                            <Heart size={12} fill="black" className="text-black" />
-                            <span>{deferredTitle || 'Untitled'}</span>
-                        </span>
-                    </div>
+                    <PanelLeftClose size={18} className="sidebar-icon" />
+                    <Breadcrumbs
+                        collectionName="Pages"
+                        ancestors={[]} /* Mock: empty = level 1, ['Parent'] = level 2, ['A', 'B'] = level 3+ */
+                        currentPageName={deferredTitle || FALLBACK_TITLE}
+                    />
                 </div>
 
                 <div className="nav-actions">
@@ -273,7 +367,7 @@ const PageContent = () => {
                         <MoreHorizontal size={18} />
                     </button>
                     <button className="nav-btn ml-1" aria-label="Toggle properties panel">
-                        <ChevronsRight size={18} />
+                        <PanelRightClose size={18} />
                     </button>
                 </div>
             </div>
@@ -281,7 +375,6 @@ const PageContent = () => {
             {/* Main Scrollable Content Area */}
             <div className="scrollable-content">
                 <div className="content-wrapper">
-
                     {/* Page Icon & Title */}
                     <div
                         className={`page-header ${!isEditMode ? 'read-mode' : ''}`}
@@ -313,7 +406,7 @@ const PageContent = () => {
                                 {isEditMode && showAddIcon && (
                                     <button
                                         className="add-icon-button"
-                                        onClick={openEmojiPicker}
+                                        onClick={openEmojiPickerWithRandomEmoji}
                                     >
                                         <Smile size={16} />
                                         <span>Add icon</span>

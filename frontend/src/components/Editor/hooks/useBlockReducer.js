@@ -586,8 +586,8 @@ function blockReducer(state, action) {
 
         case ACTIONS.SET_INDENT_LEVEL: {
             const { blockId, indentLevel } = action.payload;
-            // Clamp to valid range 0-2
-            const clampedLevel = Math.max(0, Math.min(2, indentLevel));
+            // Clamp to valid range 0-10 for deep nesting
+            const clampedLevel = Math.max(0, Math.min(10, indentLevel));
             return {
                 ...state,
                 blocks: state.blocks.map(b =>

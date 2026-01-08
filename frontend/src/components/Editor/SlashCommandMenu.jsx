@@ -4,6 +4,7 @@ import {
     Heading1,
     Heading2,
     Heading3,
+    Heading4,
     List,
     ListOrdered,
     Quote
@@ -14,6 +15,7 @@ const MENU_ITEMS = [
     { type: 'h1', label: 'Heading 1', icon: Heading1, description: 'Large section heading' },
     { type: 'h2', label: 'Heading 2', icon: Heading2, description: 'Medium section heading' },
     { type: 'h3', label: 'Heading 3', icon: Heading3, description: 'Small section heading' },
+    { type: 'h4', label: 'Heading 4', icon: Heading4, description: 'Smallest heading' },
     { type: 'bulleted-list', label: 'Bulleted List', icon: List, description: 'Unordered list item' },
     { type: 'numbered-list', label: 'Numbered List', icon: ListOrdered, description: 'Ordered list item' },
     { type: 'quote', label: 'Quote', icon: Quote, description: 'Block quote' },

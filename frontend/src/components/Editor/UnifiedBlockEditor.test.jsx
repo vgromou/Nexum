@@ -635,14 +635,14 @@ describe('UnifiedBlockEditor', () => {
 
         it('hides block handles in read-only mode', () => {
             const { container } = render(<UnifiedBlockEditor readOnly={true} />);
-            const handlesLayer = container.querySelector('.block-handles-layer');
-            expect(handlesLayer).not.toBeInTheDocument();
+            const handles = container.querySelectorAll('.block-handle');
+            expect(handles.length).toBe(0);
         });
 
         it('shows block handles when not in read-only mode', () => {
             const { container } = render(<UnifiedBlockEditor readOnly={false} />);
-            const handlesLayer = container.querySelector('.block-handles-layer');
-            expect(handlesLayer).toBeInTheDocument();
+            const handles = container.querySelectorAll('.block-row .block-handle');
+            expect(handles.length).toBeGreaterThan(0);
         });
 
         it('has empty placeholder in read-only mode', () => {

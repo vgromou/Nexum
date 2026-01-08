@@ -375,12 +375,13 @@ describe('FormattingMenu', () => {
             render(<FormattingMenu {...defaultProps} activeSubmenu="turnInto" />);
 
             const popupItems = document.querySelectorAll('.popup-item');
-            expect(popupItems.length).toBe(7); // Text, H1, H2, H3, Bulleted, Numbered, Quote
+            expect(popupItems.length).toBe(8); // Text, H1, H2, H3, H4, Bulleted, Numbered, Quote
 
             // Check specific items exist
             expect(screen.getByText('Heading 1')).toBeTruthy();
             expect(screen.getByText('Heading 2')).toBeTruthy();
             expect(screen.getByText('Heading 3')).toBeTruthy();
+            expect(screen.getByText('Heading 4')).toBeTruthy();
             expect(screen.getByText('Bulleted List')).toBeTruthy();
             expect(screen.getByText('Numbered List')).toBeTruthy();
             expect(screen.getByText('Quote')).toBeTruthy();

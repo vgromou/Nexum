@@ -288,6 +288,8 @@ export function useDragAndDrop({ editorRef, state, actions, getSelectedContent }
 
             resetDragState();
             actions.setDraggedBlocks([]);
+            // Clear block selection after drop
+            actions.clearSelection();
         };
 
         const handleKeyDown = (e) => {
