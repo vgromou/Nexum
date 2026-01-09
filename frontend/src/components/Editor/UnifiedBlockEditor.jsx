@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useState, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useCallback, useEffect, useState, useLayoutEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { GripVertical } from 'lucide-react';
 import SlashCommandMenu from './SlashCommandMenu';
 import FormattingMenu from './FormattingMenu';
@@ -191,6 +191,14 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
         readOnly,
     });
 
+    /**
+     * Calculate current block type for the slash menu.
+     * Memoized to avoid recalculation on every render.
+     */
+    const currentBlockType = useMemo(() => {
+        if (!slashMenu.isOpen) return null;
+        return state.blocks.find(b => b.id === slashMenu.blockId)?.type || 'paragraph';
+    }, [slashMenu.isOpen, slashMenu.blockId, state.blocks]);
 
     /**
      * Handle positions are now managed inline with blocks (no separate layer).
@@ -1453,6 +1461,7 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                 <SlashCommandMenu
                     position={slashMenu.position}
                     filter={slashMenu.filter}
+                    currentBlockType={currentBlockType}
                     onSelect={handleSlashSelect}
                     onClose={closeSlashMenu}
                 />
