@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import SlashCommandMenu from './SlashCommandMenu';
 
 describe('SlashCommandMenu', () => {
@@ -40,17 +40,238 @@ describe('SlashCommandMenu', () => {
     });
 
     it('selects item on Enter key', () => {
-        render(<SlashCommandMenu {...defaultProps} />);
+        render(<SlashCommandMenu {...defaultProps} currentBlockType="paragraph" />);
 
         fireEvent.keyDown(document, { key: 'Enter' });
 
-        // First item is selected by default (Normal Text / paragraph)
+        // With no highlight, Enter selects currentBlockType
         expect(defaultProps.onSelect).toHaveBeenCalledWith('paragraph');
     });
 
     it('shows no results if filter matches nothing', () => {
         render(<SlashCommandMenu {...defaultProps} filter="xyz" />);
         expect(screen.getByText('No results')).toBeInTheDocument();
+    });
+
+    describe('Shortcut display', () => {
+        it('renders shortcuts for items that have them', () => {
+            render(<SlashCommandMenu {...defaultProps} />);
+
+            // Heading 1 has shortcut '#'
+            expect(screen.getByText('#')).toBeInTheDocument();
+            // Heading 2 has shortcut '##'
+            expect(screen.getByText('##')).toBeInTheDocument();
+            // Bulleted List has shortcut '-'
+            expect(screen.getByText('-')).toBeInTheDocument();
+            // Quote has shortcut '"'
+            expect(screen.getByText('"')).toBeInTheDocument();
+        });
+
+        it('does not render shortcut element for Normal Text (null shortcut)', () => {
+            const { container } = render(<SlashCommandMenu {...defaultProps} />);
+
+            // Find the Normal Text item
+            const normalTextItem = screen.getByText('Normal Text').closest('.slash-menu-item');
+            expect(normalTextItem).toBeInTheDocument();
+
+            // It should not have a shortcut element
+            const shortcutEl = normalTextItem.querySelector('.slash-menu-item-shortcut');
+            expect(shortcutEl).not.toBeInTheDocument();
+        });
+    });
+
+    describe('Scroll behavior', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('adds scrolling class when scrolling', () => {
+            const { container } = render(<SlashCommandMenu {...defaultProps} />);
+
+            const scrollWrapper = container.querySelector('.slash-menu-scroll-wrapper');
+            expect(scrollWrapper).toBeInTheDocument();
+
+            const menu = container.querySelector('.slash-command-menu');
+            expect(menu).not.toHaveClass('scrolling');
+
+            // Trigger scroll
+            fireEvent.scroll(scrollWrapper);
+
+            expect(menu).toHaveClass('scrolling');
+        });
+
+        it('removes scrolling class after 1 second of inactivity', async () => {
+            const { container } = render(<SlashCommandMenu {...defaultProps} />);
+
+            const scrollWrapper = container.querySelector('.slash-menu-scroll-wrapper');
+            const menu = container.querySelector('.slash-command-menu');
+
+            // Trigger scroll
+            fireEvent.scroll(scrollWrapper);
+            expect(menu).toHaveClass('scrolling');
+
+            // Advance time by 1 second and wrap in act for state update
+            await act(async () => {
+                vi.advanceTimersByTime(1000);
+            });
+
+            expect(menu).not.toHaveClass('scrolling');
+        });
+
+        it('clears timeout on unmount to prevent memory leaks', () => {
+            const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+            const { container, unmount } = render(<SlashCommandMenu {...defaultProps} />);
+
+            const scrollWrapper = container.querySelector('.slash-menu-scroll-wrapper');
+
+            // Trigger scroll to start a timeout
+            fireEvent.scroll(scrollWrapper);
+
+            // Unmount the component
+            unmount();
+
+            // clearTimeout should have been called during cleanup
+            expect(clearTimeoutSpy).toHaveBeenCalled();
+
+            clearTimeoutSpy.mockRestore();
+        });
+    });
+
+    describe('Header structure', () => {
+        it('renders header with "Basic blocks" text', () => {
+            render(<SlashCommandMenu {...defaultProps} />);
+
+            expect(screen.getByText('Basic blocks')).toBeInTheDocument();
+        });
+
+        it('renders header decorative lines', () => {
+            const { container } = render(<SlashCommandMenu {...defaultProps} />);
+
+            expect(container.querySelector('.slash-menu-header-line-left')).toBeInTheDocument();
+            expect(container.querySelector('.slash-menu-header-line-right')).toBeInTheDocument();
+        });
+    });
+
+    describe('UI structure', () => {
+        it('does not render description elements in the UI', () => {
+            const { container } = render(<SlashCommandMenu {...defaultProps} />);
+
+            // Description should not be rendered in the UI
+            const descriptions = container.querySelectorAll('.slash-menu-item-description');
+            expect(descriptions.length).toBe(0);
+        });
+
+        it('still filters items by description even though not displayed', () => {
+            // Filter by description text "Unordered" should find Bulleted List
+            render(<SlashCommandMenu {...defaultProps} filter="Unordered" />);
+
+            expect(screen.getByText('Bulleted List')).toBeInTheDocument();
+            expect(screen.queryByText('Numbered List')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('currentBlockType (selected state)', () => {
+        it('applies selected class to item matching currentBlockType', () => {
+            const { container } = render(
+                <SlashCommandMenu {...defaultProps} currentBlockType="h1" />
+            );
+
+            const h1Item = screen.getByText('Heading 1').closest('.slash-menu-item');
+            expect(h1Item).toHaveClass('selected');
+
+            // Other items should not have selected class
+            const normalTextItem = screen.getByText('Normal Text').closest('.slash-menu-item');
+            expect(normalTextItem).not.toHaveClass('selected');
+        });
+
+        it('applies selected class to paragraph when currentBlockType is paragraph', () => {
+            render(<SlashCommandMenu {...defaultProps} currentBlockType="paragraph" />);
+
+            const paragraphItem = screen.getByText('Normal Text').closest('.slash-menu-item');
+            expect(paragraphItem).toHaveClass('selected');
+        });
+
+        it('does not apply selected class when currentBlockType is not in menu', () => {
+            const { container } = render(
+                <SlashCommandMenu {...defaultProps} currentBlockType="unknown-type" />
+            );
+
+            const selectedItems = container.querySelectorAll('.slash-menu-item.selected');
+            expect(selectedItems.length).toBe(0);
+        });
+    });
+
+    describe('Keyboard and mouse interaction', () => {
+        it('applies highlighted class to currentBlockType item by default', () => {
+            render(<SlashCommandMenu {...defaultProps} currentBlockType="h1" />);
+
+            // currentBlockType item should be highlighted by default
+            const h1Item = screen.getByText('Heading 1').closest('.slash-menu-item');
+            expect(h1Item).toHaveClass('highlighted');
+        });
+
+        it('moves highlight down with ArrowDown from currentBlockType', () => {
+            render(<SlashCommandMenu {...defaultProps} currentBlockType="h1" />);
+
+            // Press ArrowDown to move to next item
+            fireEvent.keyDown(document, { key: 'ArrowDown' });
+
+            // Should highlight Heading 2 (next after h1)
+            const h2Item = screen.getByText('Heading 2').closest('.slash-menu-item');
+            expect(h2Item).toHaveClass('highlighted');
+        });
+
+        it('moves highlight up with ArrowUp from currentBlockType', () => {
+            render(<SlashCommandMenu {...defaultProps} currentBlockType="h2" />);
+
+            // Press ArrowUp to move to previous item
+            fireEvent.keyDown(document, { key: 'ArrowUp' });
+
+            // Should highlight Heading 1 (previous before h2)
+            const h1Item = screen.getByText('Heading 1').closest('.slash-menu-item');
+            expect(h1Item).toHaveClass('highlighted');
+        });
+
+        it('resets to currentBlockType position when mouse enters and leaves', () => {
+            render(<SlashCommandMenu {...defaultProps} currentBlockType="h1" />);
+
+            const menuItems = screen.getByText('Normal Text').closest('.slash-menu-items');
+            const h1Item = screen.getByText('Heading 1').closest('.slash-menu-item');
+
+            // Initially h1 is highlighted
+            expect(h1Item).toHaveClass('highlighted');
+
+            // Move with keyboard
+            fireEvent.keyDown(document, { key: 'ArrowDown' });
+            expect(h1Item).not.toHaveClass('highlighted');
+
+            // Mouse enters and leaves
+            fireEvent.mouseEnter(menuItems);
+            fireEvent.mouseLeave(menuItems);
+
+            // Should reset to currentBlockType (h1)
+            expect(h1Item).toHaveClass('highlighted');
+        });
+
+        it('blocks keyboard navigation when mouse is hovering', () => {
+            render(<SlashCommandMenu {...defaultProps} currentBlockType="paragraph" />);
+
+            const menuItems = screen.getByText('Normal Text').closest('.slash-menu-items');
+
+            // Mouse enters the items container (sets isMouseHovering to true)
+            fireEvent.mouseEnter(menuItems);
+
+            // Try to navigate with keyboard - should be blocked
+            fireEvent.keyDown(document, { key: 'ArrowDown' });
+
+            // First item should still be highlighted (no change)
+            const firstItem = screen.getByText('Normal Text').closest('.slash-menu-item');
+            expect(firstItem).toHaveClass('highlighted');
+        });
     });
 
     describe('Positioning logic', () => {
