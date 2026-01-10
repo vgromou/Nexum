@@ -386,7 +386,8 @@
 .block-content[data-block-type="paragraph"].is-empty.is-focused::before,
 .block-content[data-block-type="h1"].is-empty.is-focused::before,
 .block-content[data-block-type="h2"].is-empty.is-focused::before,
-.block-content[data-block-type="h3"].is-empty.is-focused::before {
+.block-content[data-block-type="h3"].is-empty.is-focused::before,
+.block-content[data-block-type="h4"].is-empty.is-focused::before {
     content: attr(data-placeholder);
     color: var(--color-gray-400, #9ca3af);
     pointer-events: none;

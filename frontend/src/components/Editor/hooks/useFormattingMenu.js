@@ -15,6 +15,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             italic: false,
             underline: false,
             strikeThrough: false,
+            inlineCode: false,
             link: false,
         },
     });
@@ -98,7 +99,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Gets the active formatting states for the current selection.
-     * Uses document.queryCommandState for standard formats and checks for links and highlights.
+     * Uses document.queryCommandState for standard formats and checks for links, highlights, and inline code.
      */
     const getActiveFormats = useCallback(() => {
         const formats = {
@@ -106,6 +107,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             italic: false,
             underline: false,
             strikeThrough: false,
+            inlineCode: false,
             link: false,
             highlightColor: null, // background color, e.g., 'purple', 'blue', etc.
             textColor: null,      // text color, e.g., 'purple', 'blue', etc.
@@ -117,7 +119,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             formats.underline = document.queryCommandState('underline');
             formats.strikeThrough = document.queryCommandState('strikeThrough');
 
-            // Check if selection contains a link or highlight
+            // Check if selection contains a link, highlight, or inline code
             const sel = window.getSelection();
             if (sel.rangeCount > 0) {
                 const range = sel.getRangeAt(0);
@@ -127,6 +129,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     : container;
 
                 formats.link = !!node?.closest('a');
+                formats.inlineCode = !!node?.closest('code');
 
                 // Check for highlight (background) colors
                 const highlightColors = ['default', 'gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'magenta', 'red'];
@@ -275,9 +278,70 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Applies inline formatting (bold, italic, etc.).
+     * For 'inlineCode', uses custom wrapping since execCommand doesn't support it.
      */
     const applyFormat = useCallback((command) => {
         if (!restoreSelection()) return;
+
+        // Handle inline code specially since execCommand doesn't support it
+        if (command === 'inlineCode') {
+            const sel = window.getSelection();
+            if (!sel.rangeCount || sel.isCollapsed) return;
+
+            const range = sel.getRangeAt(0);
+            const selectedText = range.toString();
+            if (!selectedText) return;
+
+            const container = range.commonAncestorContainer;
+            const blockEl = container.nodeType === Node.TEXT_NODE
+                ? container.parentElement?.closest('[data-block-id]')
+                : container.closest?.('[data-block-id]');
+
+            if (!blockEl) return;
+
+            // Check if already inside a code element
+            const node = container.nodeType === Node.TEXT_NODE
+                ? container.parentElement
+                : container;
+            const existingCode = node?.closest('code');
+
+            if (existingCode) {
+                // Remove the code wrapper (toggle off)
+                const parent = existingCode.parentNode;
+                while (existingCode.firstChild) {
+                    parent.insertBefore(existingCode.firstChild, existingCode);
+                }
+                parent.removeChild(existingCode);
+                blockEl.normalize();
+            } else {
+                // Wrap selection in <code>
+                const codeEl = document.createElement('code');
+                try {
+                    const contents = range.extractContents();
+                    codeEl.appendChild(contents);
+                    range.insertNode(codeEl);
+
+                    // Select the new code element contents
+                    const newRange = document.createRange();
+                    newRange.selectNodeContents(codeEl);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                    selectionRef.current = newRange.cloneRange();
+                } catch (e) {
+                    // Fallback
+                    codeEl.textContent = selectedText;
+                    range.deleteContents();
+                    range.insertNode(codeEl);
+                }
+            }
+
+            syncBlockToState(blockEl);
+            const newFormats = getActiveFormats();
+            setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+            return;
+        }
+
+        // Standard execCommand for other formats
         document.execCommand(command, false, null);
 
         // Re-save the current selection after formatting to prevent jump
