@@ -38,6 +38,11 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
     const menuRef = useRef(null);
     const scrollTimeoutRef = useRef(null);
 
+    // Sync selectedIndex when currentBlockType changes externally
+    useEffect(() => {
+        setSelectedIndex(initialIndex);
+    }, [initialIndex]);
+
     // Handle scroll - show scrollbar while scrolling
     const handleScroll = () => {
         setIsScrolling(true);
@@ -216,7 +221,7 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
                                 key={item.type}
                                 className={`slash-menu-item ${isCurrentType ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                                 onClick={() => onSelect(item.type)}
-                                onMouseEnter={() => setSelectedIndex(initialIndex)}
+                                onMouseEnter={() => setSelectedIndex(index)}
                             >
                                 <div className="slash-menu-item-left">
                                     <div className="slash-menu-item-icon">

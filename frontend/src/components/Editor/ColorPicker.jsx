@@ -61,7 +61,7 @@ const ColorPicker = ({
     onBgColorChange,
     onClose,
 }) => {
-    const [recentlyUsed, setRecentlyUsed] = useState(getRecentlyUsed);
+    const [recentlyUsed, setRecentlyUsed] = useState(getRecentlyUsed());
 
     // Handle keyboard navigation
     useEffect(() => {
@@ -76,14 +76,11 @@ const ColorPicker = ({
     }, [onClose]);
 
     const handleTextColorClick = (e, colorName) => {
-        console.log('[ColorPicker] handleTextColorClick called with colorName:', colorName);
         e.preventDefault();
         e.stopPropagation();
         const updated = saveRecentlyUsed('text', colorName);
         setRecentlyUsed(updated);
-        console.log('[ColorPicker] calling onTextColorChange');
         onTextColorChange(colorName);
-        console.log('[ColorPicker] onTextColorChange completed');
     };
 
     const handleBgColorClick = (e, colorName) => {

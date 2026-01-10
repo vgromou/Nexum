@@ -35,6 +35,11 @@ const TurnIntoMenu = ({ position, currentBlockType, onSelect, onClose }) => {
 
     const [selectedIndex, setSelectedIndex] = useState(initialIndex);
     const [adjustedPosition, setAdjustedPosition] = useState(null);
+
+    // Sync selectedIndex when currentBlockType changes externally
+    useEffect(() => {
+        setSelectedIndex(initialIndex);
+    }, [initialIndex]);
     const [isScrolling, setIsScrolling] = useState(false);
     const [isMouseHovering, setIsMouseHovering] = useState(false);
     const menuRef = useRef(null);
@@ -184,7 +189,7 @@ const TurnIntoMenu = ({ position, currentBlockType, onSelect, onClose }) => {
                                 key={item.type}
                                 className={`turn-into-menu-item ${isCurrentType ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                                 onClick={() => onSelect(item.type)}
-                                onMouseEnter={() => setSelectedIndex(initialIndex)}
+                                onMouseEnter={() => setSelectedIndex(index)}
                             >
                                 <div className="turn-into-menu-item-left">
                                     <div className="turn-into-menu-item-icon">
