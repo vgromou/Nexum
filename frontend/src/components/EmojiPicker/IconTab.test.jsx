@@ -10,6 +10,7 @@ describe('IconTab', () => {
         onSelect: vi.fn(),
         currentIcon: null,
         iconColor: 'orange',
+        onColorChange: vi.fn(),
     };
 
     beforeEach(() => {
@@ -31,6 +32,17 @@ describe('IconTab', () => {
             const { container } = render(<IconTab {...defaultProps} />);
             const iconButtons = container.querySelectorAll('.icon-item');
             expect(iconButtons.length).toBeGreaterThan(0);
+        });
+
+        it('should render color bar at bottom', () => {
+            const { container } = render(<IconTab {...defaultProps} />);
+            expect(container.querySelector('.icon-color-bar')).toBeInTheDocument();
+        });
+
+        it('should render all 10 color swatches', () => {
+            const { container } = render(<IconTab {...defaultProps} />);
+            const swatches = container.querySelectorAll('.icon-color-swatch');
+            expect(swatches.length).toBe(10);
         });
     });
 
@@ -130,7 +142,7 @@ describe('IconTab', () => {
             }
         });
 
-        it('should fallback to orange for unknown color', () => {
+        it('should fallback to default for unknown color', () => {
             const { container } = render(<IconTab {...defaultProps} iconColor="unknowncolor" />);
             const iconButtons = container.querySelectorAll('.icon-item');
 
@@ -139,10 +151,28 @@ describe('IconTab', () => {
 
                 expect(defaultProps.onSelect).toHaveBeenCalledWith(
                     expect.objectContaining({
-                        color: ICON_COLORS.orange,
+                        color: ICON_COLORS.default,
                     })
                 );
             }
+        });
+
+        it('should call onColorChange when swatch is clicked', () => {
+            const { container } = render(<IconTab {...defaultProps} />);
+            const swatches = container.querySelectorAll('.icon-color-swatch');
+
+            if (swatches.length > 0) {
+                fireEvent.click(swatches[1]); // Click second swatch (gray)
+
+                expect(defaultProps.onColorChange).toHaveBeenCalled();
+            }
+        });
+
+        it('should mark active color swatch', () => {
+            const { container } = render(<IconTab {...defaultProps} iconColor="orange" />);
+            const activeSwatches = container.querySelectorAll('.icon-color-swatch.active');
+
+            expect(activeSwatches.length).toBe(1);
         });
     });
 

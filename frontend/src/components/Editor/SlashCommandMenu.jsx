@@ -25,13 +25,29 @@ const MENU_ITEMS = [
 ];
 
 const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClose }) => {
-    // Compute initial index based on currentBlockType
-    const initialIndex = useMemo(() => {
-        const index = MENU_ITEMS.findIndex(item => item.type === currentBlockType);
-        return index !== -1 ? index : 0;
-    }, [currentBlockType]);
+    // Filter menu items based on search - computed first so safeInitialIndex can use it
+    const filteredItems = useMemo(() =>
+        MENU_ITEMS.filter(item =>
+            item.label.toLowerCase().includes(filter.toLowerCase()) ||
+            item.description.toLowerCase().includes(filter.toLowerCase())
+        ), [filter]
+    );
 
-    const [selectedIndex, setSelectedIndex] = useState(initialIndex);
+    // Compute safe initial index within filteredItems
+    const safeInitialIndex = useMemo(() => {
+        const index = filteredItems.findIndex(item => item.type === currentBlockType);
+        return index !== -1 ? index : 0;
+    }, [filteredItems, currentBlockType]);
+
+    // Initialize with callback to get correct initial value
+    const [selectedIndex, setSelectedIndex] = useState(() => {
+        const initialFilteredItems = MENU_ITEMS.filter(item =>
+            item.label.toLowerCase().includes(filter.toLowerCase()) ||
+            item.description.toLowerCase().includes(filter.toLowerCase())
+        );
+        const index = initialFilteredItems.findIndex(item => item.type === currentBlockType);
+        return index !== -1 ? index : 0;
+    });
     const [adjustedPosition, setAdjustedPosition] = useState(null);
     const [isScrolling, setIsScrolling] = useState(false);
     const [isMouseHovering, setIsMouseHovering] = useState(false);
@@ -104,22 +120,16 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
         setAdjustedPosition({ top: newTop, left: newLeft });
     }, [position]);
 
-    // Filter menu items based on search - memoized to avoid recalculation
-    const filteredItems = useMemo(() =>
-        MENU_ITEMS.filter(item =>
-            item.label.toLowerCase().includes(filter.toLowerCase()) ||
-            item.description.toLowerCase().includes(filter.toLowerCase())
-        ), [filter]
-    );
-
-    // Reset selection when filter changes
+    // Sync selection when filter or currentBlockType changes
     const prevFilterRef = useRef(filter);
+    const prevBlockTypeRef = useRef(currentBlockType);
     useEffect(() => {
-        if (prevFilterRef.current !== filter) {
+        if (prevFilterRef.current !== filter || prevBlockTypeRef.current !== currentBlockType) {
             prevFilterRef.current = filter;
-            setSelectedIndex(initialIndex); // Reset to currentBlockType position when filter changes
+            prevBlockTypeRef.current = currentBlockType;
+            setSelectedIndex(safeInitialIndex);
         }
-    }, [filter, initialIndex]);
+    }, [filter, currentBlockType, safeInitialIndex]);
 
     // Handle keyboard navigation
     useEffect(() => {
@@ -203,8 +213,8 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
                     onMouseEnter={() => setIsMouseHovering(true)}
                     onMouseLeave={() => {
                         setIsMouseHovering(false);
-                        // Reset keyboard navigation to currentBlockType position
-                        setSelectedIndex(initialIndex);
+                        // Reset keyboard navigation to safe index within filteredItems
+                        setSelectedIndex(safeInitialIndex);
                     }}
                 >
                     {filteredItems.map((item, index) => {
@@ -216,7 +226,7 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
                                 key={item.type}
                                 className={`slash-menu-item ${isCurrentType ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                                 onClick={() => onSelect(item.type)}
-                                onMouseEnter={() => setSelectedIndex(initialIndex)}
+                                onMouseEnter={() => setSelectedIndex(index)}
                             >
                                 <div className="slash-menu-item-left">
                                     <div className="slash-menu-item-icon">

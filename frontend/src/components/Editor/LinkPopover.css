@@ -1,13 +1,17 @@
-/* Link Popover - Floating URL editor */
+/* Link Input Menu - Floating URL editor based on Figma design */
 .link-popover {
     position: fixed;
-    z-index: var(--z-index-link-popover, 1120);
+    z-index: var(--z-index-popover);
     transform: translate(-50%, -100%);
-    background: var(--color-bg-white, white);
-    border: 1px solid var(--color-gray-100, #f3f4f6);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px var(--color-shadow-menu, rgba(0, 0, 0, 0.12));
-    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 390px;
+    padding: var(--space-sm);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 16px var(--shadow-default);
     animation: linkPopoverAppear 0.15s ease-out;
 }
 
@@ -23,40 +27,85 @@
     }
 }
 
-.link-popover-content {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+/* Input field container */
+.link-popover-input-wrapper {
+    flex: 1;
+    min-width: 0;
 }
 
+/* Input field styles */
 .link-popover-input {
-    width: 240px;
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--color-gray-200, #e5e7eb);
-    border-radius: 6px;
-    font-size: 14px;
-    color: var(--color-text-primary, #000);
-    background: var(--color-bg-white, white);
+    width: 100%;
+    height: auto;
+    padding: 8px 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family-sans);
+    font-size: var(--typography-input-size);
+    font-weight: var(--typography-input-weight);
+    line-height: var(--typography-input-line-height);
+    color: var(--text-primary);
+    background: var(--background-primary);
     outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .link-popover-input::placeholder {
-    color: var(--color-gray-400, #9ca3af);
+    color: var(--text-placeholder);
 }
 
 .link-popover-input:focus {
-    border-color: var(--color-selection-blue, #2383e2);
-    box-shadow: 0 0 0 2px var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.12));
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary-light);
 }
 
-.link-popover-actions {
+/* Error state for input */
+.link-popover-input.error {
+    background-color: var(--semantic-error-light);
+    border-color: var(--semantic-error);
+}
+
+.link-popover-input.error:focus {
+    border-color: var(--semantic-error);
+    box-shadow: 0 0 0 2px var(--semantic-error-light);
+}
+
+/* URL display as link (editing mode) */
+.link-popover-url-display {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family-sans);
+    font-size: var(--typography-input-size);
+    font-weight: var(--typography-input-weight);
+    line-height: var(--typography-input-line-height);
+    color: var(--text-primary);
+    background: var(--background-primary);
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color var(--transition-fast);
+}
+
+.link-popover-url-display:hover {
+    background-color: var(--background-hover);
+}
+
+/* Button group */
+.link-popover-button-group {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
+/* Button styles */
 .link-popover-button {
     display: flex;
     align-items: center;
@@ -66,40 +115,35 @@
     padding: 0;
     border: none;
     background: transparent;
-    border-radius: 6px;
-    color: var(--color-gray-500, #6b7280);
+    border-radius: var(--radius-md);
+    color: var(--icons-disabled);
+    cursor: default;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+/* Button enabled state */
+.link-popover-button.enabled {
+    color: var(--icons-default);
     cursor: pointer;
-    transition: background-color 0.1s ease, color 0.1s ease;
 }
 
-.link-popover-button:hover {
-    background-color: var(--color-gray-100, #f3f4f6);
-    color: var(--color-text-primary, #000);
+.link-popover-button.enabled:hover {
+    background-color: var(--background-hover);
+    color: var(--icons-hover);
 }
 
-.link-popover-apply {
-    color: var(--color-selection-blue, #2383e2);
+/* Apply button specific */
+.link-popover-button.link-popover-apply.enabled {
+    color: var(--accent-primary);
 }
 
-.link-popover-apply:hover {
-    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
-    color: var(--color-selection-blue, #2383e2);
+.link-popover-button.link-popover-apply.enabled:hover {
+    background-color: var(--accent-primary-light);
+    color: var(--accent-primary);
 }
 
-.link-popover-open {
-    color: var(--color-gray-500, #6b7280);
-}
-
-.link-popover-open:hover {
-    background-color: var(--color-gray-100, #f3f4f6);
-    color: var(--color-text-primary, #000);
-}
-
-.link-popover-unlink {
-    color: var(--color-gray-500, #6b7280);
-}
-
-.link-popover-unlink:hover {
-    background-color: var(--color-danger-bg, rgba(239, 68, 68, 0.1));
-    color: var(--color-danger, #ef4444);
+/* Unlink button specific */
+.link-popover-button.link-popover-unlink.enabled:hover {
+    background-color: var(--semantic-error-light);
+    color: var(--semantic-error);
 }

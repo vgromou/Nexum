@@ -1,32 +1,31 @@
 import React from 'react';
-import { ICON_COLORS, COLOR_ORDER } from './constants';
-import './EmojiPicker.css';
+import { ICON_COLORS } from './constants';
 
 /**
- * ColorPicker - Dropdown for selecting icon color
+ * ColorPicker - Standalone dropdown for selecting icon color
+ * Note: For the main emoji picker, colors are now shown in the IconTab.
+ * This component is kept for backward compatibility and standalone use.
  */
 const ColorPicker = ({ currentColor, onColorChange, onClose }) => {
+    const colorNames = Object.keys(ICON_COLORS);
+
     const handleColorClick = (colorName) => {
         onColorChange(colorName);
-        onClose();
+        onClose?.();
     };
 
     return (
         <div className="color-picker-dropdown" onClick={(e) => e.stopPropagation()}>
             <div className="color-picker-grid">
-                {COLOR_ORDER.map((row, rowIndex) => (
-                    <div key={rowIndex} className="color-picker-row">
-                        {row.map((colorName) => (
-                            <button
-                                key={colorName}
-                                className={`color-picker-swatch ${currentColor === colorName ? 'selected' : ''}`}
-                                style={{ backgroundColor: ICON_COLORS[colorName] }}
-                                onClick={() => handleColorClick(colorName)}
-                                title={colorName.charAt(0).toUpperCase() + colorName.slice(1)}
-                                aria-label={`Select ${colorName} color`}
-                            />
-                        ))}
-                    </div>
+                {colorNames.map((colorName) => (
+                    <button
+                        key={colorName}
+                        className={`color-picker-swatch ${currentColor === colorName ? 'selected' : ''}`}
+                        style={{ backgroundColor: ICON_COLORS[colorName] }}
+                        onClick={() => handleColorClick(colorName)}
+                        title={colorName.charAt(0).toUpperCase() + colorName.slice(1)}
+                        aria-label={`Select ${colorName} color`}
+                    />
                 ))}
             </div>
         </div>

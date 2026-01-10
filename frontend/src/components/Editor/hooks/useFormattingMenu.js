@@ -919,12 +919,23 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     }, [restoreSelection, editorRef, actions, closeMenu]);
 
     /**
+     * Helper to check if an element is inside a menu-related UI.
+     */
+    const isInsideMenuUI = (target) => {
+        return target.closest('.formatting-menu') ||
+               target.closest('.formatting-popup') ||
+               target.closest('.turn-into-menu') ||
+               target.closest('.color-picker') ||
+               target.closest('.link-popover');
+    };
+
+    /**
      * Track mouse down to prevent menu from opening during text selection drag.
      */
     useEffect(() => {
         const handleMouseDown = (e) => {
-            // Ignore clicks inside the formatting menu, popups, turn-into menu, or color picker
-            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup') || e.target.closest('.turn-into-menu') || e.target.closest('.color-picker')) {
+            // Ignore clicks inside menu-related UI elements (including link popover)
+            if (isInsideMenuUI(e.target)) {
                 return;
             }
 
@@ -936,8 +947,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         };
 
         const handleMouseUp = (e) => {
-            // Ignore mouse up inside the formatting menu, popups, turn-into menu, or color picker
-            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup') || e.target.closest('.turn-into-menu') || e.target.closest('.color-picker')) {
+            // Ignore mouse up inside menu-related UI elements (including link popover)
+            if (isInsideMenuUI(e.target)) {
                 return;
             }
 
@@ -967,7 +978,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      */
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (menu.isOpen && !e.target.closest('.formatting-menu') && !e.target.closest('.formatting-popup') && !e.target.closest('.turn-into-menu') && !e.target.closest('.color-picker')) {
+            // Don't close if clicking inside menu-related UI elements (including link popover)
+            if (menu.isOpen && !isInsideMenuUI(e.target)) {
                 closeMenu();
             }
         };
@@ -978,11 +990,18 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Close menu when selection becomes empty (e.g., user deletes text).
+     * But not when the focus is inside the link popover input.
      */
     useEffect(() => {
         if (!menu.isOpen) return;
 
         const handleSelectionChange = () => {
+            // Don't close the menu if focus is inside the link popover
+            const activeElement = document.activeElement;
+            if (activeElement?.closest('.link-popover')) {
+                return;
+            }
+
             const sel = window.getSelection();
             // If selection is collapsed (no text selected) or empty, close the menu
             if (!sel.rangeCount || sel.isCollapsed || sel.toString().trim() === '') {
