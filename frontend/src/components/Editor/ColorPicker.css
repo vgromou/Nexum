@@ -63,13 +63,23 @@
 .color-picker-row {
     display: flex;
     gap: 6px !important;
+    width: 100%;
+    justify-content: flex-start;
+}
+
+/* Center content when row contains only empty state */
+.color-picker-row:has(.color-picker-empty) {
+    justify-content: center;
 }
 
 /* Empty state text */
 .color-picker-empty {
     font-size: 12px;
     color: var(--text-tertiary, #9CA3AF);
-    font-style: italic;
+    font-style: normal;
+    width: 100%;
+    text-align: center;
+    padding: 8px 0;
 }
 
 /* Base swatch styles */
