@@ -962,10 +962,11 @@
 }
 
 .slash-menu-item-shortcut {
-    font-size: 12px;
-    font-weight: 400;
+    font-size: var(--typography-code-inline-size, 14px);
+    font-weight: var(--typography-code-inline-weight, 400);
+    line-height: var(--typography-code-inline-line-height, 20px);
     color: var(--Icons-Default, #9CA3AF);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-family-mono, 'JetBrains Mono', monospace);
 }
 
 /* Hover state - applies to all items */
@@ -1102,131 +1103,86 @@
 }
 
 /* Normal Highlights (background only) */
-.block-content .highlight-purple {
-    background-color: var(--color-highlight-purple-bg);
-}
-
-.block-content .highlight-pink {
-    background-color: var(--color-highlight-pink-bg);
-}
-
-.block-content .highlight-blue {
-    background-color: var(--color-highlight-blue-bg);
-}
-
-.block-content .highlight-green {
-    background-color: var(--color-highlight-green-bg);
-}
-
-.block-content .highlight-yellow {
-    background-color: var(--color-highlight-yellow-bg);
-}
-
-.block-content .highlight-orange {
-    background-color: var(--color-highlight-orange-bg);
-}
-
-.block-content .highlight-red {
-    background-color: var(--color-highlight-red-bg);
+.block-content .highlight-default {
+    background-color: var(--color-highlight-default-bg);
+    color: var(--color-highlight-default-text);
 }
 
 .block-content .highlight-gray {
     background-color: var(--color-highlight-gray-bg);
 }
 
-/* Tag Highlights - Base styles (for body text) */
-.block-content .tag-purple,
-.block-content .tag-blue,
-.block-content .tag-green,
-.block-content .tag-orange,
-.block-content .tag-red,
-.block-content .tag-gray {
-    font-size: var(--font-size-highlight-body, 14px);
-    line-height: var(--line-height-highlight-body, 1.5);
-    font-weight: var(--font-weight-highlight-body, 500);
-    padding: 2px 6px;
-    border-radius: var(--border-radius-tag);
-    display: inline;
+.block-content .highlight-brown {
+    background-color: var(--color-highlight-brown-bg);
 }
 
-/* Tag colors */
-.block-content .tag-purple {
-    background-color: var(--color-highlight-purple-bg);
-    color: var(--color-highlight-purple-text);
-}
-
-.block-content .tag-pink {
-    background-color: var(--color-highlight-pink-bg);
-    color: var(--color-highlight-pink-text);
-}
-
-.block-content .tag-blue {
-    background-color: var(--color-highlight-blue-bg);
-    color: var(--color-highlight-blue-text);
-}
-
-.block-content .tag-green {
-    background-color: var(--color-highlight-green-bg);
-    color: var(--color-highlight-green-text);
-}
-
-.block-content .tag-yellow {
-    background-color: var(--color-highlight-yellow-bg);
-    color: var(--color-highlight-yellow-text);
-}
-
-.block-content .tag-orange {
+.block-content .highlight-orange {
     background-color: var(--color-highlight-orange-bg);
-    color: var(--color-highlight-orange-text);
 }
 
-.block-content .tag-red {
+.block-content .highlight-yellow {
+    background-color: var(--color-highlight-yellow-bg);
+}
+
+.block-content .highlight-green {
+    background-color: var(--color-highlight-green-bg);
+}
+
+.block-content .highlight-blue {
+    background-color: var(--color-highlight-blue-bg);
+}
+
+.block-content .highlight-purple {
+    background-color: var(--color-highlight-purple-bg);
+}
+
+.block-content .highlight-magenta {
+    background-color: var(--color-highlight-magenta-bg);
+}
+
+.block-content .highlight-red {
     background-color: var(--color-highlight-red-bg);
-    color: var(--color-highlight-red-text);
 }
 
-.block-content .tag-gray {
-    background-color: var(--color-highlight-gray-bg);
+/* Text Color Classes */
+.block-content .text-color-default {
+    color: var(--color-highlight-default-text);
+}
+
+.block-content .text-color-gray {
     color: var(--color-highlight-gray-text);
 }
 
-/* Tag Highlights in H1 - preserve heading size */
-.block-content[data-block-type="h1"] .tag-purple,
-.block-content[data-block-type="h1"] .tag-blue,
-.block-content[data-block-type="h1"] .tag-green,
-.block-content[data-block-type="h1"] .tag-orange,
-.block-content[data-block-type="h1"] .tag-red,
-.block-content[data-block-type="h1"] .tag-gray {
-    font-size: var(--font-size-highlight-h1, 28px);
-    line-height: var(--line-height-highlight-h1, 1.25);
-    font-weight: var(--font-weight-highlight-h1, 700);
-    letter-spacing: var(--letter-spacing-highlight-h1, -0.004em);
+.block-content .text-color-brown {
+    color: var(--color-highlight-brown-text);
 }
 
-/* Tag Highlights in H2 - preserve heading size */
-.block-content[data-block-type="h2"] .tag-purple,
-.block-content[data-block-type="h2"] .tag-blue,
-.block-content[data-block-type="h2"] .tag-green,
-.block-content[data-block-type="h2"] .tag-orange,
-.block-content[data-block-type="h2"] .tag-red,
-.block-content[data-block-type="h2"] .tag-gray {
-    font-size: var(--font-size-highlight-h2, 22px);
-    line-height: var(--line-height-highlight-h2, 1.33);
-    font-weight: var(--font-weight-highlight-h2, 600);
-    letter-spacing: var(--letter-spacing-highlight-h2, -0.002em);
+.block-content .text-color-orange {
+    color: var(--color-highlight-orange-text);
 }
 
-/* Tag Highlights in H3 - preserve heading size */
-.block-content[data-block-type="h3"] .tag-purple,
-.block-content[data-block-type="h3"] .tag-blue,
-.block-content[data-block-type="h3"] .tag-green,
-.block-content[data-block-type="h3"] .tag-orange,
-.block-content[data-block-type="h3"] .tag-red,
-.block-content[data-block-type="h3"] .tag-gray {
-    font-size: var(--font-size-highlight-h3, 18px);
-    line-height: var(--line-height-highlight-h3, 1.4);
-    font-weight: var(--font-weight-highlight-h3, 600);
-    letter-spacing: var(--letter-spacing-highlight-h3, 0);
+.block-content .text-color-yellow {
+    color: var(--color-highlight-yellow-text);
+}
+
+.block-content .text-color-green {
+    color: var(--color-highlight-green-text);
+}
+
+.block-content .text-color-blue {
+    color: var(--color-highlight-blue-text);
+}
+
+.block-content .text-color-purple {
+    color: var(--color-highlight-purple-text);
+}
+
+.block-content .text-color-magenta {
+    color: var(--color-highlight-magenta-text);
+}
+
+.block-content .text-color-red {
+    color: var(--color-highlight-red-text);
 }
 
 /* Scrollbar styling for slash menu scroll wrapper */

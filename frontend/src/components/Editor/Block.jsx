@@ -41,10 +41,18 @@ const Block = memo(({
      * Only updates if the content has actually changed to avoid cursor jumps.
      */
     useEffect(() => {
-        if (contentRef.current && contentRef.current.innerHTML !== block.content) {
-            contentRef.current.innerHTML = block.content;
+        if (contentRef.current) {
+            console.log('[Block.jsx useEffect] block.id:', block.id);
+            console.log('[Block.jsx useEffect] contentRef.current.innerHTML:', contentRef.current.innerHTML);
+            console.log('[Block.jsx useEffect] block.content:', block.content);
+            console.log('[Block.jsx useEffect] equal?', contentRef.current.innerHTML === block.content);
+
+            if (contentRef.current.innerHTML !== block.content) {
+                console.log('[Block.jsx useEffect] OVERWRITING innerHTML!');
+                contentRef.current.innerHTML = block.content;
+            }
         }
-    }, [block.content]);
+    }, [block.content, block.id]);
 
     /**
      * Focuses the block and sets cursor to end when isFocused changes.

@@ -1,0 +1,186 @@
+/* Turn Into Menu - Styles identical to Slash Command Menu */
+.turn-into-menu {
+    position: fixed;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    max-height: 400px;
+    padding: 8px 2px 8px 8px;
+    /* 2px padding on right */
+    border-radius: 8px;
+    border: 1px solid var(--Border-Default, #E5E7EB);
+    background: var(--Surface-Elevated, #FFF);
+    box-shadow: 0 4px 16px 0 var(--Shadow-Default, rgba(0, 0, 0, 0.12));
+    overflow: hidden;
+}
+
+/* Scroll wrapper - handles overflow scroll */
+.turn-into-menu-scroll-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    max-height: 100%;
+    padding-right: 2px;
+    /* 2px gap between content and scrollbar */
+    scrollbar-gutter: stable;
+    /* Reserves 4px for scrollbar */
+}
+
+.turn-into-menu-header {
+    display: flex;
+    padding: 4px 12px;
+    align-items: center;
+    gap: 4px;
+    align-self: stretch;
+    flex-shrink: 0;
+    color: var(--Text-Tertiary, #9CA3AF);
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+.turn-into-menu-header-line-left {
+    width: 24px;
+    height: 1px;
+    flex-shrink: 0;
+    background: var(--Border-Default, #E5E7EB);
+}
+
+.turn-into-menu-header-line-right {
+    height: 1px;
+    flex: 1 0 0;
+    background: var(--Border-Default, #E5E7EB);
+}
+
+.turn-into-menu-items {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    gap: 2px;
+}
+
+.turn-into-menu-item {
+    display: flex;
+    height: 32px;
+    padding: 8px 12px;
+    justify-content: space-between;
+    align-items: center;
+    align-self: stretch;
+    cursor: pointer;
+    gap: 8px;
+    background: transparent;
+    transition: background-color 0.1s ease;
+}
+
+/* Default state colors */
+.turn-into-menu-item-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--Icons-Default, #9CA3AF);
+}
+
+.turn-into-menu-item-label {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--Text-Tertiary, #9CA3AF);
+    line-height: 1.4;
+}
+
+.turn-into-menu-item-shortcut {
+    font-size: var(--typography-code-inline-size, 14px);
+    font-weight: var(--typography-code-inline-weight, 400);
+    line-height: var(--typography-code-inline-line-height, 20px);
+    color: var(--Icons-Default, #9CA3AF);
+    font-family: var(--font-family-mono, 'JetBrains Mono', monospace);
+}
+
+/* Hover state - applies to all items */
+.turn-into-menu-item:hover {
+    border-radius: 6px;
+    background: var(--Background-Hover, #F3F4F6);
+}
+
+.turn-into-menu-item:hover .turn-into-menu-item-icon {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+.turn-into-menu-item:hover .turn-into-menu-item-label {
+    color: var(--Text-Primary, #111827);
+}
+
+.turn-into-menu-item:hover .turn-into-menu-item-shortcut {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+/* Highlighted state - keyboard navigation (same as hover) */
+.turn-into-menu-item.highlighted {
+    border-radius: 6px;
+    background: var(--Background-Hover, #F3F4F6);
+}
+
+.turn-into-menu-item.highlighted .turn-into-menu-item-icon {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+.turn-into-menu-item.highlighted .turn-into-menu-item-label {
+    color: var(--Text-Primary, #111827);
+}
+
+.turn-into-menu-item.highlighted .turn-into-menu-item-shortcut {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+/* Selected state - current formatting (purple/active colors) */
+.turn-into-menu-item.selected {
+    border-radius: 6px;
+    background: var(--Accent-Primary-Light, #ECEEFF);
+}
+
+.turn-into-menu-item.selected .turn-into-menu-item-icon {
+    color: var(--Icons-Active, #5B5FC7);
+}
+
+.turn-into-menu-item.selected .turn-into-menu-item-label {
+    color: var(--Accent-Primary, #5B5FC7);
+}
+
+.turn-into-menu-item.selected .turn-into-menu-item-shortcut {
+    color: var(--Icons-Active, #5B5FC7);
+}
+
+/* Left side group (icon + label) */
+.turn-into-menu-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Scrollbar styling */
+.turn-into-menu-scroll-wrapper::-webkit-scrollbar {
+    width: 4px;
+}
+
+.turn-into-menu-scroll-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Scrollbar thumb - 4px wide */
+.turn-into-menu-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+/* Show scrollbar thumb only when actively scrolling */
+.turn-into-menu.scrolling .turn-into-menu-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: var(--Border-Strong, #9CA3AF);
+}

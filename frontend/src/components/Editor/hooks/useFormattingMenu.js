@@ -37,6 +37,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      * @param {Element|null} blockEl - The block element to sync, or null to detect from selection.
      */
     const syncBlockToState = useCallback((blockEl = null) => {
+        console.log('[syncBlockToState] called with blockEl:', blockEl);
+
         const element = blockEl || (() => {
             const sel = window.getSelection();
             if (!sel?.anchorNode) return null;
@@ -45,10 +47,15 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 : sel.anchorNode?.closest?.('[data-block-id]');
         })();
 
+        console.log('[syncBlockToState] element:', element);
+
         if (element) {
             const blockId = element.getAttribute('data-block-id');
+            console.log('[syncBlockToState] blockId:', blockId);
+            console.log('[syncBlockToState] innerHTML:', element.innerHTML);
             if (blockId) {
                 actions.updateBlock(blockId, element.innerHTML);
+                console.log('[syncBlockToState] updateBlock called');
             }
         }
     }, [actions]);
@@ -70,8 +77,12 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         const endBlockEl = getBlockFromNode(range.endContainer);
 
         // Both must be within blocks contained in the editor
-        if (!startBlockEl || !editorRef.current.contains(startBlockEl)) return null;
-        if (!endBlockEl || !editorRef.current.contains(endBlockEl)) return null;
+        if (!startBlockEl || !editorRef.current.contains(startBlockEl)) {
+            return null;
+        }
+        if (!endBlockEl || !editorRef.current.contains(endBlockEl)) {
+            return null;
+        }
 
         // For cross-block selections, use the topmost block for positioning
         // Compare vertical positions to find the block that is higher on the page
@@ -87,7 +98,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Gets the active formatting states for the current selection.
-     * Uses document.queryCommandState for standard formats and checks for links, highlights, and tags.
+     * Uses document.queryCommandState for standard formats and checks for links and highlights.
      */
     const getActiveFormats = useCallback(() => {
         const formats = {
@@ -96,8 +107,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             underline: false,
             strikeThrough: false,
             link: false,
-            highlightColor: null, // e.g., 'purple', 'blue', etc.
-            tagColor: null,       // e.g., 'purple', 'blue', etc.
+            highlightColor: null, // background color, e.g., 'purple', 'blue', etc.
+            textColor: null,      // text color, e.g., 'purple', 'blue', etc.
         };
 
         try {
@@ -106,7 +117,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             formats.underline = document.queryCommandState('underline');
             formats.strikeThrough = document.queryCommandState('strikeThrough');
 
-            // Check if selection contains a link, highlight, or tag
+            // Check if selection contains a link or highlight
             const sel = window.getSelection();
             if (sel.rangeCount > 0) {
                 const range = sel.getRangeAt(0);
@@ -117,8 +128,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
                 formats.link = !!node?.closest('a');
 
-                // Check for highlight colors
-                const highlightColors = ['gray', 'purple', 'blue', 'green', 'orange', 'red'];
+                // Check for highlight (background) colors
+                const highlightColors = ['default', 'gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'magenta', 'red'];
                 for (const color of highlightColors) {
                     if (node?.closest(`.highlight-${color}`)) {
                         formats.highlightColor = color;
@@ -126,10 +137,10 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     }
                 }
 
-                // Check for tag colors
+                // Check for text colors
                 for (const color of highlightColors) {
-                    if (node?.closest(`.tag-${color}`)) {
-                        formats.tagColor = color;
+                    if (node?.closest(`.text-color-${color}`)) {
+                        formats.textColor = color;
                         break;
                     }
                 }
@@ -213,19 +224,24 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      * Restores the saved selection before applying formatting.
      */
     const restoreSelection = useCallback(() => {
-        if (!selectionRef.current) return false;
+        if (!selectionRef.current) {
+            return false;
+        }
 
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(selectionRef.current);
-        return true;
+        try {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(selectionRef.current);
+            return true;
+        } catch (e) {
+            return false;
+        }
     }, []);
 
     /**
-     * Removes highlight/tag spans from the selection.
-     * @param {string|null} type - 'highlight', 'tag', or null for both
+     * Removes highlight spans from the selection.
      */
-    const removeExistingHighlights = useCallback((type = null) => {
+    const removeExistingHighlights = useCallback(() => {
         const sel = window.getSelection();
         if (!sel.rangeCount) return;
 
@@ -237,29 +253,16 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
         if (!blockEl) return;
 
-        // Define classes based on type
-        const highlightOnlyClasses = [
-            'highlight-gray', 'highlight-purple', 'highlight-blue', 'highlight-green',
-            'highlight-orange', 'highlight-red',
+        const highlightClasses = [
+            'highlight-default', 'highlight-gray', 'highlight-brown', 'highlight-orange',
+            'highlight-yellow', 'highlight-green', 'highlight-blue', 'highlight-purple',
+            'highlight-magenta', 'highlight-red',
         ];
-        const tagOnlyClasses = [
-            'tag-gray', 'tag-purple', 'tag-blue', 'tag-green',
-            'tag-orange', 'tag-red',
-        ];
-
-        let classesToRemove;
-        if (type === 'highlight') {
-            classesToRemove = highlightOnlyClasses;
-        } else if (type === 'tag') {
-            classesToRemove = tagOnlyClasses;
-        } else {
-            classesToRemove = [...highlightOnlyClasses, ...tagOnlyClasses];
-        }
 
         const spans = blockEl.querySelectorAll('span');
         spans.forEach(span => {
-            const hasTargetClass = classesToRemove.some(cls => span.classList.contains(cls));
-            if (hasTargetClass && range.intersectsNode(span)) {
+            const hasHighlightClass = highlightClasses.some(cls => span.classList.contains(cls));
+            if (hasHighlightClass && range.intersectsNode(span)) {
                 // Replace span with its text content
                 const text = document.createTextNode(span.textContent);
                 span.parentNode.replaceChild(text, span);
@@ -292,38 +295,40 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     }, [restoreSelection, getActiveFormats, syncBlockToState]);
 
     /**
-     * Applies a highlight or tag to the selected text.
+     * Applies a highlight to the selected text.
      * Supports cross-block selections.
+     * When colorName is 'default', removes existing highlights without adding new span.
      */
-    const applyHighlight = useCallback((colorName, isTag = false) => {
-        if (!restoreSelection()) return;
+    const applyHighlight = useCallback((colorName) => {
+        console.log('[applyHighlight] called with colorName:', colorName);
+
+        if (!restoreSelection()) {
+            console.log('[applyHighlight] restoreSelection failed');
+            return;
+        }
 
         const sel = window.getSelection();
         if (!sel.rangeCount || sel.isCollapsed) {
+            console.log('[applyHighlight] no selection or collapsed');
             return;
         }
 
         const range = sel.getRangeAt(0);
         const selectedText = range.toString();
+        console.log('[applyHighlight] selectedText:', selectedText);
 
         if (!selectedText) {
+            console.log('[applyHighlight] no selected text');
             return;
         }
 
-        const className = isTag ? `tag-${colorName}` : `highlight-${colorName}`;
+        const className = `highlight-${colorName}`;
 
-        // Separate classes for highlights and tags - only remove same type
-        const highlightOnlyClasses = [
-            'highlight-gray', 'highlight-purple', 'highlight-blue', 'highlight-green',
-            'highlight-orange', 'highlight-red',
+        const highlightClasses = [
+            'highlight-default', 'highlight-gray', 'highlight-brown', 'highlight-orange',
+            'highlight-yellow', 'highlight-green', 'highlight-blue', 'highlight-purple',
+            'highlight-magenta', 'highlight-red',
         ];
-        const tagOnlyClasses = [
-            'tag-gray', 'tag-purple', 'tag-blue', 'tag-green',
-            'tag-orange', 'tag-red',
-        ];
-
-        // Only remove spans of the same type (highlight or tag)
-        const classesToRemove = isTag ? tagOnlyClasses : highlightOnlyClasses;
 
         // Get all blocks that intersect with the selection
         const editorEl = editorRef.current;
@@ -340,12 +345,14 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         if (intersectingBlocks.length === 1) {
             const blockEl = intersectingBlocks[0];
 
-            // Remove only existing spans of same type (highlight or tag) in selection
+            // Remove existing highlight spans in selection
             const spans = Array.from(blockEl.querySelectorAll('span'));
             const intersectingSpans = spans.filter(span => {
-                const hasSameType = classesToRemove.some(cls => span.classList.contains(cls));
-                return hasSameType && range.intersectsNode(span);
+                const hasHighlightClass = highlightClasses.some(cls => span.classList.contains(cls));
+                return hasHighlightClass && range.intersectsNode(span);
             });
+
+            console.log('[applyHighlight] found intersecting highlight spans:', intersectingSpans.length);
 
             intersectingSpans.forEach(span => {
                 const parent = span.parentNode;
@@ -356,6 +363,15 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             });
 
             blockEl.normalize();
+
+            // If colorName is 'default', we're done - just removing existing highlights
+            if (colorName === 'default') {
+                console.log('[applyHighlight] colorName is default, only removing spans');
+                syncBlockToState(blockEl);
+                const newFormats = getActiveFormats();
+                setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+                return;
+            }
 
             // Try to restore selection
             restoreSelection();
@@ -406,6 +422,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     }
                 }
 
+                syncBlockToState(blockEl);
                 // Update active formats
                 const newFormats = getActiveFormats();
                 setMenu(prev => ({ ...prev, activeFormats: newFormats }));
@@ -432,6 +449,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 newSel.addRange(finalRange);
                 selectionRef.current = finalRange.cloneRange();
 
+                syncBlockToState(blockEl);
                 // Update active formats
                 const newFormats = getActiveFormats();
                 setMenu(prev => ({ ...prev, activeFormats: newFormats }));
@@ -440,105 +458,9 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
             const span = document.createElement('span');
             span.className = className;
-
-            if (isTag) {
-                // When applying tag, check if selected text was inside a highlight span
-                // We need to keep the tag INSIDE the highlight
-                // Check if parent of insertion point is a highlight
-                const insertionParent = newRange.commonAncestorContainer;
-                const parentHighlight = insertionParent.nodeType === Node.TEXT_NODE
-                    ? insertionParent.parentElement?.closest('[class^="highlight-"]')
-                    : insertionParent.closest?.('[class^="highlight-"]');
-
-                // Check if contents contain a highlight span that we need to preserve
-                const highlightInContents = contents.querySelector &&
-                    highlightOnlyClasses.some(cls => contents.querySelector(`.${cls}`));
-                const firstChildIsHighlight = contents.firstChild &&
-                    contents.firstChild.nodeType === Node.ELEMENT_NODE &&
-                    highlightOnlyClasses.some(cls => contents.firstChild.classList?.contains(cls));
-
-                if (firstChildIsHighlight && contents.childNodes.length === 1) {
-                    // The entire selection is a highlight span - insert tag inside it
-                    const highlightSpan = contents.firstChild;
-                    const tagSpan = document.createElement('span');
-                    tagSpan.className = className;
-                    // Move all children of highlight into tag
-                    while (highlightSpan.firstChild) {
-                        tagSpan.appendChild(highlightSpan.firstChild);
-                    }
-                    highlightSpan.appendChild(tagSpan);
-                    newRange.insertNode(contents);
-
-                    const finalRange = document.createRange();
-                    finalRange.selectNodeContents(tagSpan);
-                    newSel.removeAllRanges();
-                    newSel.addRange(finalRange);
-                    selectionRef.current = finalRange.cloneRange();
-                    return;
-                } else {
-                    // No highlight wrapper, just apply tag
-                    span.appendChild(contents);
-                    newRange.insertNode(span);
-                }
-            } else {
-                // When applying highlight, check if we're inside a tag span
-                // We need the final structure to be: highlight outside, tag inside
-
-                // Check if insertion point is inside a tag span
-                const insertionParent = newRange.commonAncestorContainer;
-                let parentTagSpan = null;
-
-                if (insertionParent.nodeType === Node.TEXT_NODE) {
-                    parentTagSpan = insertionParent.parentElement;
-                    if (parentTagSpan && !tagOnlyClasses.some(cls => parentTagSpan.classList?.contains(cls))) {
-                        parentTagSpan = parentTagSpan.closest('[class^="tag-"]');
-                    }
-                } else if (insertionParent.nodeType === Node.ELEMENT_NODE) {
-                    if (tagOnlyClasses.some(cls => insertionParent.classList?.contains(cls))) {
-                        parentTagSpan = insertionParent;
-                    } else {
-                        parentTagSpan = insertionParent.closest?.('[class^="tag-"]');
-                    }
-                }
-
-                // Also check if contents contain a tag span
-                const firstChildIsTag = contents.firstChild &&
-                    contents.firstChild.nodeType === Node.ELEMENT_NODE &&
-                    tagOnlyClasses.some(cls => contents.firstChild.classList?.contains(cls));
-
-                if (parentTagSpan && blockEl.contains(parentTagSpan)) {
-                    // We are inside a tag span - we need to restructure:
-                    // Current: <tag>text</tag>
-                    // Target: <highlight><tag>text</tag></highlight>
-
-                    // First, put contents back
-                    newRange.insertNode(contents);
-                    blockEl.normalize();
-
-                    // Now wrap the entire tag span with highlight
-                    const highlightSpan = document.createElement('span');
-                    highlightSpan.className = className;
-
-                    // Clone the tag span content and structure
-                    parentTagSpan.parentNode.insertBefore(highlightSpan, parentTagSpan);
-                    highlightSpan.appendChild(parentTagSpan);
-
-                    const finalRange = document.createRange();
-                    finalRange.selectNodeContents(parentTagSpan);
-                    newSel.removeAllRanges();
-                    newSel.addRange(finalRange);
-                    selectionRef.current = finalRange.cloneRange();
-                    return;
-                } else if (firstChildIsTag && contents.childNodes.length === 1) {
-                    // The entire selection is a tag span - wrap highlight around it
-                    span.appendChild(contents);
-                    newRange.insertNode(span);
-                } else {
-                    // No tag inside or mixed content, just apply highlight normally
-                    span.appendChild(contents);
-                    newRange.insertNode(span);
-                }
-            }
+            span.appendChild(contents);
+            newRange.insertNode(span);
+            console.log('[applyHighlight] span inserted:', span.outerHTML);
 
             const finalRange = document.createRange();
             finalRange.selectNodeContents(span);
@@ -552,6 +474,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             // Update active formats after applying highlight
             const newFormats = getActiveFormats();
             setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+            console.log('[applyHighlight] completed successfully');
             return;
         }
 
@@ -576,11 +499,11 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             const blockText = blockRange.toString();
             if (!blockText) return;
 
-            // Remove existing spans of same type in this block's range
+            // Remove existing highlight spans in this block's range
             const spans = Array.from(blockEl.querySelectorAll('span'));
             spans.forEach(span => {
-                const hasSameType = classesToRemove.some(cls => span.classList.contains(cls));
-                if (hasSameType && blockRange.intersectsNode(span)) {
+                const hasHighlightClass = highlightClasses.some(cls => span.classList.contains(cls));
+                if (hasHighlightClass && blockRange.intersectsNode(span)) {
                     const parent = span.parentNode;
                     while (span.firstChild) {
                         parent.insertBefore(span.firstChild, span);
@@ -590,6 +513,11 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             });
 
             blockEl.normalize();
+
+            // If colorName is 'default', don't add new spans
+            if (colorName === 'default') {
+                return;
+            }
 
             // Re-create the block range after DOM changes
             const newBlockRange = document.createRange();
@@ -617,16 +545,19 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         // Sync formatting changes to state for all affected blocks
         intersectingBlocks.forEach(blockEl => syncBlockToState(blockEl));
 
+        // Update active formats
+        const newFormats = getActiveFormats();
+        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+
         // Clear selection after multi-block operation
         sel.removeAllRanges();
         selectionRef.current = null;
     }, [restoreSelection, editorRef, getActiveFormats, syncBlockToState]);
 
     /**
-     * Clears highlights or tags from the selection.
-     * @param {string|null} type - 'highlight', 'tag', or null for both
+     * Clears highlights from the selection.
      */
-    const clearHighlight = useCallback((type = null) => {
+    const clearHighlight = useCallback(() => {
         if (!restoreSelection()) return;
 
         // Get the affected block before clearing
@@ -635,7 +566,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             ? sel.anchorNode.parentElement?.closest('[data-block-id]')
             : sel.anchorNode?.closest?.('[data-block-id]');
 
-        removeExistingHighlights(type);
+        removeExistingHighlights();
 
         // Sync clearing to state for undo history
         syncBlockToState(blockEl);
@@ -644,6 +575,240 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         const newFormats = getActiveFormats();
         setMenu(prev => ({ ...prev, activeFormats: newFormats }));
     }, [restoreSelection, removeExistingHighlights, getActiveFormats, syncBlockToState]);
+
+    /**
+     * Removes existing text color spans from the selection.
+     */
+    const removeExistingTextColors = useCallback(() => {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+
+        const range = sel.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const blockEl = container.nodeType === Node.TEXT_NODE
+            ? container.parentElement?.closest('[data-block-id]')
+            : container.closest?.('[data-block-id]');
+
+        if (!blockEl) return;
+
+        const textColorClasses = [
+            'text-color-default', 'text-color-gray', 'text-color-brown', 'text-color-orange',
+            'text-color-yellow', 'text-color-green', 'text-color-blue', 'text-color-purple',
+            'text-color-magenta', 'text-color-red',
+        ];
+
+        const spans = blockEl.querySelectorAll('span');
+        spans.forEach(span => {
+            const hasTextColorClass = textColorClasses.some(cls => span.classList.contains(cls));
+            if (hasTextColorClass && range.intersectsNode(span)) {
+                // Replace span with its text content
+                const text = document.createTextNode(span.textContent);
+                span.parentNode.replaceChild(text, span);
+            }
+        });
+
+        // Normalize to merge adjacent text nodes
+        blockEl.normalize();
+    }, []);
+
+    /**
+     * Applies a text color to the selected text.
+     * Handles removal of existing text-color spans and 'default' case.
+     */
+    const applyTextColor = useCallback((colorName) => {
+        console.log('[applyTextColor] called with colorName:', colorName);
+        console.log('[applyTextColor] selectionRef.current before restore:', selectionRef.current);
+
+        if (!restoreSelection()) {
+            console.log('[applyTextColor] restoreSelection returned false, exiting');
+            return;
+        }
+
+        const sel = window.getSelection();
+        console.log('[applyTextColor] after restore - sel.rangeCount:', sel.rangeCount, 'sel.isCollapsed:', sel.isCollapsed);
+
+        if (!sel.rangeCount || sel.isCollapsed) {
+            console.log('[applyTextColor] no selection or collapsed, exiting');
+            return;
+        }
+
+        const range = sel.getRangeAt(0);
+        const selectedText = range.toString();
+        console.log('[applyTextColor] selectedText:', selectedText);
+
+        if (!selectedText) {
+            console.log('[applyTextColor] no selected text, exiting');
+            return;
+        }
+
+        // Get the block element
+        const container = range.commonAncestorContainer;
+        const blockEl = container.nodeType === Node.TEXT_NODE
+            ? container.parentElement?.closest('[data-block-id]')
+            : container.closest?.('[data-block-id]');
+
+        console.log('[applyTextColor] blockEl:', blockEl);
+        if (!blockEl) {
+            console.log('[applyTextColor] no blockEl found, exiting');
+            return;
+        }
+
+        const textColorClasses = [
+            'text-color-default', 'text-color-gray', 'text-color-brown', 'text-color-orange',
+            'text-color-yellow', 'text-color-green', 'text-color-blue', 'text-color-purple',
+            'text-color-magenta', 'text-color-red',
+        ];
+
+        // Remove existing text-color spans that intersect with selection
+        const spans = Array.from(blockEl.querySelectorAll('span'));
+        const intersectingSpans = spans.filter(span => {
+            const hasTextColorClass = textColorClasses.some(cls => span.classList.contains(cls));
+            return hasTextColorClass && range.intersectsNode(span);
+        });
+
+        console.log('[applyTextColor] found intersecting text-color spans:', intersectingSpans.length);
+
+        intersectingSpans.forEach(span => {
+            const parent = span.parentNode;
+            while (span.firstChild) {
+                parent.insertBefore(span.firstChild, span);
+            }
+            parent.removeChild(span);
+        });
+
+        blockEl.normalize();
+
+        // If colorName is 'default', we're done - just removing existing colors
+        if (colorName === 'default') {
+            console.log('[applyTextColor] colorName is default, only removing spans');
+            // Sync formatting changes to state
+            syncBlockToState(blockEl);
+            // Update active formats
+            const newFormats = getActiveFormats();
+            setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+            return;
+        }
+
+        // Try to restore selection after removing spans
+        restoreSelection();
+
+        const newSel = window.getSelection();
+        if (!newSel.rangeCount || newSel.isCollapsed) {
+            // Selection was lost, try to find the text in the block
+            const textContent = blockEl.textContent || '';
+            const textIndex = textContent.indexOf(selectedText);
+
+            if (textIndex !== -1) {
+                let currentPos = 0;
+                const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_TEXT);
+                let node;
+
+                while ((node = walker.nextNode())) {
+                    const nodeLen = node.textContent.length;
+                    if (currentPos + nodeLen > textIndex) {
+                        const startOffset = textIndex - currentPos;
+                        const endOffset = startOffset + selectedText.length;
+
+                        if (endOffset <= nodeLen) {
+                            const newRange = document.createRange();
+                            newRange.setStart(node, startOffset);
+                            newRange.setEnd(node, endOffset);
+
+                            const span = document.createElement('span');
+                            span.className = `text-color-${colorName}`;
+                            const contents = newRange.extractContents();
+                            span.appendChild(contents);
+                            newRange.insertNode(span);
+
+                            const finalRange = document.createRange();
+                            finalRange.selectNodeContents(span);
+                            newSel.removeAllRanges();
+                            newSel.addRange(finalRange);
+                            selectionRef.current = finalRange.cloneRange();
+                        }
+                        break;
+                    }
+                    currentPos += nodeLen;
+                }
+            }
+
+            syncBlockToState(blockEl);
+            const newFormats = getActiveFormats();
+            setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+            return;
+        }
+
+        const newRange = newSel.getRangeAt(0);
+        const className = `text-color-${colorName}`;
+
+        // Wrap the selection in a span with the text color class
+        console.log('[applyTextColor] about to extractContents and wrap');
+        let contents;
+        try {
+            contents = newRange.extractContents();
+        } catch (e) {
+            // Fallback if extraction fails
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = selectedText;
+            newRange.deleteContents();
+            newRange.insertNode(span);
+
+            const finalRange = document.createRange();
+            finalRange.selectNodeContents(span);
+            newSel.removeAllRanges();
+            newSel.addRange(finalRange);
+            selectionRef.current = finalRange.cloneRange();
+
+            syncBlockToState(blockEl);
+            const newFormats = getActiveFormats();
+            setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+            return;
+        }
+
+        const span = document.createElement('span');
+        span.className = className;
+        span.appendChild(contents);
+        newRange.insertNode(span);
+        console.log('[applyTextColor] span inserted:', span.outerHTML);
+
+        // Update selection to include the new span
+        const finalRange = document.createRange();
+        finalRange.selectNodeContents(span);
+        newSel.removeAllRanges();
+        newSel.addRange(finalRange);
+        selectionRef.current = finalRange.cloneRange();
+
+        // Sync formatting changes to state for undo history
+        syncBlockToState(blockEl);
+
+        // Update active formats after applying text color
+        const newFormats = getActiveFormats();
+        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+        console.log('[applyTextColor] completed successfully');
+    }, [restoreSelection, getActiveFormats, syncBlockToState]);
+
+    /**
+     * Clears text color from the selection.
+     */
+    const clearTextColor = useCallback(() => {
+        if (!restoreSelection()) return;
+
+        // Get the affected block before clearing
+        const sel = window.getSelection();
+        const blockEl = sel.anchorNode?.nodeType === Node.TEXT_NODE
+            ? sel.anchorNode.parentElement?.closest('[data-block-id]')
+            : sel.anchorNode?.closest?.('[data-block-id]');
+
+        removeExistingTextColors();
+
+        // Sync clearing to state for undo history
+        syncBlockToState(blockEl);
+
+        // Update active formats after clearing
+        const newFormats = getActiveFormats();
+        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+    }, [restoreSelection, removeExistingTextColors, getActiveFormats, syncBlockToState]);
 
     /**
      * Applies a link to the selected text with the given URL.
@@ -758,8 +923,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      */
     useEffect(() => {
         const handleMouseDown = (e) => {
-            // Ignore clicks inside the formatting menu or popups
-            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup')) {
+            // Ignore clicks inside the formatting menu, popups, turn-into menu, or color picker
+            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup') || e.target.closest('.turn-into-menu') || e.target.closest('.color-picker')) {
                 return;
             }
 
@@ -771,8 +936,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         };
 
         const handleMouseUp = (e) => {
-            // Ignore mouse up inside the formatting menu or popups
-            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup')) {
+            // Ignore mouse up inside the formatting menu, popups, turn-into menu, or color picker
+            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup') || e.target.closest('.turn-into-menu') || e.target.closest('.color-picker')) {
                 return;
             }
 
@@ -802,7 +967,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      */
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (menu.isOpen && !e.target.closest('.formatting-menu') && !e.target.closest('.formatting-popup')) {
+            if (menu.isOpen && !e.target.closest('.formatting-menu') && !e.target.closest('.formatting-popup') && !e.target.closest('.turn-into-menu') && !e.target.closest('.color-picker')) {
                 closeMenu();
             }
         };
@@ -851,6 +1016,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         applyFormat,
         applyHighlight,
         clearHighlight,
+        applyTextColor,
+        clearTextColor,
         applyLinkToSelection,
         removeLink,
         changeBlockType,

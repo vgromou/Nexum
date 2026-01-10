@@ -1,0 +1,303 @@
+/* Color Picker - Popup for text and background colors */
+.color-picker {
+    position: fixed;
+    z-index: 1110;
+    display: flex;
+    width: fit-content;
+    height: fit-content;
+    padding: 12px;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-default, #E5E7EB);
+    background: var(--surface-elevated, #FFF);
+    box-shadow: 0 4px 16px 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
+    animation: colorPickerAppear 0.15s ease-out;
+}
+
+@keyframes colorPickerAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Section container */
+.color-picker-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+}
+
+/* Section header */
+.color-picker-header {
+    display: flex;
+    width: 100%;
+    padding: 4px 12px 4px 0;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-tertiary, #9CA3AF);
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+/* Color palette container */
+.color-picker-palette {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Row of color swatches */
+.color-picker-row {
+    display: flex;
+    gap: 6px !important;
+}
+
+/* Empty state text */
+.color-picker-empty {
+    font-size: 12px;
+    color: var(--text-tertiary, #9CA3AF);
+    font-style: italic;
+}
+
+/* Base swatch styles */
+.color-picker .color-picker-swatch {
+    display: flex;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px;
+    min-height: 36px;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px !important;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.color-picker-swatch:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.color-picker-swatch.active {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 2px var(--accent-primary, #5E6AD2);
+}
+
+/* Letter A in swatch */
+.color-picker-swatch .swatch-letter {
+    font-family: Inter, sans-serif;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 24px;
+}
+
+/* ============================================
+   TEXT COLOR SWATCHES
+   Border and text color use the highlight text color
+   Background is transparent
+   ============================================ */
+
+.color-picker .text-swatch {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    background: transparent;
+}
+
+.text-swatch.color-default {
+    border: 1px solid var(--color-highlight-default-text);
+}
+
+.text-swatch.color-default .swatch-letter {
+    color: var(--color-highlight-default-text);
+}
+
+.text-swatch.color-gray {
+    border: 1px solid var(--color-highlight-gray-text);
+}
+
+.text-swatch.color-gray .swatch-letter {
+    color: var(--color-highlight-gray-text);
+}
+
+.text-swatch.color-brown {
+    border: 1px solid var(--color-highlight-brown-text);
+}
+
+.text-swatch.color-brown .swatch-letter {
+    color: var(--color-highlight-brown-text);
+}
+
+.text-swatch.color-orange {
+    border: 1px solid var(--color-highlight-orange-text);
+}
+
+.text-swatch.color-orange .swatch-letter {
+    color: var(--color-highlight-orange-text);
+}
+
+.text-swatch.color-yellow {
+    border: 1px solid var(--color-highlight-yellow-text);
+}
+
+.text-swatch.color-yellow .swatch-letter {
+    color: var(--color-highlight-yellow-text);
+}
+
+.text-swatch.color-green {
+    border: 1px solid var(--color-highlight-green-text);
+}
+
+.text-swatch.color-green .swatch-letter {
+    color: var(--color-highlight-green-text);
+}
+
+.text-swatch.color-blue {
+    border: 1px solid var(--color-highlight-blue-text);
+}
+
+.text-swatch.color-blue .swatch-letter {
+    color: var(--color-highlight-blue-text);
+}
+
+.text-swatch.color-purple {
+    border: 1px solid var(--color-highlight-purple-text);
+}
+
+.text-swatch.color-purple .swatch-letter {
+    color: var(--color-highlight-purple-text);
+}
+
+.text-swatch.color-magenta {
+    border: 1px solid var(--color-highlight-magenta-text);
+}
+
+.text-swatch.color-magenta .swatch-letter {
+    color: var(--color-highlight-magenta-text);
+}
+
+.text-swatch.color-red {
+    border: 1px solid var(--color-highlight-red-text);
+}
+
+.text-swatch.color-red .swatch-letter {
+    color: var(--color-highlight-red-text);
+}
+
+/* ============================================
+   BACKGROUND COLOR SWATCHES
+   Background uses highlight bg color
+   Border uses highlight text color
+   Letter A uses highlight text color
+   ============================================ */
+
+.color-picker .bg-swatch {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+}
+
+.bg-swatch.color-default {
+    background: var(--color-highlight-default-bg);
+    border: 1px solid var(--color-highlight-default-text);
+}
+
+.bg-swatch.color-default .swatch-letter {
+    color: var(--color-highlight-default-text);
+}
+
+.bg-swatch.color-gray {
+    background: var(--color-highlight-gray-bg);
+    border: 1px solid var(--color-highlight-gray-text);
+}
+
+.bg-swatch.color-gray .swatch-letter {
+    color: var(--color-highlight-gray-text);
+}
+
+.bg-swatch.color-brown {
+    background: var(--color-highlight-brown-bg);
+    border: 1px solid var(--color-highlight-brown-text);
+}
+
+.bg-swatch.color-brown .swatch-letter {
+    color: var(--color-highlight-brown-text);
+}
+
+.bg-swatch.color-orange {
+    background: var(--color-highlight-orange-bg);
+    border: 1px solid var(--color-highlight-orange-text);
+}
+
+.bg-swatch.color-orange .swatch-letter {
+    color: var(--color-highlight-orange-text);
+}
+
+.bg-swatch.color-yellow {
+    background: var(--color-highlight-yellow-bg);
+    border: 1px solid var(--color-highlight-yellow-text);
+}
+
+.bg-swatch.color-yellow .swatch-letter {
+    color: var(--color-highlight-yellow-text);
+}
+
+.bg-swatch.color-green {
+    background: var(--color-highlight-green-bg);
+    border: 1px solid var(--color-highlight-green-text);
+}
+
+.bg-swatch.color-green .swatch-letter {
+    color: var(--color-highlight-green-text);
+}
+
+.bg-swatch.color-blue {
+    background: var(--color-highlight-blue-bg);
+    border: 1px solid var(--color-highlight-blue-text);
+}
+
+.bg-swatch.color-blue .swatch-letter {
+    color: var(--color-highlight-blue-text);
+}
+
+.bg-swatch.color-purple {
+    background: var(--color-highlight-purple-bg);
+    border: 1px solid var(--color-highlight-purple-text);
+}
+
+.bg-swatch.color-purple .swatch-letter {
+    color: var(--color-highlight-purple-text);
+}
+
+.bg-swatch.color-magenta {
+    background: var(--color-highlight-magenta-bg);
+    border: 1px solid var(--color-highlight-magenta-text);
+}
+
+.bg-swatch.color-magenta .swatch-letter {
+    color: var(--color-highlight-magenta-text);
+}
+
+.bg-swatch.color-red {
+    background: var(--color-highlight-red-bg);
+    border: 1px solid var(--color-highlight-red-text);
+}
+
+.bg-swatch.color-red .swatch-letter {
+    color: var(--color-highlight-red-text);
+}

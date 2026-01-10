@@ -157,6 +157,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
         applyFormat,
         applyHighlight,
         clearHighlight,
+        applyTextColor,
+        clearTextColor,
         applyLinkToSelection,
         removeLink,
         changeBlockType: changeBlockTypeFromMenu,
@@ -1478,6 +1480,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                     onFormat={applyFormat}
                     onHighlight={applyHighlight}
                     onClearHighlight={clearHighlight}
+                    onTextColor={applyTextColor}
+                    onClearTextColor={clearTextColor}
                     onOpenLinkPopover={() => {
                         const menuPos = getMenuPosition();
                         openLinkPopoverForSelection(menuPos);

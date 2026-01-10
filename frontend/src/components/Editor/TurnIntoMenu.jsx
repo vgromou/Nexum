@@ -9,22 +9,24 @@ import {
     ListOrdered,
     Quote
 } from 'lucide-react';
+import './TurnIntoMenu.css';
+
+// Menu items - same as slash menu for now
+const MENU_ITEMS = [
+    { type: 'paragraph', label: 'Normal Text', icon: Type, shortcut: null },
+    { type: 'h1', label: 'Heading 1', icon: Heading1, shortcut: '#' },
+    { type: 'h2', label: 'Heading 2', icon: Heading2, shortcut: '##' },
+    { type: 'h3', label: 'Heading 3', icon: Heading3, shortcut: '###' },
+    { type: 'h4', label: 'Heading 4', icon: Heading4, shortcut: '####' },
+    { type: 'bulleted-list', label: 'Bulleted List', icon: List, shortcut: '-' },
+    { type: 'numbered-list', label: 'Numbered List', icon: ListOrdered, shortcut: '1.' },
+    { type: 'quote', label: 'Quote', icon: Quote, shortcut: '"' },
+];
 
 // Delay before hiding scrollbar after scrolling stops
 const SCROLL_HIDE_DELAY_MS = 1000;
 
-const MENU_ITEMS = [
-    { type: 'paragraph', label: 'Normal Text', icon: Type, description: 'Plain text paragraph', shortcut: null },
-    { type: 'h1', label: 'Heading 1', icon: Heading1, description: 'Large section heading', shortcut: '#' },
-    { type: 'h2', label: 'Heading 2', icon: Heading2, description: 'Medium section heading', shortcut: '##' },
-    { type: 'h3', label: 'Heading 3', icon: Heading3, description: 'Small section heading', shortcut: '###' },
-    { type: 'h4', label: 'Heading 4', icon: Heading4, description: 'Smallest heading', shortcut: '####' },
-    { type: 'bulleted-list', label: 'Bulleted List', icon: List, description: 'Unordered list item', shortcut: '-' },
-    { type: 'numbered-list', label: 'Numbered List', icon: ListOrdered, description: 'Ordered list item', shortcut: '1.' },
-    { type: 'quote', label: 'Quote', icon: Quote, description: 'Block quote', shortcut: '"' },
-];
-
-const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClose }) => {
+const TurnIntoMenu = ({ position, currentBlockType, onSelect, onClose }) => {
     // Compute initial index based on currentBlockType
     const initialIndex = useMemo(() => {
         const index = MENU_ITEMS.findIndex(item => item.type === currentBlockType);
@@ -76,50 +78,27 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
         const bottomOverflow = (position.top + menuRect.height) - viewportHeight;
 
         if (bottomOverflow > 0) {
-            // Not enough space below - position to the right of the cursor
-            // Move menu above the cursor position (position.top is bottom of cursor line)
-            // We place menu so its bottom aligns near the cursor top
-            const cursorLineHeight = 26; // Approximate line height
-            newTop = position.top - cursorLineHeight - menuRect.height;
-
-            // Move to the right of cursor
-            newLeft = position.left + 8;
+            // Not enough space below - position above
+            newTop = position.top - menuRect.height - 8;
 
             // If still goes above viewport, position at top
             if (newTop < 8) {
                 newTop = 8;
             }
-
-            // If goes off right edge, position at right edge
-            if (newLeft + menuRect.width > viewportWidth - 8) {
-                newLeft = viewportWidth - menuRect.width - 8;
-            }
         }
 
-        // Check right edge overflow (for default position)
+        // Check right edge overflow
         if (newLeft + menuRect.width > viewportWidth - 8) {
             newLeft = viewportWidth - menuRect.width - 8;
         }
 
+        // Check left edge
+        if (newLeft < 8) {
+            newLeft = 8;
+        }
+
         setAdjustedPosition({ top: newTop, left: newLeft });
     }, [position]);
-
-    // Filter menu items based on search - memoized to avoid recalculation
-    const filteredItems = useMemo(() =>
-        MENU_ITEMS.filter(item =>
-            item.label.toLowerCase().includes(filter.toLowerCase()) ||
-            item.description.toLowerCase().includes(filter.toLowerCase())
-        ), [filter]
-    );
-
-    // Reset selection when filter changes
-    const prevFilterRef = useRef(filter);
-    useEffect(() => {
-        if (prevFilterRef.current !== filter) {
-            prevFilterRef.current = filter;
-            setSelectedIndex(initialIndex); // Reset to currentBlockType position when filter changes
-        }
-    }, [filter, initialIndex]);
 
     // Handle keyboard navigation
     useEffect(() => {
@@ -132,15 +111,15 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 setSelectedIndex(prev =>
-                    prev < filteredItems.length - 1 ? prev + 1 : prev
+                    prev < MENU_ITEMS.length - 1 ? prev + 1 : prev
                 );
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 setSelectedIndex(prev => prev > 0 ? prev - 1 : prev);
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                if (filteredItems[selectedIndex]) {
-                    onSelect(filteredItems[selectedIndex].type);
+                if (MENU_ITEMS[selectedIndex]) {
+                    onSelect(MENU_ITEMS[selectedIndex].type);
                 }
             } else if (e.key === 'Escape') {
                 onClose();
@@ -149,7 +128,7 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [filteredItems, selectedIndex, onSelect, onClose, isMouseHovering]);
+    }, [selectedIndex, onSelect, onClose, isMouseHovering]);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -165,8 +144,8 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
 
     // Scroll selected item into view
     useEffect(() => {
-        const selectedEl = menuRef.current?.querySelector('.slash-menu-item.highlighted');
-        if (selectedEl) {
+        const selectedEl = menuRef.current?.querySelector('.turn-into-menu-item.highlighted');
+        if (selectedEl && selectedEl.scrollIntoView) {
             selectedEl.scrollIntoView({ block: 'nearest' });
         }
     }, [selectedIndex]);
@@ -174,32 +153,21 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
     // Use adjusted position if available, otherwise fallback to original
     const displayPosition = adjustedPosition || position;
 
-    if (filteredItems.length === 0) {
-        return (
-            <div
-                className="slash-command-menu"
-                ref={menuRef}
-                style={{ top: displayPosition.top, left: displayPosition.left }}
-            >
-                <div className="slash-menu-empty">No results</div>
-            </div>
-        );
-    }
-
     return (
         <div
-            className={`slash-command-menu ${isScrolling ? 'scrolling' : ''}`}
+            className={`turn-into-menu ${isScrolling ? 'scrolling' : ''}`}
             ref={menuRef}
             style={{ top: displayPosition.top, left: displayPosition.left }}
+            onMouseDown={(e) => e.preventDefault()}
         >
-            <div className="slash-menu-scroll-wrapper" onScroll={handleScroll}>
-                <div className="slash-menu-header">
-                    <span className="slash-menu-header-line-left"></span>
+            <div className="turn-into-menu-scroll-wrapper" onScroll={handleScroll}>
+                <div className="turn-into-menu-header">
+                    <span className="turn-into-menu-header-line-left"></span>
                     <span>Basic blocks</span>
-                    <span className="slash-menu-header-line-right"></span>
+                    <span className="turn-into-menu-header-line-right"></span>
                 </div>
                 <div
-                    className="slash-menu-items"
+                    className="turn-into-menu-items"
                     onMouseEnter={() => setIsMouseHovering(true)}
                     onMouseLeave={() => {
                         setIsMouseHovering(false);
@@ -207,25 +175,25 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
                         setSelectedIndex(initialIndex);
                     }}
                 >
-                    {filteredItems.map((item, index) => {
+                    {MENU_ITEMS.map((item, index) => {
                         const Icon = item.icon;
                         const isCurrentType = item.type === currentBlockType;
                         const isHighlighted = index === selectedIndex;
                         return (
                             <div
                                 key={item.type}
-                                className={`slash-menu-item ${isCurrentType ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+                                className={`turn-into-menu-item ${isCurrentType ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                                 onClick={() => onSelect(item.type)}
                                 onMouseEnter={() => setSelectedIndex(initialIndex)}
                             >
-                                <div className="slash-menu-item-left">
-                                    <div className="slash-menu-item-icon">
+                                <div className="turn-into-menu-item-left">
+                                    <div className="turn-into-menu-item-icon">
                                         <Icon size={18} />
                                     </div>
-                                    <div className="slash-menu-item-label">{item.label}</div>
+                                    <div className="turn-into-menu-item-label">{item.label}</div>
                                 </div>
                                 {item.shortcut && (
-                                    <div className="slash-menu-item-shortcut">{item.shortcut}</div>
+                                    <div className="turn-into-menu-item-shortcut">{item.shortcut}</div>
                                 )}
                             </div>
                         );
@@ -236,4 +204,4 @@ const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClos
     );
 };
 
-export default SlashCommandMenu;
+export default TurnIntoMenu;

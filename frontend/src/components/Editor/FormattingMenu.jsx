@@ -4,6 +4,7 @@ import {
     Italic,
     Underline,
     Strikethrough,
+    Code,
     Link,
     Unlink,
     ChevronDown,
@@ -16,8 +17,9 @@ import {
     List,
     ListOrdered,
     Quote,
-    Check,
 } from 'lucide-react';
+import TurnIntoMenu from './TurnIntoMenu';
+import ColorPicker from './ColorPicker';
 import './FormattingMenu.css';
 
 const BLOCK_TYPE_ITEMS = [
@@ -32,11 +34,15 @@ const BLOCK_TYPE_ITEMS = [
 ];
 
 const HIGHLIGHT_COLORS = [
+    { name: 'default', label: 'Default' },
     { name: 'gray', label: 'Gray' },
-    { name: 'purple', label: 'Purple' },
-    { name: 'blue', label: 'Blue' },
-    { name: 'green', label: 'Green' },
+    { name: 'brown', label: 'Brown' },
     { name: 'orange', label: 'Orange' },
+    { name: 'yellow', label: 'Yellow' },
+    { name: 'green', label: 'Green' },
+    { name: 'blue', label: 'Blue' },
+    { name: 'purple', label: 'Purple' },
+    { name: 'magenta', label: 'Magenta' },
     { name: 'red', label: 'Red' },
 ];
 
@@ -62,6 +68,8 @@ const FormattingMenu = ({
     onFormat,
     onHighlight,
     onClearHighlight,
+    onTextColor,
+    onClearTextColor,
     onOpenLinkPopover,
     onRemoveLink,
     onChangeBlockType,
@@ -107,8 +115,8 @@ const FormattingMenu = ({
         const viewportHeight = window.innerHeight;
 
         // Popup dimensions (approximate)
-        const popupWidth = activeSubmenu === 'turnInto' ? 220 : 180;
-        const popupHeight = activeSubmenu === 'turnInto' ? 320 : 260;
+        const popupWidth = activeSubmenu === 'turnInto' ? 220 : 240;
+        const popupHeight = activeSubmenu === 'turnInto' ? 320 : 360;
 
         // Calculate position below the menu, centered on the button
         let left = buttonRect.left + buttonRect.width / 2 - popupWidth / 2;
@@ -149,17 +157,17 @@ const FormattingMenu = ({
         onFormat(command);
     };
 
-    const handleHighlightClick = (e, colorName, isTag) => {
+    const handleHighlightClick = (e, colorName) => {
         e.preventDefault();
         e.stopPropagation();
-        onHighlight(colorName, isTag);
+        onHighlight(colorName);
         onToggleSubmenu(null); // Close popup after selection
     };
 
-    const handleClearClick = (e, type) => {
+    const handleClearClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        onClearHighlight(type);
+        onClearHighlight();
         onToggleSubmenu(null); // Close popup after selection
     };
 
@@ -177,9 +185,9 @@ const FormattingMenu = ({
 
     const currentBlockLabel = getBlockTypeLabel(currentBlockType);
 
-    // Split colors into rows of 3
-    const colorsRow1 = HIGHLIGHT_COLORS.slice(0, 3); // gray, purple, blue
-    const colorsRow2 = HIGHLIGHT_COLORS.slice(3);    // green, orange, red
+    // Split colors into rows of 5
+    const colorsRow1 = HIGHLIGHT_COLORS.slice(0, 5); // default, gray, brown, orange, yellow
+    const colorsRow2 = HIGHLIGHT_COLORS.slice(5);    // green, blue, purple, magenta, red
 
     return (
         <>
@@ -197,9 +205,9 @@ const FormattingMenu = ({
                             onClick={(e) => handleSubmenuToggle(e, 'turnInto')}
                             title="Turn into"
                         >
-                            <Type size={16} />
+                            <Type size={18} />
                             <span className="block-type-label">{currentBlockLabel}</span>
-                            <ChevronDown size={12} />
+                            <ChevronDown size={12} className="chevron-icon" />
                         </button>
                     </div>
 
@@ -212,28 +220,35 @@ const FormattingMenu = ({
                             onClick={(e) => handleFormatClick(e, 'bold')}
                             title="Bold (⌘B)"
                         >
-                            <Bold size={16} />
+                            <Bold size={18} />
                         </button>
                         <button
                             className={`formatting-menu-button ${activeFormats.italic ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'italic')}
                             title="Italic (⌘I)"
                         >
-                            <Italic size={16} />
+                            <Italic size={18} />
                         </button>
                         <button
                             className={`formatting-menu-button ${activeFormats.underline ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'underline')}
                             title="Underline (⌘U)"
                         >
-                            <Underline size={16} />
+                            <Underline size={18} />
                         </button>
                         <button
                             className={`formatting-menu-button ${activeFormats.strikeThrough ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'strikeThrough')}
                             title="Strikethrough"
                         >
-                            <Strikethrough size={16} />
+                            <Strikethrough size={18} />
+                        </button>
+                        <button
+                            className={`formatting-menu-button ${activeFormats.inlineCode ? 'active' : ''}`}
+                            onClick={(e) => handleFormatClick(e, 'inlineCode')}
+                            title="Inline Code"
+                        >
+                            <Code size={18} />
                         </button>
                     </div>
 
@@ -246,7 +261,7 @@ const FormattingMenu = ({
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenLinkPopover(); }}
                             title="Insert link (⌘K)"
                         >
-                            <Link size={16} />
+                            <Link size={18} />
                         </button>
                         <button
                             className={`formatting-menu-button ${!activeFormats.link ? 'disabled' : ''}`}
@@ -254,7 +269,7 @@ const FormattingMenu = ({
                             title="Remove link"
                             disabled={!activeFormats.link}
                         >
-                            <Unlink size={16} />
+                            <Unlink size={18} />
                         </button>
                     </div>
 
@@ -264,118 +279,44 @@ const FormattingMenu = ({
                     <div className="formatting-menu-group">
                         <button
                             ref={highlightRef}
-                            className={`formatting-menu-button with-dropdown ${activeSubmenu === 'highlight' || activeFormats.highlightColor || activeFormats.tagColor ? 'active' : ''}`}
+                            className={`formatting-menu-button color-picker-button ${activeSubmenu === 'highlight' || activeFormats.highlightColor || activeFormats.textColor ? 'active' : ''}`}
                             onClick={(e) => handleSubmenuToggle(e, 'highlight')}
-                            title="Highlight"
+                            title="Color"
                         >
-                            <Highlighter size={16} />
+                            <Highlighter size={18} />
                             <ChevronDown size={12} />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Turn Into Popup (separate from menu) */}
+            {/* Turn Into Menu (separate component) */}
             {activeSubmenu === 'turnInto' && (
-                <div
-                    className="formatting-popup turn-into-popup"
-                    style={{ top: popupPosition.top, left: popupPosition.left }}
-                    onMouseDown={(e) => e.preventDefault()}
-                >
-                    <div className="popup-header">Turn into</div>
-                    <div className="popup-content">
-                        {BLOCK_TYPE_ITEMS.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = item.type === currentBlockType;
-                            return (
-                                <button
-                                    key={item.type}
-                                    className={`popup-item ${isActive ? 'active' : ''}`}
-                                    onClick={(e) => handleBlockTypeClick(e, item.type)}
-                                >
-                                    <Icon size={18} />
-                                    <span>{item.label}</span>
-                                    {isActive && <Check size={16} className="check-icon" />}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                <TurnIntoMenu
+                    position={popupPosition}
+                    currentBlockType={currentBlockType}
+                    onSelect={(type) => {
+                        onChangeBlockType(type);
+                        onToggleSubmenu(null);
+                    }}
+                    onClose={() => onToggleSubmenu(null)}
+                />
             )}
 
-            {/* Highlight Popup (separate from menu) */}
+            {/* Color Picker Popup (replaces inline highlight popup) */}
             {activeSubmenu === 'highlight' && (
-                <div
-                    className="formatting-popup highlight-popup"
-                    style={{ top: popupPosition.top, left: popupPosition.left }}
-                    onMouseDown={(e) => e.preventDefault()}
-                >
-                    {/* Clear All Button */}
-                    <button
-                        className="clear-formatting-button"
-                        onClick={(e) => handleClearClick(e, null)}
-                    >
-                        Clear
-                    </button>
-
-                    {/* Normal (Background) Section */}
-                    <div className="color-section">
-                        <div className="color-section-header">Normal</div>
-                        <div className="color-row">
-                            {colorsRow1.map((color) => (
-                                <button
-                                    key={`highlight-${color.name}`}
-                                    className={`color-swatch highlight-swatch highlight-swatch-${color.name} ${activeFormats.highlightColor === color.name ? 'active' : ''}`}
-                                    onClick={(e) => handleHighlightClick(e, color.name, false)}
-                                    title={color.label}
-                                >
-                                    <span className="swatch-letter">A</span>
-                                </button>
-                            ))}
-                        </div>
-                        <div className="color-row">
-                            {colorsRow2.map((color) => (
-                                <button
-                                    key={`highlight-${color.name}`}
-                                    className={`color-swatch highlight-swatch highlight-swatch-${color.name} ${activeFormats.highlightColor === color.name ? 'active' : ''}`}
-                                    onClick={(e) => handleHighlightClick(e, color.name, false)}
-                                    title={color.label}
-                                >
-                                    <span className="swatch-letter">A</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Tag Section */}
-                    <div className="color-section">
-                        <div className="color-section-header">Tag</div>
-                        <div className="color-row">
-                            {colorsRow1.map((color) => (
-                                <button
-                                    key={`tag-${color.name}`}
-                                    className={`color-swatch tag-swatch tag-swatch-${color.name} ${activeFormats.tagColor === color.name ? 'active' : ''}`}
-                                    onClick={(e) => handleHighlightClick(e, color.name, true)}
-                                    title={`${color.label} tag`}
-                                >
-                                    <span className="swatch-letter">A</span>
-                                </button>
-                            ))}
-                        </div>
-                        <div className="color-row">
-                            {colorsRow2.map((color) => (
-                                <button
-                                    key={`tag-${color.name}`}
-                                    className={`color-swatch tag-swatch tag-swatch-${color.name} ${activeFormats.tagColor === color.name ? 'active' : ''}`}
-                                    onClick={(e) => handleHighlightClick(e, color.name, true)}
-                                    title={`${color.label} tag`}
-                                >
-                                    <span className="swatch-letter">A</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <ColorPicker
+                    position={popupPosition}
+                    activeTextColor={activeFormats.textColor}
+                    activeBgColor={activeFormats.highlightColor}
+                    onTextColorChange={(color) => {
+                        onTextColor(color);
+                    }}
+                    onBgColorChange={(color) => {
+                        onHighlight(color);
+                    }}
+                    onClose={() => onToggleSubmenu(null)}
+                />
             )}
         </>
     );
