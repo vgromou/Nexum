@@ -272,6 +272,87 @@ describe('SlashCommandMenu', () => {
             const firstItem = screen.getByText('Normal Text').closest('.slash-menu-item');
             expect(firstItem).toHaveClass('highlighted');
         });
+
+        // Regression test: Bug fix - onMouseEnter was using initialIndex instead of current item index
+        it('highlights the actual hovered item, not the initial index (regression)', () => {
+            render(<SlashCommandMenu {...defaultProps} currentBlockType="paragraph" />);
+
+            // Hover over different items and verify each one gets highlighted
+            const quoteItem = screen.getByText('Quote').closest('.slash-menu-item');
+            const h2Item = screen.getByText('Heading 2').closest('.slash-menu-item');
+
+            // Hover over Quote (index 7) - should highlight Quote, not Normal Text (index 0)
+            fireEvent.mouseEnter(quoteItem);
+            expect(quoteItem).toHaveClass('highlighted');
+            expect(screen.getByText('Normal Text').closest('.slash-menu-item')).not.toHaveClass('highlighted');
+
+            // Hover over Heading 2 (index 2)
+            fireEvent.mouseEnter(h2Item);
+            expect(h2Item).toHaveClass('highlighted');
+            expect(quoteItem).not.toHaveClass('highlighted');
+        });
+    });
+
+    describe('Filter with currentBlockType out of bounds (regression)', () => {
+        // Regression test: Bug fix - initialIndex was computed from full MENU_ITEMS array
+        // but used as index into filteredItems, causing out-of-bounds access
+        it('handles currentBlockType not in filtered results gracefully', () => {
+            // currentBlockType is "quote" (index 7 in full list)
+            // but filter only shows headings (4 items, indices 0-3)
+            render(<SlashCommandMenu {...defaultProps} filter="Heading" currentBlockType="quote" />);
+
+            // Should default to first item (index 0) since quote is not in filtered results
+            const h1Item = screen.getByText('Heading 1').closest('.slash-menu-item');
+            expect(h1Item).toHaveClass('highlighted');
+
+            // Should be able to navigate normally
+            fireEvent.keyDown(document, { key: 'ArrowDown' });
+            const h2Item = screen.getByText('Heading 2').closest('.slash-menu-item');
+            expect(h2Item).toHaveClass('highlighted');
+        });
+
+        it('selects first filtered item on Enter when currentBlockType is not in filter', () => {
+            const onSelect = vi.fn();
+            render(
+                <SlashCommandMenu
+                    {...defaultProps}
+                    filter="Heading"
+                    currentBlockType="quote"
+                    onSelect={onSelect}
+                />
+            );
+
+            // Press Enter - should select Heading 1 (first filtered item), not undefined
+            fireEvent.keyDown(document, { key: 'Enter' });
+
+            expect(onSelect).toHaveBeenCalledWith('h1');
+        });
+
+        it('resets to safe index when mouse leaves and currentBlockType is not in filter', () => {
+            render(<SlashCommandMenu {...defaultProps} filter="Heading" currentBlockType="quote" />);
+
+            const menuItems = screen.getByText('Heading 1').closest('.slash-menu-items');
+
+            // Navigate with keyboard
+            fireEvent.keyDown(document, { key: 'ArrowDown' });
+            fireEvent.keyDown(document, { key: 'ArrowDown' });
+
+            // Mouse enter and leave
+            fireEvent.mouseEnter(menuItems);
+            fireEvent.mouseLeave(menuItems);
+
+            // Should reset to first item (safe fallback since quote not in filter)
+            const h1Item = screen.getByText('Heading 1').closest('.slash-menu-item');
+            expect(h1Item).toHaveClass('highlighted');
+        });
+
+        it('highlights currentBlockType when it is in filtered results', () => {
+            render(<SlashCommandMenu {...defaultProps} filter="Heading" currentBlockType="h2" />);
+
+            // h2 is in filtered results, so it should be highlighted
+            const h2Item = screen.getByText('Heading 2').closest('.slash-menu-item');
+            expect(h2Item).toHaveClass('highlighted');
+        });
     });
 
     describe('Positioning logic', () => {

@@ -281,4 +281,116 @@ describe('LinkPopover', () => {
             expect(popover.querySelector('.link-popover-button-group')).toBeTruthy();
         });
     });
+
+    describe('Figma design implementation (regression)', () => {
+        // Regression: formattingMenuHeight prop was removed
+        it('should not require formattingMenuHeight prop', () => {
+            // Component should render without formattingMenuHeight
+            expect(() => render(<LinkPopover {...defaultProps} />)).not.toThrow();
+        });
+
+        // Regression: All 3 buttons always visible (not conditionally rendered)
+        it('should always render all 3 buttons regardless of state', () => {
+            // Empty URL, not editing
+            const { rerender } = render(<LinkPopover {...defaultProps} currentUrl="" isEditing={false} />);
+            expect(document.querySelectorAll('.link-popover-button').length).toBe(3);
+
+            // With URL, not editing
+            rerender(<LinkPopover {...defaultProps} currentUrl="https://example.com" isEditing={false} />);
+            expect(document.querySelectorAll('.link-popover-button').length).toBe(3);
+
+            // With URL, editing
+            rerender(<LinkPopover {...defaultProps} currentUrl="https://example.com" isEditing={true} />);
+            expect(document.querySelectorAll('.link-popover-button').length).toBe(3);
+
+            // Empty URL, editing (edge case)
+            rerender(<LinkPopover {...defaultProps} currentUrl="" isEditing={true} />);
+            expect(document.querySelectorAll('.link-popover-button').length).toBe(3);
+        });
+
+        // Regression: hasUrl determines enabled state for apply and open buttons
+        it('should determine hasUrl from trimmed URL value', () => {
+            render(<LinkPopover {...defaultProps} />);
+            const input = document.querySelector('.link-popover-input');
+            
+            // Whitespace-only should not enable buttons
+            fireEvent.change(input, { target: { value: '   ' } });
+            expect(document.querySelector('.link-popover-apply')).not.toHaveClass('enabled');
+            expect(document.querySelector('.link-popover-open')).not.toHaveClass('enabled');
+
+            // Actual URL should enable buttons
+            fireEvent.change(input, { target: { value: '  https://test.com  ' } });
+            expect(document.querySelector('.link-popover-apply')).toHaveClass('enabled');
+            expect(document.querySelector('.link-popover-open')).toHaveClass('enabled');
+        });
+
+        // Regression: Button disabled attribute matches enabled class
+        it('should sync disabled attribute with enabled class', () => {
+            render(<LinkPopover {...defaultProps} currentUrl="" isEditing={false} />);
+            
+            const applyButton = document.querySelector('.link-popover-apply');
+            const unlinkButton = document.querySelector('.link-popover-unlink');
+            const openButton = document.querySelector('.link-popover-open');
+
+            // All disabled when no URL and not editing
+            expect(applyButton.disabled).toBe(true);
+            expect(applyButton).not.toHaveClass('enabled');
+            expect(unlinkButton.disabled).toBe(true);
+            expect(unlinkButton).not.toHaveClass('enabled');
+            expect(openButton.disabled).toBe(true);
+            expect(openButton).not.toHaveClass('enabled');
+        });
+
+        // Regression: disabled buttons should not call handlers
+        it('should not call onApply when apply button is disabled', () => {
+            const onApply = vi.fn();
+            render(<LinkPopover {...defaultProps} currentUrl="" onApply={onApply} />);
+            
+            const applyButton = document.querySelector('.link-popover-apply');
+            fireEvent.click(applyButton);
+            
+            expect(onApply).not.toHaveBeenCalled();
+        });
+
+        it('should not call onUnlink when unlink button is disabled', () => {
+            const onUnlink = vi.fn();
+            render(<LinkPopover {...defaultProps} isEditing={false} onUnlink={onUnlink} />);
+            
+            const unlinkButton = document.querySelector('.link-popover-unlink');
+            fireEvent.click(unlinkButton);
+            
+            expect(onUnlink).not.toHaveBeenCalled();
+        });
+
+        // Regression: Open button should work with URL
+        it('should open URL in new tab when open button is clicked', () => {
+            const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+            
+            render(<LinkPopover {...defaultProps} currentUrl="https://example.com" />);
+            
+            const openButton = document.querySelector('.link-popover-open');
+            fireEvent.click(openButton);
+            
+            expect(windowOpenSpy).toHaveBeenCalledWith(
+                'https://example.com',
+                '_blank',
+                'noopener,noreferrer'
+            );
+            
+            windowOpenSpy.mockRestore();
+        });
+
+        it('should not open URL when open button is disabled', () => {
+            const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+            
+            render(<LinkPopover {...defaultProps} currentUrl="" />);
+            
+            const openButton = document.querySelector('.link-popover-open');
+            fireEvent.click(openButton);
+            
+            expect(windowOpenSpy).not.toHaveBeenCalled();
+            
+            windowOpenSpy.mockRestore();
+        });
+    });
 });
