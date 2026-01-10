@@ -1,26 +1,26 @@
 /**
- * Icon color palette matching Notion's design system
+ * Icon color palette matching text highlight colors
+ * Order: default, gray, brown, orange, yellow, green, blue, purple, magenta, red
  */
 export const ICON_COLORS = {
-    black: '#37352F',
-    gray: '#9B9A97',
-    brown: '#64473A',
-    orange: '#D9730D',
-    yellow: '#DFAB01',
-    green: '#0F7B6C',
-    blue: '#0B6E99',
-    purple: '#6940A5',
-    pink: '#AD1A72',
-    red: '#E03E3E',
+    default: '#1F2937',
+    gray: '#6B7280',
+    brown: '#92400E',
+    orange: '#C2410C',
+    yellow: '#A16207',
+    green: '#166534',
+    blue: '#1E40AF',
+    purple: '#7C3AED',
+    magenta: '#DB2777',
+    red: '#DC2626',
 };
 
-export const COLOR_ORDER = [
-    ['black', 'gray', 'brown', 'yellow', 'orange'],
-    ['green', 'blue', 'purple', 'pink', 'red'],
-];
+export const DEFAULT_ICON_COLOR = 'default';
 
-export const DEFAULT_ICON_COLOR = 'black';
-
+/**
+ * Emoji categories with Lucide icon names
+ * Order matches Figma design
+ */
 export const EMOJI_CATEGORIES = [
     { id: 'recent', name: 'Recent', icon: 'Clock' },
     { id: 'people', name: 'People', icon: 'Smile' },
@@ -38,6 +38,6 @@ export const STORAGE_KEYS = {
     ICON_COLOR: 'emoji-picker-icon-color',
 };
 
-export const MAX_RECENT_EMOJIS = 32;
+export const MAX_RECENT_EMOJIS = 36;
 export const SEARCH_DEBOUNCE_MS = 150;
 export const FOCUS_DELAY_MS = 50;

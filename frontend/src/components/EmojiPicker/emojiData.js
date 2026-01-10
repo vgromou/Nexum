@@ -693,3 +693,8 @@ export const getAllEmojis = () => {
     }
     return all;
 };
+
+// Get emojis for a specific category
+export const getEmojisByCategory = (categoryId) => {
+    return EMOJI_DATA[categoryId] || [];
+};

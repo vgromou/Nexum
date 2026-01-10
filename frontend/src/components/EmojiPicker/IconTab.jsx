@@ -1,78 +1,101 @@
 import React, { useMemo } from 'react';
 import * as LucideIcons from 'lucide-react';
-import { ICON_LIST } from './iconList';
 import { ICON_COLORS } from './constants';
+import { ICON_LIST } from './iconList';
 import { toPascalCase } from './utils';
-import './EmojiPicker.css';
 
 /**
- * IconTab - Icon grid with search and color
+ * IconTab - Displays icon grid with color picker at bottom
+ * 
+ * Features:
+ * - Searchable icon grid (Lucide icons)
+ * - Color picker bar at bottom with 10 color swatches
+ * - Selected color persisted to localStorage
  */
 const IconTab = ({
     searchQuery,
     onSelect,
     currentIcon,
-    iconColor
+    iconColor,
+    onColorChange
 }) => {
     // Filter icons based on search query
     const filteredIcons = useMemo(() => {
-        if (!searchQuery.trim()) {
-            return ICON_LIST;
-        }
+        if (!searchQuery) return ICON_LIST;
 
-        const query = searchQuery.toLowerCase().trim();
-        return ICON_LIST.filter(item =>
-            item.name.toLowerCase().includes(query) ||
-            item.keywords.some(k => k.toLowerCase().includes(query))
+        const query = searchQuery.toLowerCase();
+        return ICON_LIST.filter(icon =>
+            icon.name.toLowerCase().includes(query) ||
+            icon.keywords?.some(kw => kw.toLowerCase().includes(query))
         );
     }, [searchQuery]);
 
+    // Get actual color value
+    const colorValue = ICON_COLORS[iconColor] || ICON_COLORS.default;
+
+    // Handle icon selection
     const handleSelect = (iconName) => {
         onSelect({
             type: 'icon',
             value: iconName,
-            color: ICON_COLORS[iconColor] || ICON_COLORS.orange,
+            color: colorValue
         });
     };
 
-    const colorValue = ICON_COLORS[iconColor] || ICON_COLORS.orange;
-
-    if (filteredIcons.length === 0) {
-        return (
-            <div className="emoji-grid-empty">
-                <span>No icons found</span>
-            </div>
-        );
-    }
+    // Color names for iteration
+    const colorNames = Object.keys(ICON_COLORS);
 
     return (
-        <div className="emoji-grid-container">
-            <div className="emoji-category-section">
-                <div className="emoji-category-header">Icons</div>
-                <div className="emoji-grid icon-grid">
-                    {filteredIcons.map((item) => {
-                        const IconComponent = LucideIcons[toPascalCase(item.name)];
-                        const isSelected = currentIcon === item.name;
+        <div className="icon-tab-container">
+            <div className="emoji-grid-container">
+                <div className="emoji-category-section">
+                    <div className="emoji-category-header">Icons</div>
+                    <div className="emoji-grid icon-grid">
+                        {filteredIcons.length > 0 ? (
+                            filteredIcons.map((item) => {
+                                const IconComponent = LucideIcons[toPascalCase(item.name)];
+                                const isSelected = currentIcon === item.name;
 
-                        if (!IconComponent) return null;
+                                if (!IconComponent) return null;
 
-                        return (
-                            <button
-                                key={item.name}
-                                className={`emoji-grid-item icon-item ${isSelected ? 'selected' : ''}`}
-                                onClick={() => handleSelect(item.name)}
-                                title={item.name.replace(/-/g, ' ')}
-                            >
-                                <IconComponent size={20} color={colorValue} strokeWidth={2} />
-                            </button>
-                        );
-                    })}
+                                return (
+                                    <button
+                                        key={item.name}
+                                        className={`emoji-grid-item icon-item ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => handleSelect(item.name)}
+                                        title={item.name.replace(/-/g, ' ')}
+                                    >
+                                        <IconComponent size={20} color={colorValue} strokeWidth={2} />
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="emoji-grid-empty">
+                                <span>No icons found</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
+            </div>
+
+            {/* Color picker bar at bottom */}
+            <div className="icon-color-bar">
+                {colorNames.map((colorName) => (
+                    <button
+                        key={colorName}
+                        className={`icon-color-swatch ${iconColor === colorName ? 'active' : ''}`}
+                        onClick={() => onColorChange(colorName)}
+                        title={colorName.charAt(0).toUpperCase() + colorName.slice(1)}
+                    >
+                        <span 
+                            className="swatch-color"
+                            style={{ backgroundColor: ICON_COLORS[colorName] }}
+                        />
+                    </button>
+                ))}
             </div>
         </div>
     );
 };
-
-IconTab.displayName = 'IconTab';
 
 export default IconTab;

@@ -106,17 +106,17 @@ describe('EmojiPicker', () => {
             expect(screen.getByRole('button', { name: 'Emoji' })).toHaveClass('active');
         });
 
-        it('should show color button only in Icons tab', () => {
-            render(<EmojiPicker {...defaultProps} />);
+        it('should show color bar in Icons tab', () => {
+            const { container } = render(<EmojiPicker {...defaultProps} />);
 
             // Not visible in Emoji tab
-            expect(screen.queryByTitle('Change color')).not.toBeInTheDocument();
+            expect(container.querySelector('.icon-color-bar')).not.toBeInTheDocument();
 
             // Switch to Icons tab
             fireEvent.click(screen.getByRole('button', { name: 'Icons' }));
 
             // Now visible
-            expect(screen.getByTitle('Change color')).toBeInTheDocument();
+            expect(container.querySelector('.icon-color-bar')).toBeInTheDocument();
         });
     });
 
@@ -268,35 +268,41 @@ describe('EmojiPicker', () => {
         });
     });
 
-    describe('Color picker', () => {
-        it('should toggle color picker when color button clicked', () => {
-            render(<EmojiPicker {...defaultProps} />);
+    describe('Color picker bar in Icons tab', () => {
+        it('should render color swatches in Icons tab', () => {
+            const { container } = render(<EmojiPicker {...defaultProps} />);
 
             // Switch to Icons tab
             fireEvent.click(screen.getByRole('button', { name: 'Icons' }));
 
-            // Click color button
-            fireEvent.click(screen.getByTitle('Change color'));
-
-            // Color picker should be visible
-            expect(document.querySelector('.color-picker-dropdown')).toBeInTheDocument();
+            // Color bar should be visible with swatches
+            const colorSwatches = container.querySelectorAll('.icon-color-swatch');
+            expect(colorSwatches.length).toBe(10); // 10 colors
         });
 
-        it('should close color picker when Escape is pressed', () => {
-            render(<EmojiPicker {...defaultProps} />);
+        it('should have active state on current color swatch', () => {
+            const { container } = render(<EmojiPicker {...defaultProps} />);
 
-            // Switch to Icons tab and open color picker
+            // Switch to Icons tab
             fireEvent.click(screen.getByRole('button', { name: 'Icons' }));
-            fireEvent.click(screen.getByTitle('Change color'));
 
-            expect(document.querySelector('.color-picker-dropdown')).toBeInTheDocument();
+            // Default color is black, so it should be active
+            const activeSwatches = container.querySelectorAll('.icon-color-swatch.active');
+            expect(activeSwatches.length).toBe(1);
+        });
 
-            // Press Escape
-            fireEvent.keyDown(document, { key: 'Escape' });
+        it('should change icon color when swatch is clicked', () => {
+            const { container } = render(<EmojiPicker {...defaultProps} />);
 
-            // Color picker should close, but main picker stays open
-            expect(document.querySelector('.color-picker-dropdown')).not.toBeInTheDocument();
-            expect(document.querySelector('.emoji-picker')).toBeInTheDocument();
+            // Switch to Icons tab
+            fireEvent.click(screen.getByRole('button', { name: 'Icons' }));
+
+            // Click on a color swatch (e.g., orange)
+            const orangeSwatch = screen.getByTitle('Orange');
+            fireEvent.click(orangeSwatch);
+
+            // Now orange should be active
+            expect(orangeSwatch).toHaveClass('active');
         });
     });
 
@@ -340,18 +346,20 @@ describe('EmojiPicker', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'Icons' }));
 
-            expect(document.querySelector('.emoji-category-tabs')).not.toBeInTheDocument();
+            // Emoji category tabs should not be in Icons tab
+            // but icon color bar should be there instead
+            expect(document.querySelector('.icon-color-bar')).toBeInTheDocument();
         });
 
-        it('should hide category tabs when searching', async () => {
+        it('should keep category tabs visible when searching', async () => {
             render(<EmojiPicker {...defaultProps} />);
             const searchInput = screen.getByPlaceholderText('Filter...');
 
             fireEvent.change(searchInput, { target: { value: 'smile' } });
 
-            // Wait for debounce
+            // Category tabs should still be visible
             await waitFor(() => {
-                expect(document.querySelector('.emoji-category-tabs')).not.toBeInTheDocument();
+                expect(document.querySelector('.emoji-category-tabs')).toBeInTheDocument();
             }, { timeout: 200 });
         });
     });

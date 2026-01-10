@@ -5,4 +5,4 @@ export { default as EmojiTab } from './EmojiTab';
 export { default as IconTab } from './IconTab';
 export * from './constants';
 export * from './utils';
-export { getAllEmojis } from './emojiData';
+export { getAllEmojis, getEmojisByCategory } from './emojiData';
