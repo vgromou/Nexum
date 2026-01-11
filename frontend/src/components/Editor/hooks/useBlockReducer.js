@@ -1,4 +1,26 @@
 import { useReducer, useCallback } from 'react';
+import {
+    createTextNode,
+    createBlock,
+    normalizeChildren,
+    getPlainText,
+    cloneBlock,
+} from '../utils/ast.js';
+import {
+    applyMarkToRange,
+    removeMarkFromRange,
+    toggleMarkOnRange,
+    insertTextAtOffset,
+    deleteTextInRange,
+    splitChildrenAtOffset,
+    mergeChildren,
+    wrapRangeInLink,
+    removeLinkAtOffset,
+} from '../utils/astOperations.js';
+import {
+    htmlToAST,
+    astToHTML,
+} from '../utils/astConverters.js';
 
 /**
  * Generates a unique block ID using crypto.randomUUID().
@@ -17,17 +39,26 @@ const MAX_HISTORY_LENGTH = 100;
 const HISTORY_DEBOUNCE_MS = 500;
 const MIN_HISTORY_INTERVAL_MS = 100;
 
-// Helper to extract text from HTML for word boundary detection
-function extractTextFromHtml(html) {
-    if (!html) return '';
-    // Simple text extraction - works in both browser and test environments
-    if (typeof document !== 'undefined') {
-        const div = document.createElement('div');
-        div.innerHTML = html;
-        return div.textContent || '';
-    }
-    // Fallback: strip HTML tags
-    return html.replace(/<[^>]*>/g, '');
+// Indent level constraints (exported for use in other components)
+export const MIN_INDENT_LEVEL = 0;
+export const MAX_INDENT_LEVEL = 10;
+
+// Helper to extract text from block content (AST format)
+function extractTextFromBlock(block) {
+    if (!block) return '';
+    return getPlainText(block.children || []);
+}
+
+/**
+ * Create a new empty block with AST structure
+ */
+function createEmptyBlock(type = 'paragraph', id = generateBlockId()) {
+    return {
+        id,
+        type,
+        children: [createTextNode('')],
+        metadata: {},
+    };
 }
 
 // Actions that always create a new snapshot
@@ -38,10 +69,10 @@ const STRUCTURAL_ACTIONS = [
     'SPLIT_BLOCK', 'MERGE_BLOCKS', 'DELETE_SELECTED_BLOCKS'
 ];
 
-// Initial editor state with one empty paragraph
+// Initial editor state with one empty paragraph (AST format)
 const initialState = {
     blocks: [
-        { id: generateBlockId(), type: 'paragraph', content: '' }
+        createEmptyBlock('paragraph', generateBlockId())
     ],
     selectedBlockIds: [],
     textSelectionBlockIds: [], // Blocks that have text selected across them
@@ -88,6 +119,14 @@ export const ACTIONS = {
     SET_LAST_CURSOR: 'SET_LAST_CURSOR',
     CLEAR_PENDING_CURSOR: 'CLEAR_PENDING_CURSOR',
     SAVE_SNAPSHOT: 'SAVE_SNAPSHOT',
+
+    // AST-specific actions
+    UPDATE_BLOCK_CHILDREN: 'UPDATE_BLOCK_CHILDREN',
+    APPLY_MARK_TO_SELECTION: 'APPLY_MARK_TO_SELECTION',
+    REMOVE_MARK_FROM_SELECTION: 'REMOVE_MARK_FROM_SELECTION',
+    TOGGLE_MARK_ON_SELECTION: 'TOGGLE_MARK_ON_SELECTION',
+    INSERT_LINK: 'INSERT_LINK',
+    REMOVE_LINK: 'REMOVE_LINK',
 };
 
 /**
@@ -102,8 +141,8 @@ function shouldCreateNewSnapshot(lastSnapshot, state, action) {
         return true;
     }
 
-    // For UPDATE_BLOCK and SET_BLOCKS - apply debounce logic
-    if (action.type === 'UPDATE_BLOCK' || action.type === 'SET_BLOCKS') {
+    // For UPDATE_BLOCK, UPDATE_BLOCK_CHILDREN, and SET_BLOCKS - apply debounce logic
+    if (action.type === 'UPDATE_BLOCK' || action.type === 'UPDATE_BLOCK_CHILDREN' || action.type === 'SET_BLOCKS') {
         const timeDiff = Date.now() - lastSnapshot.timestamp;
 
         // Minimum interval protection
@@ -111,8 +150,8 @@ function shouldCreateNewSnapshot(lastSnapshot, state, action) {
             return false;
         }
 
-        // For UPDATE_BLOCK, check if same block and word boundaries
-        if (action.type === 'UPDATE_BLOCK') {
+        // For UPDATE_BLOCK or UPDATE_BLOCK_CHILDREN, check if same block and word boundaries
+        if (action.type === 'UPDATE_BLOCK' || action.type === 'UPDATE_BLOCK_CHILDREN') {
             const sameBlock = lastSnapshot.cursor?.blockId === action.payload.blockId;
 
             // New snapshot if different block
@@ -123,12 +162,24 @@ function shouldCreateNewSnapshot(lastSnapshot, state, action) {
 
             // Check for word boundary - create snapshot when a word ends
             // This makes undo work on a per-word basis
-            const content = action.payload.content || '';
-            const textContent = extractTextFromHtml(content);
+            let textContent;
+            if (action.type === 'UPDATE_BLOCK_CHILDREN') {
+                textContent = getPlainText(action.payload.children || []);
+            } else {
+                textContent = action.payload.content || '';
+                // If content is HTML string, extract text
+                if (typeof textContent === 'string' && textContent.includes('<')) {
+                    if (typeof document !== 'undefined') {
+                        const div = document.createElement('div');
+                        div.innerHTML = textContent;
+                        textContent = div.textContent || '';
+                    }
+                }
+            }
 
             // Get previous content to compare
             const prevBlock = state.blocks.find(b => b.id === action.payload.blockId);
-            const prevTextContent = prevBlock ? extractTextFromHtml(prevBlock.content || '') : '';
+            const prevTextContent = prevBlock ? extractTextFromBlock(prevBlock) : '';
 
             // If new content ends with word boundary and previous didn't, create snapshot
             const wordBoundaryChars = [' ', '.', ',', '!', '?', ';', ':', '\n'];
@@ -198,11 +249,24 @@ function withHistory(state, action) {
 function blockReducer(state, action) {
     switch (action.type) {
         case ACTIONS.ADD_BLOCK: {
-            const { afterBlockId, blockType = 'paragraph', content = '', focusNew = true } = action.payload;
+            const { afterBlockId, blockType = 'paragraph', content = '', children = null, focusNew = true } = action.payload;
+
+            // Support both legacy (content) and AST (children) formats
+            let blockChildren;
+            if (children && Array.isArray(children)) {
+                blockChildren = normalizeChildren(children);
+            } else if (content) {
+                // Convert HTML content to AST if provided
+                blockChildren = typeof content === 'string' ? htmlToAST(content) : [createTextNode('')];
+            } else {
+                blockChildren = [createTextNode('')];
+            }
+
             const newBlock = {
                 id: generateBlockId(),
                 type: blockType,
-                content,
+                children: blockChildren,
+                metadata: {},
             };
 
             let newBlocks;
@@ -234,7 +298,7 @@ function blockReducer(state, action) {
             if (state.blocks.length <= 1) {
                 return {
                     ...state,
-                    blocks: [{ id: state.blocks[0].id, type: 'paragraph', content: '' }],
+                    blocks: [createEmptyBlock('paragraph', state.blocks[0].id)],
                 };
             }
 
@@ -255,10 +319,24 @@ function blockReducer(state, action) {
 
         case ACTIONS.UPDATE_BLOCK: {
             const { blockId, content } = action.payload;
+            // Legacy support: convert HTML content to AST
+            const children = typeof content === 'string' ? htmlToAST(content) : [createTextNode('')];
             return {
                 ...state,
                 blocks: state.blocks.map(b =>
-                    b.id === blockId ? { ...b, content } : b
+                    b.id === blockId ? { ...b, children } : b
+                ),
+            };
+        }
+
+        case ACTIONS.UPDATE_BLOCK_CHILDREN: {
+            const { blockId, children } = action.payload;
+            return {
+                ...state,
+                blocks: state.blocks.map(b =>
+                    b.id === blockId
+                        ? { ...b, children: normalizeChildren(children) }
+                        : b
                 ),
             };
         }
@@ -359,24 +437,37 @@ function blockReducer(state, action) {
         }
 
         case ACTIONS.SPLIT_BLOCK: {
-            const { blockId, cursorPosition, content } = action.payload;
+            const { blockId, cursorPosition, content, children: providedChildren } = action.payload;
             const index = state.blocks.findIndex(b => b.id === blockId);
             const block = state.blocks[index];
 
             if (!block) return state;
 
-            const contentBefore = content.substring(0, cursorPosition);
-            const contentAfter = content.substring(cursorPosition);
+            // Use provided children or convert content to AST
+            let blockChildren;
+            if (providedChildren && Array.isArray(providedChildren)) {
+                blockChildren = providedChildren;
+            } else if (block.children) {
+                blockChildren = block.children;
+            } else if (content) {
+                blockChildren = htmlToAST(content);
+            } else {
+                blockChildren = [createTextNode('')];
+            }
+
+            // Split children at cursor position
+            const [beforeChildren, afterChildren] = splitChildrenAtOffset(blockChildren, cursorPosition);
 
             const newBlock = {
                 id: generateBlockId(),
                 type: block.type === 'quote' ? 'paragraph' : block.type,
-                content: contentAfter,
+                children: afterChildren,
+                metadata: {},
             };
 
             const newBlocks = [
                 ...state.blocks.slice(0, index),
-                { ...block, content: contentBefore },
+                { ...block, children: beforeChildren },
                 newBlock,
                 ...state.blocks.slice(index + 1)
             ];
@@ -398,11 +489,15 @@ function blockReducer(state, action) {
             const prevBlock = state.blocks[index - 1];
             const currentBlock = state.blocks[index];
 
-            const mergedContent = prevBlock.content + currentBlock.content;
+            // Merge children arrays
+            const mergedChildren = mergeChildren(
+                prevBlock.children || [createTextNode('')],
+                currentBlock.children || [createTextNode('')]
+            );
 
             const newBlocks = [
                 ...state.blocks.slice(0, index - 1),
-                { ...prevBlock, content: mergedContent },
+                { ...prevBlock, children: mergedChildren },
                 ...state.blocks.slice(index + 1)
             ];
 
@@ -421,7 +516,7 @@ function blockReducer(state, action) {
 
             // Ensure at least one block remains
             if (newBlocks.length === 0) {
-                newBlocks = [{ id: generateBlockId(), type: 'paragraph', content: '' }];
+                newBlocks = [createEmptyBlock()];
             }
 
             return {
@@ -496,14 +591,20 @@ function blockReducer(state, action) {
             const { afterBlockId, blocksToInsert, focusFirst = true } = action.payload;
             if (!blocksToInsert || blocksToInsert.length === 0) return state;
 
-            // Generate new IDs for inserted blocks, preserving all properties
-            const newBlocks = blocksToInsert.map(b => ({
-                ...b,
-                id: generateBlockId(),
-                type: b.type || 'paragraph',
-                content: b.content || '',
-                indentLevel: b.indentLevel ?? 0,
-            }));
+            // Generate new IDs for inserted blocks, converting to AST format
+            const newBlocks = blocksToInsert.map(b => {
+                const block = b;
+                return {
+                    ...block,
+                    id: generateBlockId(),
+                    type: block.type || 'paragraph',
+                    children: block.children || [createTextNode('')],
+                    metadata: {
+                        indentLevel: b.indentLevel ?? block.metadata?.indentLevel ?? 0,
+                        ...block.metadata,
+                    },
+                };
+            });
 
             let insertIndex;
             if (afterBlockId) {
@@ -546,33 +647,30 @@ function blockReducer(state, action) {
             const startBlock = state.blocks[minIndex];
             const endBlock = state.blocks[maxIndex];
 
-            // Extract text content from HTML
-            const extractText = (html) => {
-                const div = document.createElement('div');
-                div.innerHTML = html;
-                return div.textContent || '';
-            };
+            // Get children before selection start in first block
+            const [beforeChildren] = splitChildrenAtOffset(
+                startBlock.children || [createTextNode('')],
+                startOffset
+            );
 
-            const startText = extractText(startBlock.content);
-            const endText = extractText(endBlock.content);
+            // Get children after selection end in last block
+            const [, afterChildren] = splitChildrenAtOffset(
+                endBlock.children || [createTextNode('')],
+                endOffset
+            );
 
-            // Keep content before selection in first block
-            const beforeContent = startText.substring(0, startOffset);
-            // Keep content after selection in last block
-            const afterContent = endText.substring(endOffset);
-
-            // Merge into single block
-            const mergedContent = beforeContent + afterContent;
+            // Merge into single block's children
+            const mergedChildren = mergeChildren(beforeChildren, afterChildren);
 
             const newBlocks = [
                 ...state.blocks.slice(0, minIndex),
-                { ...startBlock, content: mergedContent },
+                { ...startBlock, children: mergedChildren },
                 ...state.blocks.slice(maxIndex + 1)
             ];
 
             // Ensure at least one block remains
             const finalBlocks = newBlocks.length === 0
-                ? [{ id: generateBlockId(), type: 'paragraph', content: '' }]
+                ? [createEmptyBlock()]
                 : newBlocks;
 
             return {
@@ -587,11 +685,16 @@ function blockReducer(state, action) {
         case ACTIONS.SET_INDENT_LEVEL: {
             const { blockId, indentLevel } = action.payload;
             // Clamp to valid range 0-10 for deep nesting
-            const clampedLevel = Math.max(0, Math.min(10, indentLevel));
+            const clampedLevel = Math.max(MIN_INDENT_LEVEL, Math.min(MAX_INDENT_LEVEL, indentLevel));
             return {
                 ...state,
                 blocks: state.blocks.map(b =>
-                    b.id === blockId ? { ...b, indentLevel: clampedLevel } : b
+                    b.id === blockId
+                        ? {
+                              ...b,
+                              metadata: { ...b.metadata, indentLevel: clampedLevel },
+                          }
+                        : b
                 ),
             };
         }
@@ -610,18 +713,13 @@ function blockReducer(state, action) {
 
             const block = state.blocks[blockIndex];
 
-            // Extract text content
-            const extractText = (html) => {
-                const div = document.createElement('div');
-                div.innerHTML = html;
-                return div.textContent || '';
-            };
+            // Split block children at cursor position
+            const [beforeChildren, afterChildren] = splitChildrenAtOffset(
+                block.children || [createTextNode('')],
+                cursorOffset
+            );
 
-            const blockText = extractText(block.content);
-            const beforeCursor = blockText.substring(0, cursorOffset);
-            const afterCursor = blockText.substring(cursorOffset);
-
-            // Process inserted blocks
+            // Process inserted blocks - generate new IDs
             const insertedBlocks = blocksToInsert.map(b => ({
                 ...b,
                 id: generateBlockId(),
@@ -632,12 +730,18 @@ function blockReducer(state, action) {
 
             // If first block is partial, merge with content before cursor
             if (firstInserted.isPartial?.start) {
-                firstInserted.content = beforeCursor + firstInserted.content;
+                firstInserted.children = mergeChildren(
+                    beforeChildren,
+                    firstInserted.children || [createTextNode('')]
+                );
             }
 
             // If last block is partial, merge with content after cursor
             if (lastInserted.isPartial?.end) {
-                lastInserted.content = lastInserted.content + afterCursor;
+                lastInserted.children = mergeChildren(
+                    lastInserted.children || [createTextNode('')],
+                    afterChildren
+                );
             }
 
             let newBlocks;
@@ -653,14 +757,14 @@ function blockReducer(state, action) {
                 newBlocks = [
                     ...state.blocks.slice(0, blockIndex),
                     ...insertedBlocks,
-                    { ...block, content: afterCursor },
+                    { ...block, children: afterChildren },
                     ...state.blocks.slice(blockIndex + 1)
                 ];
             } else if (lastInserted.isPartial?.end) {
                 // Only last partial - keep content before cursor in original block
                 newBlocks = [
                     ...state.blocks.slice(0, blockIndex),
-                    { ...block, content: beforeCursor },
+                    { ...block, children: beforeChildren },
                     ...insertedBlocks,
                     ...state.blocks.slice(blockIndex + 1)
                 ];
@@ -668,17 +772,20 @@ function blockReducer(state, action) {
                 // No partials - split block and insert between
                 newBlocks = [
                     ...state.blocks.slice(0, blockIndex),
-                    { ...block, content: beforeCursor },
+                    { ...block, children: beforeChildren },
                     ...insertedBlocks,
-                    { id: generateBlockId(), type: block.type, content: afterCursor },
+                    { id: generateBlockId(), type: block.type, children: afterChildren, metadata: {} },
                     ...state.blocks.slice(blockIndex + 1)
                 ];
             }
 
             // Filter out empty blocks (except ensure at least one remains)
-            const filteredBlocks = newBlocks.filter(b => b.content.trim() !== '' || b.id === firstInserted.id);
+            const filteredBlocks = newBlocks.filter(b => {
+                const text = getPlainText(b.children || []);
+                return text.trim() !== '' || b.id === firstInserted.id;
+            });
             const finalBlocks = filteredBlocks.length === 0
-                ? [{ id: generateBlockId(), type: 'paragraph', content: '' }]
+                ? [createEmptyBlock()]
                 : filteredBlocks;
 
             return {
@@ -686,6 +793,110 @@ function blockReducer(state, action) {
                 blocks: finalBlocks,
                 focusedBlockId: lastInserted.id,
                 focusVersion: state.focusVersion + 1,
+            };
+        }
+
+        // AST-specific actions for formatting
+        case ACTIONS.APPLY_MARK_TO_SELECTION: {
+            const { blockId, startOffset, endOffset, mark } = action.payload;
+            const block = state.blocks.find(b => b.id === blockId);
+            if (!block) return state;
+
+            const astBlock = block;
+            const newChildren = applyMarkToRange(
+                astBlock.children || [createTextNode('')],
+                startOffset,
+                endOffset,
+                mark
+            );
+
+            return {
+                ...state,
+                blocks: state.blocks.map(b =>
+                    b.id === blockId ? { ...astBlock, children: newChildren } : b
+                ),
+            };
+        }
+
+        case ACTIONS.REMOVE_MARK_FROM_SELECTION: {
+            const { blockId, startOffset, endOffset, markType } = action.payload;
+            const block = state.blocks.find(b => b.id === blockId);
+            if (!block) return state;
+
+            const astBlock = block;
+            const newChildren = removeMarkFromRange(
+                astBlock.children || [createTextNode('')],
+                startOffset,
+                endOffset,
+                markType
+            );
+
+            return {
+                ...state,
+                blocks: state.blocks.map(b =>
+                    b.id === blockId ? { ...astBlock, children: newChildren } : b
+                ),
+            };
+        }
+
+        case ACTIONS.TOGGLE_MARK_ON_SELECTION: {
+            const { blockId, startOffset, endOffset, mark } = action.payload;
+            const block = state.blocks.find(b => b.id === blockId);
+            if (!block) return state;
+
+            const astBlock = block;
+            const newChildren = toggleMarkOnRange(
+                astBlock.children || [createTextNode('')],
+                startOffset,
+                endOffset,
+                mark
+            );
+
+            return {
+                ...state,
+                blocks: state.blocks.map(b =>
+                    b.id === blockId ? { ...astBlock, children: newChildren } : b
+                ),
+            };
+        }
+
+        case ACTIONS.INSERT_LINK: {
+            const { blockId, startOffset, endOffset, url } = action.payload;
+            const block = state.blocks.find(b => b.id === blockId);
+            if (!block) return state;
+
+            const astBlock = block;
+            const newChildren = wrapRangeInLink(
+                astBlock.children || [createTextNode('')],
+                startOffset,
+                endOffset,
+                url
+            );
+
+            return {
+                ...state,
+                blocks: state.blocks.map(b =>
+                    b.id === blockId ? { ...astBlock, children: newChildren } : b
+                ),
+            };
+        }
+
+        case ACTIONS.REMOVE_LINK: {
+            const { blockId, offset } = action.payload;
+            const block = state.blocks.find(b => b.id === blockId);
+            if (!block) return state;
+
+            const astBlock = block;
+            const newChildren = removeLinkAtOffset(
+                astBlock.children || [createTextNode('')],
+                offset
+            );
+
+            return {
+                ...state,
+                blocks: state.blocks.map(b =>
+                    b.id === blockId ? { ...astBlock, children: newChildren } : b
+                ),
             };
         }
 
@@ -1018,6 +1229,43 @@ export function useBlockReducer(initialBlocks = null) {
         dispatch({ type: ACTIONS.SAVE_SNAPSHOT });
     }, []);
 
+    // AST-specific action creators
+    const updateBlockChildren = useCallback((blockId, children) => {
+        dispatch({ type: ACTIONS.UPDATE_BLOCK_CHILDREN, payload: { blockId, children } });
+    }, []);
+
+    const applyMarkToSelection = useCallback((blockId, startOffset, endOffset, mark) => {
+        dispatch({
+            type: ACTIONS.APPLY_MARK_TO_SELECTION,
+            payload: { blockId, startOffset, endOffset, mark }
+        });
+    }, []);
+
+    const removeMarkFromSelection = useCallback((blockId, startOffset, endOffset, markType) => {
+        dispatch({
+            type: ACTIONS.REMOVE_MARK_FROM_SELECTION,
+            payload: { blockId, startOffset, endOffset, markType }
+        });
+    }, []);
+
+    const toggleMarkOnSelection = useCallback((blockId, startOffset, endOffset, mark) => {
+        dispatch({
+            type: ACTIONS.TOGGLE_MARK_ON_SELECTION,
+            payload: { blockId, startOffset, endOffset, mark }
+        });
+    }, []);
+
+    const insertLink = useCallback((blockId, startOffset, endOffset, url) => {
+        dispatch({
+            type: ACTIONS.INSERT_LINK,
+            payload: { blockId, startOffset, endOffset, url }
+        });
+    }, []);
+
+    const removeLink = useCallback((blockId, offset) => {
+        dispatch({ type: ACTIONS.REMOVE_LINK, payload: { blockId, offset } });
+    }, []);
+
     return {
         state,
         dispatch,
@@ -1051,6 +1299,13 @@ export function useBlockReducer(initialBlocks = null) {
             setLastCursor,
             clearPendingCursor,
             saveSnapshot,
+            // AST-specific actions
+            updateBlockChildren,
+            applyMarkToSelection,
+            removeMarkFromSelection,
+            toggleMarkOnSelection,
+            insertLink,
+            removeLink,
         },
     };
 }

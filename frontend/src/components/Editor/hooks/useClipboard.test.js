@@ -1,5 +1,14 @@
 import { renderHook, act } from '@testing-library/react';
 import { useClipboard } from './useClipboard';
+import { createTextNode } from '../utils/ast';
+
+// Helper to create AST block
+const createASTBlock = (id, type, text, indentLevel = 0) => ({
+    id,
+    type,
+    children: [createTextNode(text)],
+    metadata: { indentLevel },
+});
 
 // Mock sessionStorage
 const sessionStorageMock = (() => {
@@ -31,9 +40,9 @@ describe('useClipboard', () => {
     beforeEach(() => {
         mockState = {
             blocks: [
-                { id: 'block-1', type: 'paragraph', content: 'First block' },
-                { id: 'block-2', type: 'h1', content: 'Heading block' },
-                { id: 'block-3', type: 'quote', content: 'Quote block' },
+                createASTBlock('block-1', 'paragraph', 'First block'),
+                createASTBlock('block-2', 'h1', 'Heading block'),
+                createASTBlock('block-3', 'quote', 'Quote block'),
             ],
             focusedBlockId: 'block-1',
         };
@@ -132,9 +141,10 @@ describe('useClipboard', () => {
     });
 
     it('pastes structured blocks from storage', async () => {
+        // AST format blocks with children
         const storedBlocks = [
-            { type: 'h1', content: 'Stored heading' },
-            { type: 'paragraph', content: 'Stored paragraph' },
+            { type: 'h1', children: [createTextNode('Stored heading')], metadata: { indentLevel: 0 } },
+            { type: 'paragraph', children: [createTextNode('Stored paragraph')], metadata: { indentLevel: 0 } },
         ];
         sessionStorageMock.getItem.mockReturnValue(JSON.stringify({ blocks: storedBlocks }));
         // Clipboard text must match stored blocks content for validation
@@ -163,13 +173,14 @@ describe('useClipboard', () => {
         });
 
         expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-1', expect.arrayContaining([
-            expect.objectContaining({ type: 'h1', content: 'Stored heading' }),
-            expect.objectContaining({ type: 'paragraph', content: 'Stored paragraph' }),
+            expect.objectContaining({ type: 'h1', children: expect.any(Array) }),
+            expect.objectContaining({ type: 'paragraph', children: expect.any(Array) }),
         ]));
     });
 
     it('pastes structured blocks after last block when no focused block', async () => {
-        const storedBlocks = [{ type: 'paragraph', content: 'New block' }];
+        // AST format blocks with children
+        const storedBlocks = [{ type: 'paragraph', children: [createTextNode('New block')], metadata: { indentLevel: 0 } }];
         sessionStorageMock.getItem.mockReturnValue(JSON.stringify({ blocks: storedBlocks }));
         // Clipboard text must match stored blocks content for validation
         clipboardMock.readText.mockResolvedValue('New block');
@@ -196,7 +207,7 @@ describe('useClipboard', () => {
         });
 
         expect(mockActions.insertBlocks).toHaveBeenCalledWith('block-3', expect.arrayContaining([
-            expect.objectContaining({ type: 'paragraph', content: 'New block' }),
+            expect.objectContaining({ type: 'paragraph', children: expect.any(Array) }),
         ]));
     });
 
@@ -233,9 +244,9 @@ describe('useClipboard', () => {
         const stateWithIndent = {
             ...mockState,
             blocks: [
-                { id: 'block-1', type: 'bulleted-list', content: 'Item 1', indentLevel: 0 },
-                { id: 'block-2', type: 'bulleted-list', content: 'Nested', indentLevel: 1 },
-                { id: 'block-3', type: 'bulleted-list', content: 'Deep nested', indentLevel: 2 },
+                createASTBlock('block-1', 'bulleted-list', 'Item 1', 0),
+                createASTBlock('block-2', 'bulleted-list', 'Nested', 1),
+                createASTBlock('block-3', 'bulleted-list', 'Deep nested', 2),
             ],
         };
 
@@ -248,15 +259,15 @@ describe('useClipboard', () => {
         });
 
         const savedData = JSON.parse(sessionStorageMock.setItem.mock.calls[0][1]);
-        expect(savedData.blocks[0].indentLevel).toBe(0);
-        expect(savedData.blocks[1].indentLevel).toBe(1);
-        expect(savedData.blocks[2].indentLevel).toBe(2);
+        expect(savedData.blocks[0].metadata.indentLevel).toBe(0);
+        expect(savedData.blocks[1].metadata.indentLevel).toBe(1);
+        expect(savedData.blocks[2].metadata.indentLevel).toBe(2);
     });
 
     it('rejects stale stored blocks when clipboard text does not match', async () => {
         const storedBlocks = [
-            { type: 'h1', content: 'Old heading' },
-            { type: 'paragraph', content: 'Old paragraph' },
+            { type: 'h1', children: [createTextNode('Old heading')], metadata: { indentLevel: 0 } },
+            { type: 'paragraph', children: [createTextNode('Old paragraph')], metadata: { indentLevel: 0 } },
         ];
         sessionStorageMock.getItem.mockReturnValue(JSON.stringify({ blocks: storedBlocks }));
         // Clipboard text is DIFFERENT from stored blocks (multi-line to trigger insertBlocks)

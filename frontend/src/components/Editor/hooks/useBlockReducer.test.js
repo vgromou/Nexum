@@ -1,12 +1,25 @@
 import { renderHook, act } from '@testing-library/react';
-import useBlockReducer from './useBlockReducer';
+import useBlockReducer, { MIN_INDENT_LEVEL, MAX_INDENT_LEVEL } from './useBlockReducer';
+import { getPlainText, createTextNode } from '../utils/ast';
+
+// Helper to get plain text from block
+const getBlockText = (block) => {
+    return getPlainText(block.children || []);
+};
+
+// Helper to create AST block for testing
+const createASTBlock = (type, text, indentLevel = 0) => ({
+    type,
+    children: [createTextNode(text)],
+    metadata: { indentLevel },
+});
 
 describe('useBlockReducer', () => {
     it('initializes with default state', () => {
         const { result } = renderHook(() => useBlockReducer());
         expect(result.current.state.blocks).toHaveLength(1);
         expect(result.current.state.blocks[0].type).toBe('paragraph');
-        expect(result.current.state.blocks[0].content).toBe('');
+        expect(getBlockText(result.current.state.blocks[0])).toBe('');
     });
 
     it('adds a block', () => {
@@ -19,7 +32,7 @@ describe('useBlockReducer', () => {
 
         expect(result.current.state.blocks).toHaveLength(2);
         expect(result.current.state.blocks[1].type).toBe('h1');
-        expect(result.current.state.blocks[1].content).toBe('New Block');
+        expect(getBlockText(result.current.state.blocks[1])).toBe('New Block');
         expect(result.current.state.focusedBlockId).toBe(result.current.state.blocks[1].id);
     });
 
@@ -51,7 +64,7 @@ describe('useBlockReducer', () => {
 
         expect(result.current.state.blocks).toHaveLength(1);
         // It might generate a new ID or keep the same, logic says it clears it
-        expect(result.current.state.blocks[0].content).toBe('');
+        expect(getBlockText(result.current.state.blocks[0])).toBe('');
     });
 
     it('updates a block content', () => {
@@ -62,7 +75,7 @@ describe('useBlockReducer', () => {
             result.current.actions.updateBlock(blockId, 'Updated Content');
         });
 
-        expect(result.current.state.blocks[0].content).toBe('Updated Content');
+        expect(getBlockText(result.current.state.blocks[0])).toBe('Updated Content');
     });
 
     it('changes block type', () => {
@@ -89,8 +102,8 @@ describe('useBlockReducer', () => {
         });
 
         expect(result.current.state.blocks).toHaveLength(2);
-        expect(result.current.state.blocks[0].content).toBe('Hello');
-        expect(result.current.state.blocks[1].content).toBe(' World');
+        expect(getBlockText(result.current.state.blocks[0])).toBe('Hello');
+        expect(getBlockText(result.current.state.blocks[1])).toBe(' World');
     });
 
     it('moves a block', () => {
@@ -125,24 +138,24 @@ describe('useBlockReducer', () => {
             result.current.actions.setIndentLevel(blockId, 1);
         });
 
-        expect(result.current.state.blocks[0].indentLevel).toBe(1);
+        expect(result.current.state.blocks[0].metadata?.indentLevel).toBe(1);
     });
 
-    it('clamps indent level to 0-10 range', () => {
+    it('clamps indent level to MIN_INDENT_LEVEL-MAX_INDENT_LEVEL range', () => {
         const { result } = renderHook(() => useBlockReducer());
         const blockId = result.current.state.blocks[0].id;
 
         // Try to set indent level above max
         act(() => {
-            result.current.actions.setIndentLevel(blockId, 15);
+            result.current.actions.setIndentLevel(blockId, MAX_INDENT_LEVEL + 5);
         });
-        expect(result.current.state.blocks[0].indentLevel).toBe(10);
+        expect(result.current.state.blocks[0].metadata?.indentLevel).toBe(MAX_INDENT_LEVEL);
 
         // Try to set indent level below min
         act(() => {
-            result.current.actions.setIndentLevel(blockId, -1);
+            result.current.actions.setIndentLevel(blockId, MIN_INDENT_LEVEL - 1);
         });
-        expect(result.current.state.blocks[0].indentLevel).toBe(0);
+        expect(result.current.state.blocks[0].metadata?.indentLevel).toBe(MIN_INDENT_LEVEL);
     });
 
     it('preserves indentLevel when inserting blocks', () => {
@@ -151,15 +164,55 @@ describe('useBlockReducer', () => {
 
         act(() => {
             result.current.actions.insertBlocks(firstBlockId, [
-                { type: 'bulleted-list', content: 'Nested item', indentLevel: 1 },
-                { type: 'bulleted-list', content: 'More nested', indentLevel: 2 },
+                createASTBlock('bulleted-list', 'Nested item', 1),
+                createASTBlock('bulleted-list', 'More nested', 2),
             ]);
         });
 
         expect(result.current.state.blocks).toHaveLength(3);
         expect(result.current.state.blocks[1].type).toBe('bulleted-list');
-        expect(result.current.state.blocks[1].indentLevel).toBe(1);
-        expect(result.current.state.blocks[2].indentLevel).toBe(2);
+        expect(result.current.state.blocks[1].metadata?.indentLevel).toBe(1);
+        expect(result.current.state.blocks[2].metadata?.indentLevel).toBe(2);
+    });
+
+    it('supports all indent levels from MIN to MAX', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const blockId = result.current.state.blocks[0].id;
+
+        // Change to list type
+        act(() => {
+            result.current.actions.changeBlockType(blockId, 'bulleted-list');
+        });
+
+        // Test each indent level from MIN to MAX
+        for (let level = MIN_INDENT_LEVEL; level <= MAX_INDENT_LEVEL; level++) {
+            act(() => {
+                result.current.actions.setIndentLevel(blockId, level);
+            });
+            expect(result.current.state.blocks[0].metadata?.indentLevel).toBe(level);
+        }
+    });
+
+    it('allows deep nesting with insertBlocks up to MAX_INDENT_LEVEL', () => {
+        const { result } = renderHook(() => useBlockReducer());
+        const firstBlockId = result.current.state.blocks[0].id;
+
+        // Create blocks with various deep indent levels
+        const midLevel = Math.floor(MAX_INDENT_LEVEL / 2);
+        const deepNestedBlocks = [
+            createASTBlock('bulleted-list', 'Level MIN', MIN_INDENT_LEVEL),
+            createASTBlock('bulleted-list', 'Level MID', midLevel),
+            createASTBlock('bulleted-list', 'Level MAX', MAX_INDENT_LEVEL),
+        ];
+
+        act(() => {
+            result.current.actions.insertBlocks(firstBlockId, deepNestedBlocks);
+        });
+
+        expect(result.current.state.blocks).toHaveLength(4);
+        expect(result.current.state.blocks[1].metadata?.indentLevel).toBe(MIN_INDENT_LEVEL);
+        expect(result.current.state.blocks[2].metadata?.indentLevel).toBe(midLevel);
+        expect(result.current.state.blocks[3].metadata?.indentLevel).toBe(MAX_INDENT_LEVEL);
     });
 });
 
@@ -298,7 +351,7 @@ describe('Undo/Redo functionality', () => {
             result.current.actions.undo();
         });
         expect(result.current.state.blocks).toHaveLength(2);
-        expect(result.current.state.blocks[1].content).toBe('To be deleted');
+        expect(getBlockText(result.current.state.blocks[1])).toBe('To be deleted');
     });
 
     it('undo restores block type change', () => {

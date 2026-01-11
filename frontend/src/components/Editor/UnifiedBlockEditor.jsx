@@ -3,7 +3,7 @@ import { GripVertical } from 'lucide-react';
 import SlashCommandMenu from './SlashCommandMenu';
 import FormattingMenu from './FormattingMenu';
 import LinkPopover from './LinkPopover';
-import { useBlockReducer } from './hooks/useBlockReducer';
+import { useBlockReducer, MAX_INDENT_LEVEL } from './hooks/useBlockReducer';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useClipboard } from './hooks/useClipboard';
 import { useSlashMenu } from './hooks/useSlashMenu';
@@ -14,6 +14,9 @@ import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { debounce } from '../../utils/debounce';
 import { isValidUrl, normalizeUrl } from '../../utils/urlUtils';
 import { getCursorState, restoreCursor } from './utils/cursor';
+// AST imports
+import { getPlainText } from './utils/ast';
+import { astToHTML, syncDOMToAST } from './utils/astConverters';
 import './BlockEditor.css';
 
 // Markdown shortcuts for quick block conversion
@@ -87,7 +90,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             if (blocks.length !== 1) return false;
 
             const firstBlock = blocks[0];
-            const textContent = firstBlock.content?.replace(/<[^>]*>/g, '').trim() || '';
+            // Use AST-based text extraction
+            const textContent = getPlainText(firstBlock.children || []).trim();
             if (textContent !== '') return false;
 
             // Focus the empty block
@@ -212,7 +216,7 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
 
     /**
      * Syncs the DOM content back to React state.
-     * Parses the contentEditable children as blocks.
+     * Parses the contentEditable children as blocks with AST structure.
      */
     const syncDOMToState = useCallback(() => {
         if (!editorRef.current || isUpdatingFromDOM.current) return;
@@ -225,32 +229,47 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
         blockElements.forEach((el) => {
             const blockId = el.getAttribute('data-block-id');
             const blockType = el.getAttribute('data-block-type') || 'paragraph';
-            const content = el.innerHTML;
             const indentLevel = parseInt(el.getAttribute('data-indent-level') || '0', 10);
+
+            // Convert DOM to AST children
+            const children = syncDOMToAST(el);
 
             newBlocks.push({
                 id: blockId,
                 type: blockType,
-                content,
-                indentLevel,
+                children,
+                metadata: { indentLevel },
             });
         });
 
         // Only update if content, type, or indentLevel actually changed
         const hasChanges = newBlocks.some((newBlock, i) => {
             const oldBlock = state.blocks[i];
-            return !oldBlock ||
-                oldBlock.content !== newBlock.content ||
+            if (!oldBlock) return true;
+
+            // Compare plain text content for change detection
+            const oldText = getPlainText(oldBlock.children || []);
+            const newText = getPlainText(newBlock.children || []);
+
+            return oldText !== newText ||
                 oldBlock.type !== newBlock.type ||
-                (oldBlock.indentLevel ?? 0) !== newBlock.indentLevel;
+                (oldBlock.metadata?.indentLevel ?? 0) !== newBlock.metadata.indentLevel;
         }) || newBlocks.length !== state.blocks.length;
 
         if (hasChanges && newBlocks.length > 0) {
             actions.setBlocks(newBlocks);
+            // Keep the flag true - it will be cleared by useEffect after render
+        } else {
+            isUpdatingFromDOM.current = false;
         }
-
-        isUpdatingFromDOM.current = false;
     }, [state.blocks, actions]);
+
+    // Clear the isUpdatingFromDOM flag after render cycle completes
+    useEffect(() => {
+        if (isUpdatingFromDOM.current) {
+            isUpdatingFromDOM.current = false;
+        }
+    });
 
     /**
      * Debounced sync for performance
@@ -450,9 +469,9 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                 // Find previous block to determine max allowed indent
                 const blockIndex = state.blocks.findIndex(b => b.id === blockId);
                 const prevBlock = blockIndex > 0 ? state.blocks[blockIndex - 1] : null;
-                const prevIndent = prevBlock?.indentLevel ?? 0;
-                // Can't be more than prev+1 and max is 2
-                const maxAllowedIndent = Math.min(prevIndent + 1, 10);
+                const prevIndent = prevBlock?.metadata?.indentLevel ?? 0;
+                // Can't be more than prev+1 and max is MAX_INDENT_LEVEL
+                const maxAllowedIndent = Math.min(prevIndent + 1, MAX_INDENT_LEVEL);
 
                 if (currentIndentLevel < maxAllowedIndent) {
                     actions.setIndentLevel(blockId, currentIndentLevel + 1);
@@ -965,16 +984,21 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                 el.className = 'block-content';
                 el.setAttribute('data-block-id', block.id);
                 el.setAttribute('data-block-type', block.type);
-                el.setAttribute('data-indent-level', block.indentLevel ?? 0);
-                el.setAttribute('data-placeholder', 'Type / for commands');
-                el.innerHTML = block.content;
 
-                const indentLevel = block.indentLevel ?? 0;
+                // Get indent level from metadata (AST) or legacy field
+                const indentLevel = block.metadata?.indentLevel ?? block.indentLevel ?? 0;
+                el.setAttribute('data-indent-level', indentLevel);
+                el.setAttribute('data-placeholder', 'Type / for commands');
+
+                // Render AST children to HTML
+                el.innerHTML = astToHTML(block.children || []);
 
                 // Handle List Reset for numbered lists
                 if (block.type === 'numbered-list') {
                     const prevBlock = state.blocks[index - 1];
-                    const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
+                    const prevLevel = prevBlock?.type === 'numbered-list'
+                        ? (prevBlock.metadata?.indentLevel ?? prevBlock.indentLevel ?? 0)
+                        : -1;
 
                     // Level 0 reset - only when previous block is NOT numbered-list
                     if (indentLevel === 0 && !isPrevNumbered) {
@@ -1002,9 +1026,9 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             // If we lost selection (e.g. clicked outside to menu), check if we have a focused block in state
             if (!targetBlockId && state.focusedBlockId) {
                 targetBlockId = state.focusedBlockId;
-                // Default to end of block content
+                // Default to end of block content (use AST text length)
                 const block = state.blocks.find(b => b.id === targetBlockId);
-                targetOffset = block ? block.content.length : 0;
+                targetOffset = block ? getPlainText(block.children || []).length : 0;
             }
 
             if (targetBlockId) {
@@ -1024,10 +1048,13 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                 const block = state.blocks[i];
                 if (!block) return;
 
-                const indentLevel = block.indentLevel ?? 0;
+                // Get indent level from metadata (AST) or legacy field
+                const indentLevel = block.metadata?.indentLevel ?? block.indentLevel ?? 0;
 
-                if (el.innerHTML !== block.content) {
-                    el.innerHTML = block.content;
+                // Render AST to HTML for comparison and update
+                const blockHTML = astToHTML(block.children || []);
+                if (el.innerHTML !== blockHTML) {
+                    el.innerHTML = blockHTML;
                 }
                 if (el.getAttribute('data-block-type') !== block.type) {
                     el.setAttribute('data-block-type', block.type);
@@ -1054,7 +1081,9 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
 
                     // Level 1-10 reset - set/remove based on prev level
                     const prevBlock = state.blocks[i - 1];
-                    const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
+                    const prevLevel = prevBlock?.type === 'numbered-list'
+                        ? (prevBlock.metadata?.indentLevel ?? prevBlock.indentLevel ?? 0)
+                        : -1;
                     for (let level = 1; level <= 10; level++) {
                         if (indentLevel === level && prevLevel < level) {
                             el.setAttribute(`data-list-reset-${level}`, 'true');
@@ -1446,7 +1475,7 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                         <div key={block.id} className="drag-preview-item">
                             <div
                                 className={`drag-preview-content block-type-${block.type}`}
-                                dangerouslySetInnerHTML={{ __html: block.content || 'Empty block' }}
+                                dangerouslySetInnerHTML={{ __html: astToHTML(block.children || []) || 'Empty block' }}
                             />
                         </div>
                     ))}

@@ -118,7 +118,7 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
                 blocks: [{
                     type: block.type,
                     content,
-                    indentLevel: block.indentLevel ?? 0,
+                    indentLevel: block.metadata?.indentLevel ?? 0,
                     isPartial: { start: true, end: true },
                 }],
                 plainText: content,
@@ -156,7 +156,7 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
             blocks.push({
                 type: block.type,
                 content,
-                indentLevel: block.indentLevel ?? 0,
+                indentLevel: block.metadata?.indentLevel ?? 0,
                 isPartial,
                 originalId: block.id,
             });
