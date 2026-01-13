@@ -3,7 +3,7 @@ namespace Api.Models;
 /// <summary>
 /// Block entity - content block within a page
 /// </summary>
-public class Block : BaseEntity
+public class Block : AuditableEntity
 {
     public required string Type { get; set; }  // paragraph, heading1, heading2, heading3, bulletList, numberedList, todo, quote, code, divider, image
     public string Content { get; set; } = string.Empty;

@@ -3,7 +3,7 @@ namespace Api.Models;
 /// <summary>
 /// Page entity - document that contains blocks
 /// </summary>
-public class Page : BaseEntity
+public class Page : AuditableEntity
 {
     public required string Title { get; set; }
     public string? Icon { get; set; }

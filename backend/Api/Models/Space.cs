@@ -3,7 +3,7 @@ namespace Api.Models;
 /// <summary>
 /// Workspace/Space entity - top-level container for pages
 /// </summary>
-public class Space : BaseEntity
+public class Space : AuditableEntity
 {
     public required string Name { get; set; }
     public string? Description { get; set; }
