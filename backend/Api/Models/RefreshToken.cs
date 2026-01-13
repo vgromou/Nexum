@@ -6,7 +6,7 @@ namespace Api.Models;
 /// Refresh token for JWT session management
 /// Allows multiple active sessions per user (laptop, phone, tablet)
 /// </summary>
-public class RefreshToken : AuditableEntity
+public class RefreshToken : BaseEntity
 {
     /// <summary>
     /// User who owns this token
@@ -29,7 +29,7 @@ public class RefreshToken : AuditableEntity
     public DateTime? RevokedAt { get; set; }
 
     /// <summary>
-    /// Reason for revocation (logout, security, password_change, etc.)
+    /// Reason for revocation (logout, password_change, admin_action)
     /// </summary>
     public string? RevokedReason { get; set; }
 

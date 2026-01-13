@@ -68,6 +68,8 @@ public class ApplicationDbContextTests
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
+            FirstName = "Test",
+            LastName = "User",
             Organization = organization
         };
 
@@ -100,6 +102,8 @@ public class ApplicationDbContextTests
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
+            FirstName = "Test",
+            LastName = "User",
             Organization = organization
         };
         var token = new RefreshToken
@@ -139,6 +143,8 @@ public class ApplicationDbContextTests
             Email = "same@test.com",
             Username = "user1",
             PasswordHash = "hash",
+            FirstName = "User",
+            LastName = "One",
             Organization = organization
         };
         var user2 = new User
@@ -146,6 +152,8 @@ public class ApplicationDbContextTests
             Email = "same@test.com",
             Username = "user2",
             PasswordHash = "hash",
+            FirstName = "User",
+            LastName = "Two",
             Organization = organization
         };
 
@@ -174,6 +182,8 @@ public class ApplicationDbContextTests
             Email = "user1@test.com",
             Username = "sameusername",
             PasswordHash = "hash",
+            FirstName = "User",
+            LastName = "One",
             Organization = organization
         };
         var user2 = new User
@@ -181,6 +191,8 @@ public class ApplicationDbContextTests
             Email = "user2@test.com",
             Username = "sameusername",
             PasswordHash = "hash",
+            FirstName = "User",
+            LastName = "Two",
             Organization = organization
         };
 
@@ -222,6 +234,8 @@ public class ApplicationDbContextTests
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
+            FirstName = "Test",
+            LastName = "User",
             Organization = organization
         };
         var token1 = new RefreshToken
@@ -271,57 +285,6 @@ public class ApplicationDbContextTests
     }
 
     [Fact]
-    public async Task SaveChanges_ShouldNormalizeEmail_OnNewUser()
-    {
-        // Arrange
-        using var context = TestDbContextFactory.Create();
-        var organization = new Organization { Name = "Test Org", Slug = "test-org" };
-        var user = new User
-        {
-            Email = "John.Doe@EXAMPLE.COM",
-            Username = "johndoe",
-            PasswordHash = "hash",
-            Organization = organization
-        };
-
-        // Act
-        context.Organizations.Add(organization);
-        context.Users.Add(user);
-        await context.SaveChangesAsync();
-
-        // Assert
-        user.Email.Should().Be("John.Doe@EXAMPLE.COM", "original email case should be preserved");
-        user.NormalizedEmail.Should().Be("john.doe@example.com", "normalized email should be lowercase");
-    }
-
-    [Fact]
-    public async Task SaveChanges_ShouldNormalizeEmail_OnModifiedUser()
-    {
-        // Arrange
-        using var context = TestDbContextFactory.Create();
-        var organization = new Organization { Name = "Test Org", Slug = "test-org" };
-        var user = new User
-        {
-            Email = "original@example.com",
-            Username = "testuser",
-            PasswordHash = "hash",
-            Organization = organization
-        };
-
-        context.Organizations.Add(organization);
-        context.Users.Add(user);
-        await context.SaveChangesAsync();
-
-        // Act
-        user.Email = "NEW.Email@EXAMPLE.COM";
-        await context.SaveChangesAsync();
-
-        // Assert
-        user.Email.Should().Be("NEW.Email@EXAMPLE.COM", "new email case should be preserved");
-        user.NormalizedEmail.Should().Be("new.email@example.com", "normalized email should be updated");
-    }
-
-    [Fact]
     public async Task User_RoleShouldBeStoredAsString()
     {
         // Arrange
@@ -332,6 +295,8 @@ public class ApplicationDbContextTests
             Email = "admin@test.com",
             Username = "admin",
             PasswordHash = "hash",
+            FirstName = "Admin",
+            LastName = "User",
             Role = UserRole.Admin,
             Organization = organization
         };
@@ -359,6 +324,8 @@ public class ApplicationDbContextTests
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
+            FirstName = "Test",
+            LastName = "User",
             Organization = organization
         };
         var token1 = new RefreshToken
@@ -394,5 +361,57 @@ public class ApplicationDbContextTests
 
         // Assert
         savedUser!.RefreshTokens.Should().HaveCount(3, "user should support multiple sessions");
+    }
+
+    [Fact]
+    public async Task LoginAttempt_ShouldOnlyHaveCreatedAt()
+    {
+        // Arrange
+        using var context = TestDbContextFactory.Create();
+        var attempt = new LoginAttempt
+        {
+            Email = "test@example.com",
+            Success = true,
+            IpAddress = IPAddress.Parse("192.168.1.1")
+        };
+
+        // Act
+        context.LoginAttempts.Add(attempt);
+        await context.SaveChangesAsync();
+
+        // Assert - LoginAttempt inherits from BaseEntity (only CreatedAt)
+        attempt.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task RefreshToken_ShouldOnlyHaveCreatedAt()
+    {
+        // Arrange
+        using var context = TestDbContextFactory.Create();
+        var organization = new Organization { Name = "Test Org", Slug = "test-org" };
+        var user = new User
+        {
+            Email = "user@test.com",
+            Username = "testuser",
+            PasswordHash = "hash",
+            FirstName = "Test",
+            LastName = "User",
+            Organization = organization
+        };
+        var token = new RefreshToken
+        {
+            TokenHash = "test-token",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            User = user
+        };
+
+        // Act
+        context.Organizations.Add(organization);
+        context.Users.Add(user);
+        context.RefreshTokens.Add(token);
+        await context.SaveChangesAsync();
+
+        // Assert - RefreshToken inherits from BaseEntity (only CreatedAt)
+        token.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 }

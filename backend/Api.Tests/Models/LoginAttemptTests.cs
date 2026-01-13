@@ -14,7 +14,6 @@ public class LoginAttemptTests
 
         // Assert
         attempt.Email.Should().BeEmpty();
-        attempt.IpAddress.Should().BeNull();
         attempt.Success.Should().BeFalse();
         attempt.FailureReason.Should().BeNull();
         attempt.UserAgent.Should().BeNull();
@@ -108,8 +107,7 @@ public class LoginAttemptTests
         };
 
         // Assert
-        attempt.IpAddress.Should().NotBeNull();
-        attempt.IpAddress!.ToString().Should().Be("203.0.113.50");
+        attempt.IpAddress.ToString().Should().Be("203.0.113.50");
     }
 
     [Fact]
@@ -122,7 +120,7 @@ public class LoginAttemptTests
         };
 
         // Assert
-        attempt.IpAddress.Should().NotBeNull();
+        attempt.IpAddress.ToString().Should().Be("2001:db8::1");
     }
 
     [Fact]

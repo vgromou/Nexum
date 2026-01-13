@@ -13,17 +13,16 @@ public class UserTests
 
         // Assert
         user.Email.Should().BeEmpty();
-        user.NormalizedEmail.Should().BeEmpty();
         user.Username.Should().BeEmpty();
         user.PasswordHash.Should().BeEmpty();
-        user.FirstName.Should().BeNull();
-        user.LastName.Should().BeNull();
-        user.Role.Should().Be(UserRole.Member);
+        user.FirstName.Should().BeEmpty();
+        user.LastName.Should().BeEmpty();
+        user.Role.Should().Be(UserRole.User);
         user.Position.Should().BeNull();
         user.DateOfBirth.Should().BeNull();
         user.AvatarUrl.Should().BeNull();
         user.IsActive.Should().BeTrue();
-        user.MustChangePassword.Should().BeTrue();
+        user.MustChangePassword.Should().BeFalse();
         user.FailedLoginAttempts.Should().Be(0);
         user.LockoutUntil.Should().BeNull();
         user.PasswordChangedAt.Should().BeNull();
@@ -54,7 +53,7 @@ public class UserTests
             DateOfBirth = birthDate,
             AvatarUrl = "https://example.com/avatar.png",
             IsActive = false,
-            MustChangePassword = false,
+            MustChangePassword = true,
             FailedLoginAttempts = 3,
             LockoutUntil = lockoutTime,
             PasswordChangedAt = passwordChangedAt
@@ -72,16 +71,16 @@ public class UserTests
         user.DateOfBirth.Should().Be(birthDate);
         user.AvatarUrl.Should().Be("https://example.com/avatar.png");
         user.IsActive.Should().BeFalse();
-        user.MustChangePassword.Should().BeFalse();
+        user.MustChangePassword.Should().BeTrue();
         user.FailedLoginAttempts.Should().Be(3);
         user.LockoutUntil.Should().Be(lockoutTime);
         user.PasswordChangedAt.Should().Be(passwordChangedAt);
     }
 
     [Theory]
-    [InlineData(UserRole.Member)]
+    [InlineData(UserRole.User)]
+    [InlineData(UserRole.Manager)]
     [InlineData(UserRole.Admin)]
-    [InlineData(UserRole.Owner)]
     public void User_ShouldAcceptAllRoleValues(UserRole role)
     {
         // Arrange & Act
@@ -103,13 +102,13 @@ public class UserTests
     }
 
     [Fact]
-    public void User_NewUser_ShouldRequirePasswordChange()
+    public void User_NewUser_ShouldNotRequirePasswordChange()
     {
         // Arrange & Act
         var user = new User();
 
         // Assert
-        user.MustChangePassword.Should().BeTrue("new users should be required to change password");
+        user.MustChangePassword.Should().BeFalse("new users should not require password change by default");
     }
 
     [Fact]
@@ -130,5 +129,15 @@ public class UserTests
 
         // Assert
         user.FailedLoginAttempts.Should().Be(0, "new users should have zero failed login attempts");
+    }
+
+    [Fact]
+    public void User_NewUser_ShouldHaveUserRole()
+    {
+        // Arrange & Act
+        var user = new User();
+
+        // Assert
+        user.Role.Should().Be(UserRole.User, "new users should have 'User' role by default");
     }
 }

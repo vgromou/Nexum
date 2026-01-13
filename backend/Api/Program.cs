@@ -9,7 +9,8 @@ builder.Services.AddControllers();
 
 // Configure PostgreSQL with Entity Framework Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .UseSnakeCaseNamingConvention());
 
 // Configure OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();

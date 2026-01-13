@@ -13,15 +13,10 @@ public class User : AuditableEntity
     public Guid OrganizationId { get; set; }
 
     /// <summary>
-    /// Unique email address (original case preserved)
+    /// Unique email address
     /// </summary>
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Normalized email for case-insensitive lookups (lowercase)
-    /// </summary>
-    public string NormalizedEmail { get; set; } = string.Empty;
 
     /// <summary>
     /// Unique username
@@ -29,24 +24,24 @@ public class User : AuditableEntity
     public string Username { get; set; } = string.Empty;
 
     /// <summary>
-    /// Hashed password (bcrypt or similar)
+    /// Hashed password (bcrypt with cost 12)
     /// </summary>
     public string PasswordHash { get; set; } = string.Empty;
 
     /// <summary>
-    /// User's first name
+    /// User's first name (required)
     /// </summary>
-    public string? FirstName { get; set; }
+    public string FirstName { get; set; } = string.Empty;
 
     /// <summary>
-    /// User's last name
+    /// User's last name (required)
     /// </summary>
-    public string? LastName { get; set; }
+    public string LastName { get; set; } = string.Empty;
 
     /// <summary>
     /// User role in the organization
     /// </summary>
-    public UserRole Role { get; set; } = UserRole.Member;
+    public UserRole Role { get; set; } = UserRole.User;
 
     /// <summary>
     /// Job position/title
@@ -71,15 +66,15 @@ public class User : AuditableEntity
     /// <summary>
     /// Forces user to change password on next login
     /// </summary>
-    public bool MustChangePassword { get; set; } = true;
+    public bool MustChangePassword { get; set; } = false;
 
     /// <summary>
-    /// Counter for failed login attempts (triggers lockout at 5)
+    /// Counter for failed login attempts (triggers lockout at threshold)
     /// </summary>
     public int FailedLoginAttempts { get; set; } = 0;
 
     /// <summary>
-    /// Temporary lockout expiration time (15-minute block after 5 failed attempts)
+    /// Temporary lockout expiration time (after failed attempts)
     /// </summary>
     public DateTime? LockoutUntil { get; set; }
 

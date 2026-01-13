@@ -14,9 +14,9 @@ public class LoginAttempt : BaseEntity
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
-    /// IP address of the client
+    /// IP address of the client (required)
     /// </summary>
-    public IPAddress? IpAddress { get; set; }
+    public IPAddress IpAddress { get; set; } = null!;
 
     /// <summary>
     /// Whether the login was successful
