@@ -58,14 +58,17 @@ const IconTab = ({
 
                                 if (!IconComponent) return null;
 
+                                const iconLabel = item.name.replace(/-/g, ' ');
                                 return (
                                     <button
                                         key={item.name}
                                         className={`emoji-grid-item icon-item ${isSelected ? 'selected' : ''}`}
                                         onClick={() => handleSelect(item.name)}
-                                        title={item.name.replace(/-/g, ' ')}
+                                        title={iconLabel}
+                                        aria-label={iconLabel}
+                                        aria-pressed={isSelected}
                                     >
-                                        <IconComponent size={20} color={colorValue} strokeWidth={2} />
+                                        <IconComponent size={20} color={colorValue} strokeWidth={2} aria-hidden="true" />
                                     </button>
                                 );
                             })
@@ -79,20 +82,26 @@ const IconTab = ({
             </div>
 
             {/* Color picker bar at bottom */}
-            <div className="icon-color-bar">
-                {colorNames.map((colorName) => (
-                    <button
-                        key={colorName}
-                        className={`icon-color-swatch ${iconColor === colorName ? 'active' : ''}`}
-                        onClick={() => onColorChange(colorName)}
-                        title={colorName.charAt(0).toUpperCase() + colorName.slice(1)}
-                    >
-                        <span 
-                            className="swatch-color"
-                            style={{ backgroundColor: ICON_COLORS[colorName] }}
-                        />
-                    </button>
-                ))}
+            <div className="icon-color-bar" role="group" aria-label="Icon color picker">
+                {colorNames.map((colorName) => {
+                    const colorLabel = colorName.charAt(0).toUpperCase() + colorName.slice(1);
+                    return (
+                        <button
+                            key={colorName}
+                            className={`icon-color-swatch ${iconColor === colorName ? 'active' : ''}`}
+                            onClick={() => onColorChange(colorName)}
+                            title={colorLabel}
+                            aria-label={`Select ${colorLabel} color`}
+                            aria-pressed={iconColor === colorName}
+                        >
+                            <span
+                                className="swatch-color"
+                                style={{ backgroundColor: ICON_COLORS[colorName] }}
+                                aria-hidden="true"
+                            />
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

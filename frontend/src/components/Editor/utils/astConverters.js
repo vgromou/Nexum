@@ -266,6 +266,22 @@ export const astToHTML = (children) => {
 };
 
 /**
+ * Validate URL to prevent XSS attacks via javascript: or data: protocols
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+const isUrlSafe = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim().toLowerCase();
+    // Block dangerous protocols
+    if (trimmed.startsWith('javascript:')) return false;
+    if (trimmed.startsWith('data:')) return false;
+    if (trimmed.startsWith('vbscript:')) return false;
+    return true;
+};
+
+/**
  * Convert a single AST node to HTML string
  *
  * @param {import('./ast-types.js').InlineNode} node
@@ -287,7 +303,9 @@ const nodeToHTML = (node) => {
 
     if (isLinkNode(node)) {
         const innerHTML = node.children.map(nodeToHTML).join('');
-        let html = `<a href="${escapeAttr(node.url)}" target="_blank" rel="noopener noreferrer">${innerHTML}</a>`;
+        // Validate URL to prevent XSS via javascript: protocol
+        const safeUrl = isUrlSafe(node.url) ? escapeAttr(node.url) : '#';
+        let html = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${innerHTML}</a>`;
 
         if (node.marks && node.marks.length > 0) {
             for (const mark of node.marks) {

@@ -80,6 +80,8 @@ const EmojiTab = ({
                         className={`emoji-category-tab ${activeCategory === category.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(category.id)}
                         title={category.name}
+                        aria-label={category.name}
+                        aria-pressed={activeCategory === category.id}
                         disabled={isDisabled}
                     >
                         {IconComponent && <IconComponent size={18} strokeWidth={1.5} />}
@@ -103,16 +105,19 @@ const EmojiTab = ({
                     <div className="emoji-category-header">{getTitle()}</div>
                     <div className="emoji-grid">
                         {filteredEmojis.length > 0 ? (
-                            filteredEmojis.map((emoji, index) => {
+                            filteredEmojis.map((emoji) => {
                                 const isSelected = currentEmoji === emoji.e;
+                                const emojiName = typeof emoji.n === 'string' ? emoji.n : (emoji.n?.[0] || emoji.e);
                                 return (
                                     <button
-                                        key={`${emoji.e}-${index}`}
+                                        key={emoji.e}
                                         className={`emoji-grid-item ${isSelected ? 'selected' : ''}`}
                                         onClick={() => handleSelect(emoji.e)}
-                                        title={emoji.n?.[0] || emoji.e}
+                                        title={emojiName}
+                                        aria-label={emojiName}
+                                        aria-pressed={isSelected}
                                     >
-                                        <span className="emoji-char">{emoji.e}</span>
+                                        <span className="emoji-char" aria-hidden="true">{emoji.e}</span>
                                     </button>
                                 );
                             })

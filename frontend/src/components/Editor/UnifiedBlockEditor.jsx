@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useEffect, useState, useLayoutEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
-import { GripVertical } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import SlashCommandMenu from './SlashCommandMenu';
 import FormattingMenu from './FormattingMenu';
 import LinkPopover from './LinkPopover';
@@ -18,6 +18,13 @@ import { getCursorState, restoreCursor } from './utils/cursor';
 import { getPlainText } from './utils/ast';
 import { astToHTML, syncDOMToAST } from './utils/astConverters';
 import './BlockEditor.css';
+
+// Configure DOMPurify to allow safe tags for rich text
+const PURIFY_CONFIG = {
+    ALLOWED_TAGS: ['a', 'b', 'strong', 'i', 'em', 'u', 's', 'code', 'span'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    ALLOW_DATA_ATTR: false,
+};
 
 // Markdown shortcuts for quick block conversion
 const MARKDOWN_SHORTCUTS = {
@@ -272,12 +279,23 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
     });
 
     /**
-     * Debounced sync for performance
+     * Debounced sync for performance.
+     * Using useMemo to create stable debounced function that won't be recreated
+     * on every syncDOMToState change, preventing memory leaks and stale closures.
      */
-    const debouncedSync = useCallback(
-        debounce(syncDOMToState, 100),
-        [syncDOMToState]
-    );
+    const debouncedSync = useMemo(() => {
+        const debouncedFn = debounce(() => {
+            syncDOMToState();
+        }, 100);
+        return debouncedFn;
+    }, []); // Empty deps - syncDOMToState is called inside, always gets latest
+
+    // Cleanup debounced function on unmount
+    useEffect(() => {
+        return () => {
+            debouncedSync.cancel?.();
+        };
+    }, [debouncedSync]);
 
     /**
      * Updates the is-empty class on blocks based on their content.
@@ -616,7 +634,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             newBlockEl.setAttribute('data-block-type', newBlockType);
             newBlockEl.setAttribute('data-indent-level', currentIndentLevel); // Inherit indent level
             newBlockEl.setAttribute('data-placeholder', 'Type / for commands');
-            newBlockEl.innerHTML = afterHtml; // Insert formatted HTML
+            // Sanitize HTML before inserting to prevent XSS
+            newBlockEl.innerHTML = DOMPurify.sanitize(afterHtml, PURIFY_CONFIG);
 
             newRowEl.appendChild(newBlockEl);
 
@@ -687,7 +706,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                         newEl.setAttribute('data-block-id', blockId);
                         newEl.setAttribute('data-block-type', 'paragraph');
                         newEl.setAttribute('data-indent-level', '0');
-                        newEl.innerHTML = blockEl.innerHTML;
+                        // Sanitize HTML to prevent XSS
+                        newEl.innerHTML = DOMPurify.sanitize(blockEl.innerHTML, PURIFY_CONFIG);
                         blockEl.replaceWith(newEl);
 
                         // Set cursor at start

@@ -171,7 +171,11 @@ const EmojiPicker = ({
                     </button>
                 </div>
                 {showRemove && (
-                    <button className="emoji-picker-remove" onClick={handleRemove}>
+                    <button
+                        className="emoji-picker-remove"
+                        onClick={handleRemove}
+                        aria-label="Remove icon"
+                    >
                         Remove
                     </button>
                 )}
@@ -188,6 +192,7 @@ const EmojiPicker = ({
                             placeholder="Filter..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            aria-label="Search emojis and icons"
                         />
                     </div>
                     <div className="emoji-picker-search-actions">
@@ -195,6 +200,7 @@ const EmojiPicker = ({
                             className="emoji-picker-action-btn"
                             onClick={handleShuffle}
                             title="Random"
+                            aria-label="Pick random emoji or icon"
                         >
                             <Dices size={18} />
                         </button>

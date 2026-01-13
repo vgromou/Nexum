@@ -4,26 +4,30 @@ import './SpaceHierarchy.css';
 
 const HierarchyItem = ({ label, children, depth = 0 }) => {
     const [isOpen, setIsOpen] = useState(true);
+    const hasChildren = Boolean(children);
 
     return (
         <div className="hierarchy-item-container">
-            <div
+            <button
+                type="button"
                 className="hierarchy-row"
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
                 onClick={() => setIsOpen(!isOpen)}
+                aria-expanded={hasChildren ? isOpen : undefined}
+                aria-label={`${label}${hasChildren ? (isOpen ? ', expanded' : ', collapsed') : ''}`}
             >
-                <span className="hierarchy-icon">
-                    {children ? (
+                <span className="hierarchy-icon" aria-hidden="true">
+                    {hasChildren ? (
                         isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />
                     ) : (
                         <span className="spacer-icon" />
                     )}
                 </span>
-                <FileText size={14} className="file-icon" />
+                <FileText size={14} className="file-icon" aria-hidden="true" />
                 <span className="hierarchy-label">{label}</span>
-            </div>
+            </button>
             {isOpen && children && (
-                <div className="hierarchy-children">
+                <div className="hierarchy-children" role="group">
                     {children}
                 </div>
             )}

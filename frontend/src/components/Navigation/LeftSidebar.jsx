@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import './LeftSidebar.css';
 
-// Page item component for navigation
-const PageItem = ({
+// Page item component for navigation - memoized to prevent unnecessary re-renders
+const PageItem = React.memo(({
     icon,
     emoji,
     label,
@@ -53,6 +53,7 @@ const PageItem = ({
                             onToggle?.();
                         }}
                         aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                        aria-expanded={isExpanded}
                     >
                         {isExpanded ? (
                             <ChevronDown size={16} />
@@ -77,10 +78,10 @@ const PageItem = ({
             </button>
         </div>
     );
-};
+});
 
-// Collection name divider component
-const CollectionNameDivider = ({ collectionKey, name, isPages = false, onNameChange }) => {
+// Collection name divider component - memoized
+const CollectionNameDivider = React.memo(({ collectionKey, name, isPages = false, onNameChange }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(name);
@@ -169,10 +170,10 @@ const CollectionNameDivider = ({ collectionKey, name, isPages = false, onNameCha
             )}
         </div>
     );
-};
+});
 
-// Expandable page (page with nested pages)
-const ExpandablePage = ({ emoji, label, children, depth = 0 }) => {
+// Expandable page (page with nested pages) - memoized
+const ExpandablePage = React.memo(({ emoji, label, children, depth = 0 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
     return (
@@ -192,7 +193,7 @@ const ExpandablePage = ({ emoji, label, children, depth = 0 }) => {
             )}
         </div>
     );
-};
+});
 
 // Collection Switcher component
 const CollectionSwitcher = ({ collections, activeCollection, onCollectionChange }) => {
