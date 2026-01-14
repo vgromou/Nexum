@@ -19,8 +19,8 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Version = "v1",
-        Title = "Project3876 API",
-        Description = "Backend API for Project3876 - a modern note-taking application",
+        Title = "Nexum API",
+        Description = "Backend API for Nexum - a modern note-taking application",
         Contact = new OpenApiContact
         {
             Name = "Development Team",
@@ -48,7 +48,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Project3876 API v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Nexum API v1");
         options.RoutePrefix = string.Empty; // Swagger UI at root
     });
 }
