@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { getPlainText, createTextNode } from '../utils/ast';
 
 /**
  * Custom hook for managing the slash command menu state.
@@ -63,10 +64,13 @@ export function useSlashMenu({ state, actions }) {
         if (slashMenu.blockId) {
             const block = state.blocks.find(b => b.id === slashMenu.blockId);
             if (block) {
-                let newContent = block.content;
-                const slashIndex = newContent.lastIndexOf('/');
+                // Get plain text from AST children
+                const plainText = getPlainText(block.children || []);
+
+                const slashIndex = plainText.lastIndexOf('/');
+                let newContent = plainText;
                 if (slashIndex !== -1) {
-                    newContent = newContent.slice(0, slashIndex);
+                    newContent = plainText.slice(0, slashIndex);
                 }
 
                 actions.updateBlock(slashMenu.blockId, newContent);

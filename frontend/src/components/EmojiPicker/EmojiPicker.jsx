@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Shuffle } from 'lucide-react';
+import { Dices } from 'lucide-react';
 import EmojiTab from './EmojiTab';
 import IconTab from './IconTab';
-import ColorPicker from './ColorPicker';
 import {
     ICON_COLORS,
     DEFAULT_ICON_COLOR,
@@ -16,6 +15,11 @@ import './EmojiPicker.css';
 
 /**
  * EmojiPicker - Notion-style emoji and icon picker popover
+ * 
+ * Tabs: Key | Emoji | Icons ... Remove
+ * - Key: shows keyboard shortcut picker (optional feature)
+ * - Emoji: shows emoji grid with categories
+ * - Icons: shows icon grid with color picker
  */
 const EmojiPicker = ({
     isOpen,
@@ -25,6 +29,7 @@ const EmojiPicker = ({
     onClose,
     currentValue,
     showRemove = true,
+    showKeyTab = false, // Enable Key tab feature
 }) => {
     const [activeTab, setActiveTab] = useState('emoji');
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,8 +41,7 @@ const EmojiPicker = ({
             return DEFAULT_ICON_COLOR;
         }
     });
-    const [showColorPicker, setShowColorPicker] = useState(false);
-    const [activeCategory, setActiveCategory] = useState('recent');
+    const [activeCategory, setActiveCategory] = useState('people');
 
     const containerRef = useRef(null);
     const searchRef = useRef(null);
@@ -63,8 +67,7 @@ const EmojiPicker = ({
         if (!isOpen) {
             setSearchQuery('');
             setDebouncedQuery('');
-            setShowColorPicker(false);
-            setActiveCategory('recent');
+            setActiveCategory('people');
         }
     }, [isOpen]);
 
@@ -80,11 +83,7 @@ const EmojiPicker = ({
 
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
-                if (showColorPicker) {
-                    setShowColorPicker(false);
-                } else {
-                    onClose();
-                }
+                onClose();
             }
         };
 
@@ -95,7 +94,7 @@ const EmojiPicker = ({
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleEscape);
         };
-    }, [isOpen, onClose, showColorPicker]);
+    }, [isOpen, onClose]);
 
     // Handle color change
     const handleColorChange = useCallback((colorName) => {
@@ -105,7 +104,6 @@ const EmojiPicker = ({
         } catch {
             // Ignore storage errors
         }
-        setShowColorPicker(false);
     }, []);
 
     // Handle selection
@@ -126,7 +124,7 @@ const EmojiPicker = ({
             const allEmojis = getAllEmojis();
             const randomEmoji = allEmojis[Math.floor(Math.random() * allEmojis.length)];
             handleSelect({ type: 'emoji', value: randomEmoji.e });
-        } else {
+        } else if (activeTab === 'icons') {
             const randomIcon = ICON_LIST[Math.floor(Math.random() * ICON_LIST.length)];
             handleSelect({
                 type: 'icon',
@@ -135,8 +133,6 @@ const EmojiPicker = ({
             });
         }
     }, [activeTab, handleSelect, iconColor]);
-
-
 
     if (!isOpen) return null;
 
@@ -152,6 +148,15 @@ const EmojiPicker = ({
             {/* Header with tabs */}
             <div className="emoji-picker-header">
                 <div className="emoji-picker-tabs">
+                    {/* Key tab - special bordered style when active */}
+                    {showKeyTab && (
+                        <button
+                            className={`emoji-picker-tab-key ${activeTab === 'key' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('key')}
+                        >
+                            <span className="key-tab-text">Key</span>
+                        </button>
+                    )}
                     <button
                         className={`emoji-picker-tab ${activeTab === 'emoji' ? 'active' : ''}`}
                         onClick={() => setActiveTab('emoji')}
@@ -166,58 +171,46 @@ const EmojiPicker = ({
                     </button>
                 </div>
                 {showRemove && (
-                    <button className="emoji-picker-remove" onClick={handleRemove}>
+                    <button
+                        className="emoji-picker-remove"
+                        onClick={handleRemove}
+                        aria-label="Remove icon"
+                    >
                         Remove
                     </button>
                 )}
             </div>
 
-            {/* Search bar */}
-            <div className="emoji-picker-search">
-                <div className="emoji-picker-search-input-wrapper">
-                    <Search size={16} className="emoji-picker-search-icon" />
-                    <input
-                        ref={searchRef}
-                        type="text"
-                        className="emoji-picker-search-input"
-                        placeholder="Filter..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-                <div className="emoji-picker-search-actions">
-                    <button
-                        className="emoji-picker-action-btn"
-                        onClick={handleShuffle}
-                        title="Random"
-                    >
-                        <Shuffle size={16} />
-                    </button>
-                    {activeTab === 'icons' && (
+            {/* Search bar - only show for emoji and icons tabs */}
+            {(activeTab === 'emoji' || activeTab === 'icons') && (
+                <div className="emoji-picker-search">
+                    <div className="emoji-picker-search-input-wrapper">
+                        <input
+                            ref={searchRef}
+                            type="text"
+                            className="emoji-picker-search-input"
+                            placeholder="Filter..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            aria-label="Search emojis and icons"
+                        />
+                    </div>
+                    <div className="emoji-picker-search-actions">
                         <button
-                            className="emoji-picker-color-btn"
-                            onClick={() => setShowColorPicker(!showColorPicker)}
-                            title="Change color"
+                            className="emoji-picker-action-btn"
+                            onClick={handleShuffle}
+                            title="Random"
+                            aria-label="Pick random emoji or icon"
                         >
-                            <span
-                                className="emoji-picker-color-indicator"
-                                style={{ backgroundColor: ICON_COLORS[iconColor] }}
-                            />
+                            <Dices size={18} />
                         </button>
-                    )}
+                    </div>
                 </div>
-                {showColorPicker && (
-                    <ColorPicker
-                        currentColor={iconColor}
-                        onColorChange={handleColorChange}
-                        onClose={() => setShowColorPicker(false)}
-                    />
-                )}
-            </div>
+            )}
 
             {/* Content area */}
             <div className="emoji-picker-content">
-                {activeTab === 'emoji' ? (
+                {activeTab === 'emoji' && (
                     <EmojiTab
                         searchQuery={debouncedQuery}
                         onSelect={handleSelect}
@@ -225,13 +218,20 @@ const EmojiPicker = ({
                         activeCategory={activeCategory}
                         onCategoryChange={setActiveCategory}
                     />
-                ) : (
+                )}
+                {activeTab === 'icons' && (
                     <IconTab
                         searchQuery={debouncedQuery}
                         onSelect={handleSelect}
                         currentIcon={currentIcon}
                         iconColor={iconColor}
+                        onColorChange={handleColorChange}
                     />
+                )}
+                {activeTab === 'key' && (
+                    <div className="emoji-grid-empty">
+                        <span>Keyboard shortcuts coming soon</span>
+                    </div>
                 )}
             </div>
         </div>

@@ -1,0 +1,107 @@
+.right-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: var(--right-sidebar-width);
+    height: 100%;
+    background-color: var(--background-primary);
+    border-left: 1px solid var(--border-light);
+    flex-shrink: 0;
+}
+
+/* ===== HEADER WITH TABS ===== */
+.sidebar-tabs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--header-height);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light);
+    position: sticky;
+    top: 0;
+    background-color: var(--background-primary);
+    z-index: var(--z-index-sticky);
+}
+
+.sidebar-tab-title {
+    font-size: var(--typography-label-size);
+    font-weight: var(--typography-label-weight);
+    line-height: var(--typography-label-line-height);
+    color: var(--text-tertiary);
+}
+
+.tabs-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tab-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: var(--radius-md);
+    color: var(--icons-default);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.tab-button:hover {
+    background-color: var(--background-hover);
+    color: var(--icons-hover);
+}
+
+.tab-button.active {
+    background-color: var(--accent-primary-light);
+    color: var(--icons-active);
+}
+
+/* ===== CONTENT ===== */
+.sidebar-tab-content {
+    flex: 1;
+    padding: var(--space-lg) var(--space-xl);
+    overflow-y: auto;
+}
+
+/* ===== PROPERTIES CONTENT ===== */
+.properties-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.property-row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: var(--space-md);
+    align-items: start;
+}
+
+.property-label {
+    font-size: var(--typography-label-size);
+    font-weight: var(--typography-label-weight);
+    color: var(--text-secondary);
+}
+
+.property-value {
+    font-size: var(--typography-body-small-size);
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.property-value.empty {
+    color: var(--text-placeholder);
+    font-style: italic;
+}
+
+/* ===== PLACEHOLDER ===== */
+.tab-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    font-size: var(--typography-body-small-size);
+    color: var(--text-tertiary);
+}

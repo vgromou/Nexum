@@ -253,4 +253,83 @@ describe('useDragAndDrop', () => {
         // Mouse at 160, 260 -> Preview at 180, 270
         expect(result.current.dragState.previewPosition).toEqual({ x: 180, y: 270 });
     });
+
+    it('clears block selection after drop completes', () => {
+        const actionsWithClear = {
+            ...mockActions,
+            clearSelection: vi.fn(),
+        };
+
+        // Create mock DOM structure for editorRef
+        const mockBlockEl = document.createElement('div');
+        mockBlockEl.setAttribute('data-block-id', 'block-1');
+        mockBlockEl.getBoundingClientRect = () => ({
+            top: 100,
+            bottom: 150,
+            height: 50,
+            left: 0,
+            right: 100,
+            width: 100,
+        });
+
+        const mockEditorEl = document.createElement('div');
+        mockEditorEl.appendChild(mockBlockEl);
+        mockEditorEl.querySelectorAll = () => [mockBlockEl];
+        mockEditorEl.getBoundingClientRect = () => ({
+            top: 0,
+            bottom: 300,
+            height: 300,
+            left: 0,
+            right: 100,
+            width: 100,
+        });
+
+        const editorRefWithEl = { current: mockEditorEl };
+
+        const { result } = renderHook(() =>
+            useDragAndDrop({
+                editorRef: editorRefWithEl,
+                state: mockState,
+                actions: actionsWithClear,
+            })
+        );
+
+        const mockEvent = {
+            preventDefault: vi.fn(),
+            stopPropagation: vi.fn(),
+            clientX: 100,
+            clientY: 200,
+        };
+
+        // Start dragging
+        act(() => {
+            result.current.handleHandleMouseDown(mockEvent, 'block-1', 0);
+        });
+
+        // Move to pass threshold
+        const moveEvent = new MouseEvent('mousemove', {
+            clientX: 110,
+            clientY: 210,
+        });
+
+        act(() => {
+            document.dispatchEvent(moveEvent);
+        });
+
+        expect(result.current.dragState.isDragging).toBe(true);
+
+        // Simulate drop by dispatching mouseup
+        const mouseUpEvent = new MouseEvent('mouseup', {
+            clientX: 110,
+            clientY: 250,
+        });
+
+        act(() => {
+            document.dispatchEvent(mouseUpEvent);
+        });
+
+        // clearSelection should be called after drop
+        expect(actionsWithClear.clearSelection).toHaveBeenCalled();
+    });
 });
+

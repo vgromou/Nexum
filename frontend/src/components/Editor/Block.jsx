@@ -44,7 +44,7 @@ const Block = memo(({
         if (contentRef.current && contentRef.current.innerHTML !== block.content) {
             contentRef.current.innerHTML = block.content;
         }
-    }, [block.content]);
+    }, [block.content, block.id]);
 
     /**
      * Focuses the block and sets cursor to end when isFocused changes.

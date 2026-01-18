@@ -43,10 +43,22 @@ export function useLinkPopover({ editorRef, onApplyLink }) {
 
     /**
      * Opens the popover for creating a new link from selected text.
+     * Positions the popover ABOVE the FormattingMenu with an 8px gap.
+     * 
+     * Both FormattingMenu and LinkPopover use CSS transform: translate(-50%, -100%)
+     * which means their BOTTOM edge is at the `top` CSS value.
+     * 
+     * FormattingMenu bottom is at: formattingMenuPosition.top
+     * FormattingMenu top is at: formattingMenuPosition.top - formattingMenuHeight
+     * 
+     * For LinkPopover to be 8px above FormattingMenu:
+     * LinkPopover bottom = FormattingMenu top - GAP
+     * LinkPopover bottom = formattingMenuPosition.top - formattingMenuHeight - GAP
+     * 
      * @param {Object} formattingMenuPosition - Position of the FormattingMenu { top, left }
      * @param {number} formattingMenuHeight - Height of the FormattingMenu in pixels
      */
-    const openForSelection = useCallback((formattingMenuPosition, formattingMenuHeight = 40) => {
+    const openForSelection = useCallback((formattingMenuPosition, formattingMenuHeight = 42) => {
         const sel = window.getSelection();
         if (!sel.rangeCount || sel.isCollapsed) return;
 
@@ -59,15 +71,19 @@ export function useLinkPopover({ editorRef, onApplyLink }) {
         // Save the current selection
         saveSelection();
 
-        // Use same position as FormattingMenu (appears at menu position)
+        // Position above the FormattingMenu with 8px gap
+        // Since both menus use transform: translate(-50%, -100%), their bottom edge is at `top`
+        // We need LinkPopover's bottom to be above FormattingMenu's top edge
+        const GAP = 8;
         setState({
             isOpen: true,
             position: {
-                top: formattingMenuPosition.top,
+                top: formattingMenuPosition.top - formattingMenuHeight - GAP,
                 left: formattingMenuPosition.left
             },
             currentUrl: '',
             isEditing: false,
+            autoFocusInput: true,
         });
 
         activeLinkRef.current = null;

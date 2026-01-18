@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "format": "prettier --write src/",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "dompurify": "^3.3.1",
@@ -35,6 +37,11 @@
     "jsdom": "^27.4.0",
     "prettier": "^3.7.4",
     "vite": "^7.2.4",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.16",
+    "storybook": "^10.1.11",
+    "@storybook/react-vite": "^10.1.11",
+    "@storybook/addon-a11y": "^10.1.11",
+    "@storybook/addon-docs": "^10.1.11",
+    "eslint-plugin-storybook": "^10.1.11"
   }
 }

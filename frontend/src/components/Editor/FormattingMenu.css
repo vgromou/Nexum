@@ -3,11 +3,12 @@
     position: fixed;
     z-index: 1100;
     transform: translate(-50%, -100%);
-    background: var(--color-bg-white, white);
-    border: 1px solid var(--color-gray-100, #f3f4f6);
+    background: var(--surface-elevated, white);
+    border: 1px solid var(--border-default, #E5E7EB);
     border-radius: 8px;
-    box-shadow: 0 4px 16px var(--color-shadow-menu, rgba(0, 0, 0, 0.12));
-    padding: 4px;
+    box-shadow: 0 4px 16px 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
+    padding: var(--space-xs, 4px) var(--space-sm, 8px);
+    min-height: 42px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -39,63 +40,156 @@
 
 .formatting-menu-button {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
     width: 32px;
     height: 32px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    aspect-ratio: 1/1;
     padding: 0;
     border: none;
     background: transparent;
     border-radius: 6px;
-    color: var(--color-gray-500, #6b7280);
     cursor: pointer;
     transition: background-color 0.1s ease, color 0.1s ease;
 }
 
+/* Formatting button icon default state */
+.formatting-menu-button svg {
+    color: var(--icons-default, #9CA3AF);
+}
+
+/* Formatting button hover state */
 .formatting-menu-button:hover {
-    background-color: var(--color-gray-100, #f3f4f6);
-    color: var(--color-text-primary, #000);
+    background-color: var(--background-hover, #F3F4F6);
 }
 
+.formatting-menu-button:hover svg {
+    color: var(--icons-hover, #6B7280);
+}
+
+/* Formatting button active state */
 .formatting-menu-button.active {
-    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
-    color: var(--color-selection-blue, #2383e2);
+    background-color: var(--accent-primary-light, #ECEEFF);
 }
 
+.formatting-menu-button.active svg {
+    color: var(--icons-active, #5E6AD2);
+}
+
+/* Formatting button disabled state */
 .formatting-menu-button.disabled,
 .formatting-menu-button:disabled {
-    opacity: 0.4;
+    background: transparent;
     cursor: not-allowed;
     pointer-events: none;
 }
 
-.formatting-menu-button.with-dropdown {
-    width: auto;
-    padding: 0 8px;
+.formatting-menu-button.disabled svg,
+.formatting-menu-button:disabled svg {
+    color: var(--icons-disabled, #E5E7EB);
 }
+
+.formatting-menu-button.with-dropdown {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    gap: 0;
+}
+
+/* Color picker button - hug contents, gap 4px, padding left/right 4px */
+.formatting-menu-button.color-picker-button {
+    display: inline-flex;
+    width: auto;
+    height: 32px;
+    padding: 0 4px;
+    gap: 4px;
+    align-items: center;
+}
+
+/* Color picker - default state */
+.formatting-menu-button.color-picker-button svg {
+    color: var(--icons-default, #9CA3AF);
+}
+
+/* Color picker - hover state */
+.formatting-menu-button.color-picker-button:hover svg {
+    color: var(--icons-hover, #6B7280);
+}
+
+/* Color picker - active state */
+.formatting-menu-button.color-picker-button.active svg {
+    color: var(--icons-active, #5E6AD2);
+}
+
+/* Color picker button states - inherits background from base formatting-menu-button */
 
 /* Turn Into Button with block type label */
 .formatting-menu-button.turn-into-button {
+    display: inline-flex;
     width: auto;
-    padding: 0 10px;
-    gap: 6px;
+    height: 32px;
+    padding: 2px 4px;
+    align-items: center;
+    gap: 4px;
+    border-radius: 4px;
+    background: transparent;
 }
 
-.formatting-menu-button .block-type-label {
+/* Turn Into - Default state */
+.formatting-menu-button.turn-into-button svg {
+    color: var(--icons-default, #9CA3AF);
+}
+
+.formatting-menu-button.turn-into-button .block-type-label {
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-primary, #000);
+    color: var(--text-tertiary, #9CA3AF);
+    white-space: nowrap;
 }
 
-.formatting-menu-button:hover .block-type-label {
-    color: var(--color-text-primary, #000);
+.formatting-menu-button.turn-into-button .chevron-icon {
+    color: var(--icons-default, #9CA3AF);
+}
+
+/* Turn Into - Hover state */
+.formatting-menu-button.turn-into-button:hover {
+    background-color: var(--background-hover, #F3F4F6);
+}
+
+.formatting-menu-button.turn-into-button:hover svg {
+    color: var(--icons-hover, #6B7280);
+}
+
+.formatting-menu-button.turn-into-button:hover .block-type-label {
+    color: var(--text-primary, #1F2937);
+}
+
+.formatting-menu-button.turn-into-button:hover .chevron-icon {
+    color: var(--icons-hover, #6B7280);
+}
+
+/* Turn Into - Active state */
+.formatting-menu-button.turn-into-button.active {
+    background-color: var(--accent-primary-light, #ECEEFF);
+}
+
+.formatting-menu-button.turn-into-button.active svg {
+    color: var(--icons-active, #5E6AD2);
+}
+
+.formatting-menu-button.turn-into-button.active .block-type-label {
+    color: var(--accent-primary, #5E6AD2);
+}
+
+.formatting-menu-button.turn-into-button.active .chevron-icon {
+    color: var(--icons-active, #5E6AD2);
 }
 
 .formatting-menu-divider {
     width: 1px;
-    height: 20px;
-    background-color: var(--color-gray-100, #f3f4f6);
+    height: 24px;
+    background-color: var(--border-default, #E5E7EB);
     margin: 0 4px;
 }
 
@@ -271,7 +365,7 @@
     color: var(--color-gray-600, #4b5563);
 }
 
-/* Highlight Swatches - Background color with black A */
+/* Highlight Swatches - Background color with text */
 .highlight-swatch {
     border: none;
 }
@@ -280,81 +374,85 @@
     color: var(--color-text-primary, #000);
 }
 
-.highlight-swatch-purple {
-    background-color: var(--color-highlight-purple-bg);
+.highlight-swatch-default {
+    background-color: var(--color-highlight-default-bg);
+    border: 1px solid var(--border-default, #E5E7EB);
 }
 
-.highlight-swatch-blue {
-    background-color: var(--color-highlight-blue-bg);
-}
-
-.highlight-swatch-green {
-    background-color: var(--color-highlight-green-bg);
-}
-
-.highlight-swatch-orange {
-    background-color: var(--color-highlight-orange-bg);
-}
-
-.highlight-swatch-red {
-    background-color: var(--color-highlight-red-bg);
+.highlight-swatch-default .swatch-letter {
+    color: var(--color-highlight-default-text);
 }
 
 .highlight-swatch-gray {
     background-color: var(--color-highlight-gray-bg);
 }
 
-/* Tag Swatches - Background color with colored A */
-.tag-swatch {
-    border: none;
+.highlight-swatch-gray .swatch-letter {
+    color: var(--color-highlight-gray-text);
 }
 
-.tag-swatch-purple {
-    background-color: var(--color-highlight-purple-bg);
+.highlight-swatch-brown {
+    background-color: var(--color-highlight-brown-bg);
 }
 
-.tag-swatch-purple .swatch-letter {
-    color: var(--color-highlight-purple-text);
+.highlight-swatch-brown .swatch-letter {
+    color: var(--color-highlight-brown-text);
 }
 
-.tag-swatch-blue {
-    background-color: var(--color-highlight-blue-bg);
-}
-
-.tag-swatch-blue .swatch-letter {
-    color: var(--color-highlight-blue-text);
-}
-
-.tag-swatch-green {
-    background-color: var(--color-highlight-green-bg);
-}
-
-.tag-swatch-green .swatch-letter {
-    color: var(--color-highlight-green-text);
-}
-
-.tag-swatch-orange {
+.highlight-swatch-orange {
     background-color: var(--color-highlight-orange-bg);
 }
 
-.tag-swatch-orange .swatch-letter {
+.highlight-swatch-orange .swatch-letter {
     color: var(--color-highlight-orange-text);
 }
 
-.tag-swatch-red {
+.highlight-swatch-yellow {
+    background-color: var(--color-highlight-yellow-bg);
+}
+
+.highlight-swatch-yellow .swatch-letter {
+    color: var(--color-highlight-yellow-text);
+}
+
+.highlight-swatch-green {
+    background-color: var(--color-highlight-green-bg);
+}
+
+.highlight-swatch-green .swatch-letter {
+    color: var(--color-highlight-green-text);
+}
+
+.highlight-swatch-blue {
+    background-color: var(--color-highlight-blue-bg);
+}
+
+.highlight-swatch-blue .swatch-letter {
+    color: var(--color-highlight-blue-text);
+}
+
+.highlight-swatch-purple {
+    background-color: var(--color-highlight-purple-bg);
+}
+
+.highlight-swatch-purple .swatch-letter {
+    color: var(--color-highlight-purple-text);
+}
+
+.highlight-swatch-magenta {
+    background-color: var(--color-highlight-magenta-bg);
+}
+
+.highlight-swatch-magenta .swatch-letter {
+    color: var(--color-highlight-magenta-text);
+}
+
+.highlight-swatch-red {
     background-color: var(--color-highlight-red-bg);
 }
 
-.tag-swatch-red .swatch-letter {
+.highlight-swatch-red .swatch-letter {
     color: var(--color-highlight-red-text);
-}
-
-.tag-swatch-gray {
-    background-color: var(--color-highlight-gray-bg);
-}
-
-.tag-swatch-gray .swatch-letter {
-    color: var(--color-highlight-gray-text);
 }
 
 /* Active Highlight Button State (when a highlight is active) */

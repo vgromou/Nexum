@@ -1,17 +1,17 @@
 import React from 'react';
-import ActivityBar from '../Navigation/ActivityBar';
-import SpaceHierarchy from '../Navigation/SpaceHierarchy';
+import LeftSidebar from '../Navigation/LeftSidebar';
 import PageContent from '../Page/PageContent';
-import PropertiesBar from '../Page/PropertiesBar';
+import RightSidebar from '../Page/RightSidebar';
 import './Layout.css';
 
 const Layout = () => {
     return (
         <div className="layout-container">
-            <ActivityBar />
-            <SpaceHierarchy />
-            <PageContent />
-            <PropertiesBar />
+            <LeftSidebar />
+            <div className="content-block">
+                <PageContent />
+                <RightSidebar />
+            </div>
         </div>
     );
 };
