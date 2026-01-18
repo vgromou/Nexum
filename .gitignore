@@ -28,3 +28,6 @@ yarn-error.log*
 # Secrets
 secrets.json
 CLAUDE.md
+
+# Postman (managed via API)
+postman/
