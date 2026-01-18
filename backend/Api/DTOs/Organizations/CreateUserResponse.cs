@@ -34,16 +34,16 @@ public sealed class CreateUserResponse
 public sealed class UserInfo
 {
     /// <summary>
-    /// Unique identifier of the membership.
-    /// </summary>
-    /// <example>550e8400-e29b-41d4-a716-446655440002</example>
-    public required Guid Id { get; init; }
-
-    /// <summary>
     /// User's unique identifier.
     /// </summary>
     /// <example>550e8400-e29b-41d4-a716-446655440001</example>
-    public required Guid UserId { get; init; }
+    public required Guid Id { get; init; }
+
+    /// <summary>
+    /// Unique identifier of the organization membership.
+    /// </summary>
+    /// <example>550e8400-e29b-41d4-a716-446655440002</example>
+    public required Guid MemberId { get; init; }
 
     /// <summary>
     /// User's email address.

@@ -293,8 +293,8 @@ public class OrganizationMembersController : ControllerBase
 
         var userDto = new UserInfo
         {
-            Id = membership.Id,
-            UserId = user.Id,
+            Id = user.Id,
+            MemberId = membership.Id,
             Email = user.Email,
             Username = user.Username,
             FirstName = user.FirstName,

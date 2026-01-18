@@ -130,5 +130,48 @@ public class TestController : ControllerBase
 
         return StatusCode(StatusCodes.Status201Created, response);
     }
+
+    /// <summary>
+    /// Delete the test admin user.
+    /// </summary>
+    /// <remarks>
+    /// **DEBUG ONLY** - This endpoint is only available in DEBUG builds.
+    ///
+    /// Deletes the admin user (username: `admin`) and their organization membership.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>No content on success.</returns>
+    /// <response code="204">Admin user deleted successfully.</response>
+    /// <response code="404">Admin user not found.</response>
+    [HttpDelete("seed-admin")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAdmin(CancellationToken cancellationToken)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == "admin", cancellationToken);
+
+        if (user == null)
+        {
+            throw new NotFoundException(
+                "Admin user not found.",
+                "USER_NOT_FOUND");
+        }
+
+        // Remove organization membership first (cascade should handle this, but explicit is clearer)
+        var membership = await _context.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.UserId == user.Id, cancellationToken);
+
+        if (membership != null)
+        {
+            _context.OrganizationMembers.Remove(membership);
+        }
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
+    }
 }
 #endif
