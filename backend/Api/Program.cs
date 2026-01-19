@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -34,6 +35,12 @@ builder.Services.AddSingleton<IJwtService, JwtService>();
 
 // Configure Security settings
 builder.Services.Configure<SecuritySettings>(builder.Configuration.GetSection(SecuritySettings.SectionName));
+
+// Configure IP Rate Limiting
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddSingleton<IRateLimitConfiguration, CustomRateLimitConfiguration>();
+builder.Services.AddInMemoryRateLimiting();
 
 // Configure JWT authentication
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;
@@ -101,6 +108,9 @@ var app = builder.Build();
 
 // Global exception handling - must be first in the pipeline
 app.UseApiExceptionHandling();
+
+// Rate limiting - early in pipeline to protect against abuse
+app.UseCustomIpRateLimiting();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
