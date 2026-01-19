@@ -1,3 +1,4 @@
+using System.Data;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Api.Common.Constants;
 using Api.Common.Errors;
 using Api.Configuration;
 using Api.Data;
@@ -244,7 +246,7 @@ public class AuthController : ControllerBase
         if (token != null && token.RevokedAt == null)
         {
             token.RevokedAt = _timeProvider.GetUtcNow().UtcDateTime;
-            token.RevokedReason = "logout";
+            token.RevokedReason = RevokedReasons.Logout;
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("User {UserId} logged out, refresh token revoked", userId);
@@ -299,6 +301,10 @@ public class AuthController : ControllerBase
         var ipAddress = GetClientIpAddress();
         var userAgent = Request.Headers.UserAgent.ToString();
 
+        // Use transaction to prevent race condition when multiple refresh requests arrive simultaneously
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+
         // 1. Hash the provided refresh token
         var tokenHash = HashToken(request.RefreshToken);
 
@@ -318,8 +324,26 @@ public class AuthController : ControllerBase
         // 4. Check if token is already revoked (possible token reuse attack)
         if (token.RevokedAt != null)
         {
-            _logger.LogWarning("Refresh attempted with revoked token for user {UserId} from IP {IpAddress}",
-                token.UserId, ipAddress);
+            // Token reuse detected - this is a potential attack!
+            // Revoke ALL refresh tokens for this user (token family revocation)
+            _logger.LogCritical(
+                "SECURITY: Token reuse detected for user {UserId} from IP {IpAddress}. " +
+                "Revoking all user tokens. Original revocation reason: {OriginalReason}",
+                token.UserId, ipAddress, token.RevokedReason);
+
+            var userTokens = await _context.RefreshTokens
+                .Where(t => t.UserId == token.UserId && t.RevokedAt == null)
+                .ToListAsync(cancellationToken);
+
+            foreach (var userToken in userTokens)
+            {
+                userToken.RevokedAt = now;
+                userToken.RevokedReason = RevokedReasons.SecurityRevocation;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
             throw UnauthorizedException.TokenRevoked();
         }
 
@@ -348,7 +372,7 @@ public class AuthController : ControllerBase
 
         // 8. Revoke the old refresh token (single-use)
         token.RevokedAt = now;
-        token.RevokedReason = "refresh";
+        token.RevokedReason = RevokedReasons.Refresh;
 
         // 9. Generate new access token
         var accessToken = _jwtService.GenerateAccessToken(user, membership);
@@ -369,6 +393,7 @@ public class AuthController : ControllerBase
 
         _context.RefreshTokens.Add(newRefreshToken);
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         _logger.LogInformation("User {UserId} refreshed tokens from IP {IpAddress}", user.Id, ipAddress);
 
