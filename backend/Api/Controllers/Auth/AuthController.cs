@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
@@ -30,19 +31,22 @@ public class AuthController : ControllerBase
     private readonly IPasswordService _passwordService;
     private readonly TimeProvider _timeProvider;
     private readonly SecuritySettings _securitySettings;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         ApplicationDbContext context,
         IJwtService jwtService,
         IPasswordService passwordService,
         TimeProvider timeProvider,
-        IOptions<SecuritySettings> securitySettings)
+        IOptions<SecuritySettings> securitySettings,
+        ILogger<AuthController> logger)
     {
         _context = context;
         _jwtService = jwtService;
         _passwordService = passwordService;
         _timeProvider = timeProvider;
         _securitySettings = securitySettings.Value;
+        _logger = logger;
     }
 
     /// <summary>
@@ -199,6 +203,63 @@ public class AuthController : ControllerBase
         };
 
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Log out the current user by revoking their refresh token.
+    /// </summary>
+    /// <remarks>
+    /// Revokes the provided refresh token so it can no longer be used to obtain new access tokens.
+    ///
+    /// **Behavior:**
+    /// - Returns 200 OK even if the token is already revoked or not found (idempotent)
+    /// - The access token remains valid until it expires (stateless JWT)
+    /// - Client is responsible for clearing tokens from local storage
+    /// </remarks>
+    /// <param name="request">The refresh token to revoke.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Empty response on success.</returns>
+    /// <response code="200">Logout successful (or token already revoked/not found).</response>
+    /// <response code="400">Invalid request body.</response>
+    /// <response code="401">User is not authenticated.</response>
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout(
+        [FromBody] LogoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // Hash the provided refresh token
+        var tokenHash = HashToken(request.RefreshToken);
+
+        // Find the token by hash
+        var token = await _context.RefreshTokens
+            .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
+
+        // If token exists and not already revoked, revoke it
+        if (token != null && token.RevokedAt == null)
+        {
+            token.RevokedAt = _timeProvider.GetUtcNow().UtcDateTime;
+            token.RevokedReason = "logout";
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("User {UserId} logged out, refresh token revoked", userId);
+        }
+        else if (token == null)
+        {
+            _logger.LogDebug("Logout attempted with unknown token by user {UserId}", userId);
+        }
+        else
+        {
+            _logger.LogDebug("Logout attempted with already revoked token by user {UserId}", userId);
+        }
+
+        // Always return success (idempotent)
+        return Ok();
     }
 
     /// <summary>

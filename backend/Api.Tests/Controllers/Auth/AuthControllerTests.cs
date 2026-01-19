@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -25,6 +26,7 @@ public class AuthControllerTests : IDisposable
     private readonly Mock<IPasswordService> _passwordServiceMock;
     private readonly FakeTimeProvider _timeProvider;
     private readonly IOptions<SecuritySettings> _securitySettings;
+    private readonly Mock<ILogger<AuthController>> _loggerMock;
     private readonly AuthController _controller;
     private readonly Guid _organizationId;
     private readonly Guid _userId;
@@ -44,6 +46,7 @@ public class AuthControllerTests : IDisposable
             MaxFailedLoginAttempts = 5,
             LockoutDurationMinutes = 15
         });
+        _loggerMock = new Mock<ILogger<AuthController>>();
 
         // Setup JWT service mock
         _jwtServiceMock.Setup(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<OrganizationMember>()))
@@ -102,7 +105,8 @@ public class AuthControllerTests : IDisposable
             _jwtServiceMock.Object,
             _passwordServiceMock.Object,
             _timeProvider,
-            _securitySettings);
+            _securitySettings,
+            _loggerMock.Object);
 
         // Setup HttpContext
         var httpContext = new DefaultHttpContext();
@@ -575,7 +579,8 @@ public class AuthControllerTests : IDisposable
             _jwtServiceMock.Object,
             _passwordServiceMock.Object,
             _timeProvider,
-            customSettings);
+            customSettings,
+            _loggerMock.Object);
 
         controller.ControllerContext = new ControllerContext
         {
