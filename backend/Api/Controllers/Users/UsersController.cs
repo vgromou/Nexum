@@ -72,26 +72,7 @@ public class UsersController : ControllerBase
         var membership = await _context.OrganizationMembers
             .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId, cancellationToken);
 
-        var response = new UserInfo
-        {
-            Id = user.Id,
-            MemberId = membership?.Id ?? Guid.Empty,
-            Email = user.Email,
-            Username = user.Username,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            OrganizationRole = membership?.OrganizationRole ?? Models.OrganizationRole.User,
-            Position = user.Position,
-            DateOfBirth = user.DateOfBirth,
-            AvatarUrl = user.AvatarUrl,
-            IsActive = user.IsActive,
-            MustChangePassword = user.MustChangePassword,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt,
-            LastLoginAt = user.LastLoginAt
-        };
-
-        return Ok(response);
+        return Ok(user.ToUserInfo(membership));
     }
 
     /// <summary>
@@ -202,25 +183,6 @@ public class UsersController : ControllerBase
         var membership = await _context.OrganizationMembers
             .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId, cancellationToken);
 
-        var response = new UserInfo
-        {
-            Id = user.Id,
-            MemberId = membership?.Id ?? Guid.Empty,
-            Email = user.Email,
-            Username = user.Username,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            OrganizationRole = membership?.OrganizationRole ?? Models.OrganizationRole.User,
-            Position = user.Position,
-            DateOfBirth = user.DateOfBirth,
-            AvatarUrl = user.AvatarUrl,
-            IsActive = user.IsActive,
-            MustChangePassword = user.MustChangePassword,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt,
-            LastLoginAt = user.LastLoginAt
-        };
-
-        return Ok(response);
+        return Ok(user.ToUserInfo(membership));
     }
 }

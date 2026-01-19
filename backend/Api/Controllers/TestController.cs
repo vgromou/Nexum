@@ -6,6 +6,7 @@ using Api.Common.Errors;
 using Api.Data;
 using Api.DTOs.Organizations;
 using Api.Exceptions;
+using Api.Extensions;
 using Api.Models;
 
 namespace Api.Controllers;
@@ -110,26 +111,7 @@ public class TestController : ControllerBase
         _context.OrganizationMembers.Add(membership);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var response = new UserInfo
-        {
-            Id = user.Id,
-            MemberId = membership.Id,
-            Email = user.Email,
-            Username = user.Username,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            OrganizationRole = membership.OrganizationRole,
-            Position = user.Position,
-            DateOfBirth = user.DateOfBirth,
-            AvatarUrl = user.AvatarUrl,
-            IsActive = user.IsActive,
-            MustChangePassword = user.MustChangePassword,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt,
-            LastLoginAt = user.LastLoginAt
-        };
-
-        return StatusCode(StatusCodes.Status201Created, response);
+        return StatusCode(StatusCodes.Status201Created, user.ToUserInfo(membership));
     }
 
     /// <summary>

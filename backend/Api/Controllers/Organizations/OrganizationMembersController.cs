@@ -151,24 +151,7 @@ public class OrganizationMembersController : ControllerBase
             .ToListAsync(cancellationToken);
 
         // Map to response items
-        var items = members.Select(m => new UserInfo
-        {
-            Id = m.User.Id,
-            MemberId = m.Id,
-            Email = m.User.Email,
-            Username = m.User.Username,
-            FirstName = m.User.FirstName,
-            LastName = m.User.LastName,
-            OrganizationRole = m.OrganizationRole,
-            Position = m.User.Position,
-            DateOfBirth = m.User.DateOfBirth,
-            AvatarUrl = m.User.AvatarUrl,
-            IsActive = m.User.IsActive,
-            MustChangePassword = m.User.MustChangePassword,
-            CreatedAt = m.User.CreatedAt,
-            UpdatedAt = m.User.UpdatedAt,
-            LastLoginAt = m.User.LastLoginAt
-        });
+        var items = members.Select(m => m.User.ToUserInfo(m));
 
         return Ok(PagedResponse.Create(items, query.Page, query.PageSize, totalItems));
     }
@@ -292,25 +275,9 @@ public class OrganizationMembersController : ControllerBase
         _context.OrganizationMembers.Add(membership);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var userDto = new UserInfo
-        {
-            Id = user.Id,
-            MemberId = membership.Id,
-            Email = user.Email,
-            Username = user.Username,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            OrganizationRole = membership.OrganizationRole,
-            Position = user.Position,
-            DateOfBirth = user.DateOfBirth,
-            AvatarUrl = user.AvatarUrl,
-            IsActive = user.IsActive,
-            MustChangePassword = user.MustChangePassword
-        };
-
         var response = new CreateUserResponse
         {
-            User = userDto,
+            User = user.ToUserInfo(membership),
             TemporaryPassword = temporaryPassword
         };
 
