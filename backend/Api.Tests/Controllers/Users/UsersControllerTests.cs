@@ -2,18 +2,21 @@ using System.Security.Claims;
 using Api.Controllers.Users;
 using Api.Data;
 using Api.DTOs.Organizations;
+using Api.DTOs.Users;
 using Api.Exceptions;
 using Api.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Api.Tests.Controllers.Users;
 
 public class UsersControllerTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly FakeTimeProvider _timeProvider;
     private readonly UsersController _controller;
     private readonly Guid _organizationId;
     private readonly Guid _userId;
@@ -26,6 +29,7 @@ public class UsersControllerTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
+        _timeProvider = new FakeTimeProvider(new DateTimeOffset(2025, 1, 15, 12, 0, 0, TimeSpan.Zero));
 
         _organizationId = Guid.NewGuid();
         _userId = Guid.NewGuid();
@@ -70,7 +74,7 @@ public class UsersControllerTests : IDisposable
         _context.OrganizationMembers.Add(membership);
         _context.SaveChanges();
 
-        _controller = new UsersController(_context);
+        _controller = new UsersController(_context, _timeProvider);
     }
 
     public void Dispose()
@@ -387,6 +391,601 @@ public class UsersControllerTests : IDisposable
         response.DateOfBirth.Should().BeNull();
         response.AvatarUrl.Should().BeNull();
         response.LastLoginAt.Should().BeNull();
+    }
+
+    #endregion
+
+    #region UpdateCurrentUser Success Tests
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithValidRequest_ShouldReturn200Ok()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "Updated"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.FirstName.Should().Be("Updated");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdateOnlyProvidedFields()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "NewFirst"
+            // LastName not provided - should remain unchanged
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.FirstName.Should().Be("NewFirst");
+        response.LastName.Should().Be("User"); // Original value
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdateEmail()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Email = "newemail@example.com"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.Email.Should().Be("newemail@example.com");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldNormalizeEmailToLowercase()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Email = "NewEmail@Example.COM"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.Email.Should().Be("newemail@example.com");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdateUsername()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Username = "newusername"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.Username.Should().Be("newusername");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldNormalizeUsernameToLowercase()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Username = "NewUserName"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.Username.Should().Be("newusername");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdatePosition()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Position = "Senior Developer"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.Position.Should().Be("Senior Developer");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldClearPositionWithEmptyString()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Position = ""
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.Position.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdateDateOfBirth()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            DateOfBirth = new DateOnly(1990, 5, 15)
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.DateOfBirth.Should().Be(new DateOnly(1990, 5, 15));
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdateAvatarUrl()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            AvatarUrl = "https://example.com/avatar.jpg"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.AvatarUrl.Should().Be("https://example.com/avatar.jpg");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldClearAvatarUrlWithEmptyString()
+    {
+        // Arrange
+        var user = await _context.Users.FirstAsync(u => u.Id == _userId);
+        user.AvatarUrl = "https://old-avatar.com/pic.jpg";
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            AvatarUrl = ""
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.AvatarUrl.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdateTimestamp()
+    {
+        // Arrange
+        var originalUpdatedAt = new DateTime(2025, 1, 10, 0, 0, 0, DateTimeKind.Utc);
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "Updated"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        // UpdatedAt should be different from original and close to current time
+        response.UpdatedAt.Should().NotBe(originalUpdatedAt);
+        response.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldUpdateMultipleFields()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Position = "CTO"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.FirstName.Should().Be("John");
+        response.LastName.Should().Be("Doe");
+        response.Position.Should().Be("CTO");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithEmptyRequest_ShouldReturn200Ok()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest();
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.FirstName.Should().Be("Test"); // Original value preserved
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldTrimWhitespace()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "  John  ",
+            LastName = "  Doe  "
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.FirstName.Should().Be("John");
+        response.LastName.Should().Be("Doe");
+    }
+
+    #endregion
+
+    #region UpdateCurrentUser Conflict Tests
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithExistingEmail_ShouldThrowConflictException()
+    {
+        // Arrange
+        var anotherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "existing@example.com",
+            Username = "existinguser",
+            PasswordHash = "hash",
+            FirstName = "Existing",
+            LastName = "User",
+            IsActive = true
+        };
+        _context.Users.Add(anotherUser);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Email = "existing@example.com"
+        };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*email*already*");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithExistingEmailDifferentCase_ShouldThrowConflictException()
+    {
+        // Arrange
+        var anotherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "existing@example.com",
+            Username = "existinguser",
+            PasswordHash = "hash",
+            FirstName = "Existing",
+            LastName = "User",
+            IsActive = true
+        };
+        _context.Users.Add(anotherUser);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Email = "EXISTING@EXAMPLE.COM"
+        };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithExistingUsername_ShouldThrowConflictException()
+    {
+        // Arrange
+        var anotherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "another@example.com",
+            Username = "existinguser",
+            PasswordHash = "hash",
+            FirstName = "Existing",
+            LastName = "User",
+            IsActive = true
+        };
+        _context.Users.Add(anotherUser);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Username = "existinguser"
+        };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*username*already*");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithExistingUsernameDifferentCase_ShouldThrowConflictException()
+    {
+        // Arrange
+        var anotherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "another@example.com",
+            Username = "existinguser",
+            PasswordHash = "hash",
+            FirstName = "Existing",
+            LastName = "User",
+            IsActive = true
+        };
+        _context.Users.Add(anotherUser);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Username = "EXISTINGUSER"
+        };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithOwnEmail_ShouldSucceed()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Email = "test@example.com" // Same as current email
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithOwnUsername_ShouldSucceed()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            Username = "testuser" // Same as current username
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+    }
+
+    #endregion
+
+    #region UpdateCurrentUser Unauthorized Tests
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithoutUserId_ShouldThrowUnauthorizedException()
+    {
+        // Arrange
+        SetupAuthenticatedUser(null, _organizationId);
+        var request = new UpdateUserRequest { FirstName = "Test" };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("*user ID or organization ID not found*");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithoutOrganizationId_ShouldThrowUnauthorizedException()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, null);
+        var request = new UpdateUserRequest { FirstName = "Test" };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("*user ID or organization ID not found*");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithNoClaims_ShouldThrowUnauthorizedException()
+    {
+        // Arrange
+        SetupAuthenticatedUser(null, null);
+        var request = new UpdateUserRequest { FirstName = "Test" };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
+    }
+
+    #endregion
+
+    #region UpdateCurrentUser NotFound Tests
+
+    [Fact]
+    public async Task UpdateCurrentUser_WithNonExistentUser_ShouldThrowNotFoundException()
+    {
+        // Arrange
+        var nonExistentUserId = Guid.NewGuid();
+        SetupAuthenticatedUser(nonExistentUserId, _organizationId);
+        var request = new UpdateUserRequest { FirstName = "Test" };
+
+        // Act
+        var act = () => _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>()
+            .WithMessage("*User not found*");
+    }
+
+    #endregion
+
+    #region UpdateCurrentUser Role Preservation Tests
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldPreserveOrganizationRole()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "Updated"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.OrganizationRole.Should().Be(OrganizationRole.Admin); // Preserved from membership
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldPreserveMemberId()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "Updated"
+        };
+
+        // Act
+        var result = await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.MemberId.Should().Be(_membershipId);
+    }
+
+    #endregion
+
+    #region UpdateCurrentUser Database Persistence Tests
+
+    [Fact]
+    public async Task UpdateCurrentUser_ShouldPersistChangesToDatabase()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "Persisted",
+            LastName = "User"
+        };
+
+        // Act
+        await _controller.UpdateCurrentUser(request, CancellationToken.None);
+
+        // Assert - Verify in database
+        var user = await _context.Users.FirstAsync(u => u.Id == _userId);
+        user.FirstName.Should().Be("Persisted");
+        user.LastName.Should().Be("User");
     }
 
     #endregion

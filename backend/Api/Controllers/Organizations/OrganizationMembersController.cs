@@ -68,12 +68,12 @@ public class OrganizationMembersController : ControllerBase
     /// <response code="403">Not authorized to view members of this organization.</response>
     /// <response code="404">Organization not found.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResponse<MemberResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<UserInfo>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResponse<MemberResponse>>> GetMembers(
+    public async Task<ActionResult<PagedResponse<UserInfo>>> GetMembers(
         [FromRoute] Guid organizationId,
         [FromQuery] GetMembersQueryParameters query,
         CancellationToken cancellationToken)
@@ -151,9 +151,10 @@ public class OrganizationMembersController : ControllerBase
             .ToListAsync(cancellationToken);
 
         // Map to response items
-        var items = members.Select(m => new MemberResponse
+        var items = members.Select(m => new UserInfo
         {
             Id = m.User.Id,
+            MemberId = m.Id,
             Email = m.User.Email,
             Username = m.User.Username,
             FirstName = m.User.FirstName,
@@ -166,7 +167,7 @@ public class OrganizationMembersController : ControllerBase
             MustChangePassword = m.User.MustChangePassword,
             CreatedAt = m.User.CreatedAt,
             UpdatedAt = m.User.UpdatedAt,
-            LastLoginAt = null // TODO: Add LastLoginAt to User model when login tracking is implemented
+            LastLoginAt = m.User.LastLoginAt
         });
 
         return Ok(PagedResponse.Create(items, query.Page, query.PageSize, totalItems));

@@ -797,7 +797,7 @@ public class OrganizationMembersControllerTests : IDisposable
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         okResult.StatusCode.Should().Be(200);
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(3);
     }
 
@@ -827,7 +827,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().BeEmpty();
         response.TotalItems.Should().Be(0);
         response.TotalPages.Should().Be(0);
@@ -845,7 +845,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Page.Should().Be(2);
         response.PageSize.Should().Be(10);
         response.TotalItems.Should().Be(25);
@@ -867,7 +867,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.HasPreviousPage.Should().BeFalse();
         response.HasNextPage.Should().BeTrue();
     }
@@ -884,7 +884,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.HasPreviousPage.Should().BeTrue();
         response.HasNextPage.Should().BeFalse();
         response.Items.Should().HaveCount(5);
@@ -902,7 +902,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(1);
         response.Items[0].Email.Should().Be("user2@test.com");
     }
@@ -919,7 +919,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(1);
         response.Items[0].FirstName.Should().Be("First3");
     }
@@ -936,7 +936,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(1);
         response.Items[0].LastName.Should().Be("Last4");
     }
@@ -953,7 +953,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(1);
         response.Items[0].Username.Should().Be("user1");
     }
@@ -970,7 +970,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(1);
         response.Items[0].Email.Should().Be("user2@test.com");
     }
@@ -987,7 +987,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().AllSatisfy(m => m.OrganizationRole.Should().Be(OrganizationRole.Admin));
     }
 
@@ -1008,7 +1008,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(3);
         response.Items.Should().AllSatisfy(m => m.IsActive.Should().BeTrue());
     }
@@ -1029,7 +1029,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(2);
         response.Items.Should().AllSatisfy(m => m.IsActive.Should().BeFalse());
     }
@@ -1046,7 +1046,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().BeInAscendingOrder(m => m.Email);
     }
 
@@ -1062,7 +1062,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().BeInDescendingOrder(m => m.Email);
     }
 
@@ -1078,7 +1078,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().BeInAscendingOrder(m => m.FirstName);
     }
 
@@ -1094,7 +1094,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().BeInDescendingOrder(m => m.LastName);
     }
 
@@ -1110,7 +1110,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().BeInDescendingOrder(m => m.CreatedAt);
     }
 
@@ -1131,7 +1131,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().AllSatisfy(m =>
         {
             m.OrganizationRole.Should().Be(OrganizationRole.User);
@@ -1176,7 +1176,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         var member = response.Items.First();
 
         member.Id.Should().Be(user.Id);
@@ -1237,7 +1237,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(3);
         response.Items.Should().NotContain(m => m.Email == "other@other.com");
     }
@@ -1254,7 +1254,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(5);
         response.TotalPages.Should().Be(1);
         response.HasNextPage.Should().BeFalse();
@@ -1272,7 +1272,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().BeEmpty();
         response.TotalItems.Should().Be(0);
     }
@@ -1289,7 +1289,7 @@ public class OrganizationMembersControllerTests : IDisposable
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<PagedResponse<MemberResponse>>().Subject;
+        var response = okResult.Value.Should().BeOfType<PagedResponse<UserInfo>>().Subject;
         response.Items.Should().HaveCount(5); // All users have @test.com
     }
 
