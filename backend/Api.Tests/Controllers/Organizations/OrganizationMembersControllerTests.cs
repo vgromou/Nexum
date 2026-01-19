@@ -405,7 +405,7 @@ public class OrganizationMembersControllerTests : IDisposable
         var response = objectResult.Value.Should().BeOfType<CreateUserResponse>().Subject;
 
         response.User.Id.Should().NotBeEmpty();
-        response.User.UserId.Should().NotBeEmpty();
+        response.User.MemberId.Should().NotBeEmpty();
         response.User.Email.Should().Be("complete@test.com");
         response.User.Username.Should().Be("complete_user");
         response.User.FirstName.Should().Be("Complete");

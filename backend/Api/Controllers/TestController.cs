@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Common.Errors;
 using Api.Data;
-using Api.DTOs.Auth;
+using Api.DTOs.Organizations;
 using Api.Exceptions;
 using Api.Models;
 
@@ -52,10 +52,10 @@ public class TestController : ControllerBase
     /// <response code="409">Username 'admin' already exists.</response>
     [HttpPost("seed-admin")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(LoginUserResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(UserInfo), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<LoginUserResponse>> SeedAdmin(CancellationToken cancellationToken)
+    public async Task<ActionResult<UserInfo>> SeedAdmin(CancellationToken cancellationToken)
     {
         // Check if admin user already exists
         var existingUser = await _context.Users
@@ -110,9 +110,10 @@ public class TestController : ControllerBase
         _context.OrganizationMembers.Add(membership);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var response = new LoginUserResponse
+        var response = new UserInfo
         {
             Id = user.Id,
+            MemberId = membership.Id,
             Email = user.Email,
             Username = user.Username,
             FirstName = user.FirstName,

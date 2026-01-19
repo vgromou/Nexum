@@ -1,7 +1,7 @@
 #if DEBUG
 using Api.Controllers;
 using Api.Data;
-using Api.DTOs.Auth;
+using Api.DTOs.Organizations;
 using Api.Exceptions;
 using Api.Models;
 using FluentAssertions;
@@ -108,7 +108,7 @@ public class TestControllerTests : IDisposable
 
         // Assert
         var objectResult = result.Result.Should().BeOfType<ObjectResult>().Subject;
-        var response = objectResult.Value.Should().BeOfType<LoginUserResponse>().Subject;
+        var response = objectResult.Value.Should().BeOfType<UserInfo>().Subject;
 
         response.Email.Should().Be("admin@localhost");
         response.Username.Should().Be("admin");
@@ -228,7 +228,7 @@ public class TestControllerTests : IDisposable
 
         // Assert
         var objectResult = result.Result.Should().BeOfType<ObjectResult>().Subject;
-        var response = objectResult.Value.Should().BeOfType<LoginUserResponse>().Subject;
+        var response = objectResult.Value.Should().BeOfType<UserInfo>().Subject;
 
         response.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         response.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
@@ -246,7 +246,7 @@ public class TestControllerTests : IDisposable
 
         // Assert
         var objectResult = result.Result.Should().BeOfType<ObjectResult>().Subject;
-        var response = objectResult.Value.Should().BeOfType<LoginUserResponse>().Subject;
+        var response = objectResult.Value.Should().BeOfType<UserInfo>().Subject;
 
         response.LastLoginAt.Should().BeNull();
     }

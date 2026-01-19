@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Common.Errors;
 using Api.Data;
-using Api.DTOs.Auth;
+using Api.DTOs.Organizations;
 using Api.Exceptions;
 using Api.Extensions;
 
@@ -41,22 +41,22 @@ public class UsersController : ControllerBase
     /// <response code="401">Not authenticated.</response>
     /// <response code="404">User not found in database.</response>
     [HttpGet("me")]
-    [ProducesResponseType(typeof(LoginUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserInfo), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LoginUserResponse>> GetCurrentUser(CancellationToken cancellationToken)
+    public async Task<ActionResult<UserInfo>> GetCurrentUser(CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
+        var organizationId = User.GetOrganizationId();
 
-        if (userId == null)
+        if (userId == null || organizationId == null)
         {
             throw new UnauthorizedException(
-                "Invalid token: user ID not found in claims.",
+                "Invalid token: user ID or organization ID not found in claims.",
                 "UNAUTHORIZED");
         }
 
         var user = await _context.Users
-            .Include(u => u.OrganizationMemberships)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
@@ -66,11 +66,13 @@ public class UsersController : ControllerBase
                 "USER_NOT_FOUND");
         }
 
-        var membership = user.OrganizationMemberships.FirstOrDefault();
+        var membership = await _context.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId, cancellationToken);
 
-        var response = new LoginUserResponse
+        var response = new UserInfo
         {
             Id = user.Id,
+            MemberId = membership?.Id ?? Guid.Empty,
             Email = user.Email,
             Username = user.Username,
             FirstName = user.FirstName,

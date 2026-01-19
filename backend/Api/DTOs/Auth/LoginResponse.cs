@@ -1,3 +1,5 @@
+using Api.DTOs.Organizations;
+
 namespace Api.DTOs.Auth;
 
 /// <summary>
@@ -32,7 +34,7 @@ public sealed class LoginResponse
     /// <summary>
     /// Authenticated user information.
     /// </summary>
-    public required LoginUserResponse User { get; init; }
+    public required UserInfo User { get; init; }
 
     /// <summary>
     /// Whether the user must change their password before accessing other endpoints.

@@ -9,6 +9,7 @@ using Api.Common.Errors;
 using Api.Configuration;
 using Api.Data;
 using Api.DTOs.Auth;
+using Api.DTOs.Organizations;
 using Api.Exceptions;
 using Api.Models;
 using Api.Services;
@@ -176,9 +177,10 @@ public class AuthController : ControllerBase
             AccessToken = accessToken,
             RefreshToken = refreshTokenValue,
             ExpiresIn = (int)_jwtService.AccessTokenExpiration.TotalSeconds,
-            User = new LoginUserResponse
+            User = new UserInfo
             {
                 Id = user.Id,
+                MemberId = membership.Id,
                 Email = user.Email,
                 Username = user.Username,
                 FirstName = user.FirstName,

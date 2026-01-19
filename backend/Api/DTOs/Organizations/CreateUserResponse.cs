@@ -112,4 +112,25 @@ public sealed class UserInfo
     /// </summary>
     /// <example>true</example>
     public required bool MustChangePassword { get; init; }
+
+    /// <summary>
+    /// Account creation timestamp.
+    /// </summary>
+    /// <example>2025-01-15T10:30:00Z</example>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTime? CreatedAt { get; init; }
+
+    /// <summary>
+    /// Last account update timestamp.
+    /// </summary>
+    /// <example>2025-01-15T10:30:00Z</example>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTime? UpdatedAt { get; init; }
+
+    /// <summary>
+    /// Last successful login timestamp.
+    /// </summary>
+    /// <example>2025-01-18T08:45:00Z</example>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTime? LastLoginAt { get; init; }
 }
