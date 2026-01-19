@@ -263,6 +263,127 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Refresh authentication tokens using a valid refresh token.
+    /// </summary>
+    /// <remarks>
+    /// Exchanges a valid refresh token for new access and refresh tokens.
+    ///
+    /// **Token Rotation:**
+    /// - The provided refresh token is revoked after successful refresh
+    /// - A new refresh token is issued with each refresh (single-use tokens)
+    /// - New refresh token gets a fresh 7-day expiration
+    ///
+    /// **Security:**
+    /// - Reuse of an already-revoked token returns AUTH_TOKEN_REVOKED error
+    /// - If user is deactivated, refresh is rejected even with valid token
+    /// - All refresh attempts are logged for security audit
+    ///
+    /// **Note:** No Bearer token required - the refresh token itself serves as authentication.
+    /// </remarks>
+    /// <param name="request">The refresh token to exchange.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>New authentication tokens.</returns>
+    /// <response code="200">Token refresh successful.</response>
+    /// <response code="400">Invalid request body.</response>
+    /// <response code="401">Token expired, revoked, or user deactivated.</response>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(RefreshResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<RefreshResponse>> Refresh(
+        [FromBody] RefreshRequest request,
+        CancellationToken cancellationToken)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var ipAddress = GetClientIpAddress();
+        var userAgent = Request.Headers.UserAgent.ToString();
+
+        // 1. Hash the provided refresh token
+        var tokenHash = HashToken(request.RefreshToken);
+
+        // 2. Find the token by hash
+        var token = await _context.RefreshTokens
+            .Include(t => t.User)
+                .ThenInclude(u => u.OrganizationMemberships)
+            .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
+
+        // 3. Validate token exists
+        if (token == null)
+        {
+            _logger.LogWarning("Refresh attempted with unknown token from IP {IpAddress}", ipAddress);
+            throw UnauthorizedException.TokenInvalid();
+        }
+
+        // 4. Check if token is already revoked (possible token reuse attack)
+        if (token.RevokedAt != null)
+        {
+            _logger.LogWarning("Refresh attempted with revoked token for user {UserId} from IP {IpAddress}",
+                token.UserId, ipAddress);
+            throw UnauthorizedException.TokenRevoked();
+        }
+
+        // 5. Check if token has expired
+        if (token.ExpiresAt < now)
+        {
+            _logger.LogInformation("Refresh attempted with expired token for user {UserId}", token.UserId);
+            throw UnauthorizedException.RefreshTokenExpired();
+        }
+
+        // 6. Check if user is active
+        var user = token.User;
+        if (!user.IsActive)
+        {
+            _logger.LogWarning("Refresh attempted for deactivated user {UserId}", user.Id);
+            throw UnauthorizedException.AccountDeactivated();
+        }
+
+        // 7. Get user's organization membership (MVP: single organization)
+        var membership = user.OrganizationMemberships.FirstOrDefault();
+        if (membership == null)
+        {
+            _logger.LogWarning("Refresh attempted for user {UserId} with no organization membership", user.Id);
+            throw UnauthorizedException.TokenInvalid();
+        }
+
+        // 8. Revoke the old refresh token (single-use)
+        token.RevokedAt = now;
+        token.RevokedReason = "refresh";
+
+        // 9. Generate new access token
+        var accessToken = _jwtService.GenerateAccessToken(user, membership);
+
+        // 10. Generate and store new refresh token (rotation)
+        var newRefreshTokenValue = _jwtService.GenerateRefreshToken();
+        var newRefreshTokenHash = HashToken(newRefreshTokenValue);
+
+        var newRefreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = newRefreshTokenHash,
+            ExpiresAt = now.Add(_jwtService.RefreshTokenExpiration),
+            DeviceInfo = userAgent,
+            IpAddress = ipAddress
+        };
+
+        _context.RefreshTokens.Add(newRefreshToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("User {UserId} refreshed tokens from IP {IpAddress}", user.Id, ipAddress);
+
+        // 11. Build response
+        var response = new RefreshResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = newRefreshTokenValue,
+            ExpiresIn = (int)_jwtService.AccessTokenExpiration.TotalSeconds
+        };
+
+        return Ok(response);
+    }
+
+    /// <summary>
     /// Hashes a token using SHA-256.
     /// </summary>
     private static string HashToken(string token)

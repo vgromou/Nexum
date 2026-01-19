@@ -64,6 +64,17 @@ public class UnauthorizedException : ApiException
     }
 
     /// <summary>
+    /// Creates an exception for revoked refresh token.
+    /// Also used for token reuse detection.
+    /// </summary>
+    public static UnauthorizedException TokenRevoked()
+    {
+        return new UnauthorizedException(
+            "Your session has been revoked. Please log in again",
+            ErrorCodes.AUTH_TOKEN_REVOKED);
+    }
+
+    /// <summary>
     /// Creates an exception for locked account with lockout details.
     /// </summary>
     /// <param name="lockoutEndsAt">When the lockout expires.</param>

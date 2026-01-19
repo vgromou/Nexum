@@ -11,6 +11,7 @@ public static class ErrorCodes
     public const string AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED";
     public const string AUTH_TOKEN_INVALID = "AUTH_TOKEN_INVALID";
     public const string AUTH_REFRESH_TOKEN_EXPIRED = "AUTH_REFRESH_TOKEN_EXPIRED";
+    public const string AUTH_TOKEN_REVOKED = "AUTH_TOKEN_REVOKED";
     public const string AUTH_SESSION_EXPIRED = "AUTH_SESSION_EXPIRED";
     public const string AUTH_ACCOUNT_LOCKED = "AUTH_ACCOUNT_LOCKED";
     public const string AUTH_ACCOUNT_DISABLED = "AUTH_ACCOUNT_DISABLED";
