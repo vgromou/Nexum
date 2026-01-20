@@ -7,6 +7,7 @@ using Api.DTOs.Organizations;
 using Api.DTOs.Users;
 using Api.Exceptions;
 using Api.Extensions;
+using Api.Filters;
 
 namespace Api.Controllers.Users;
 
@@ -18,6 +19,7 @@ namespace Api.Controllers.Users;
 [Produces("application/json")]
 [Tags("Users")]
 [Authorize]
+[RequireValidClaims]
 public class UsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -49,15 +51,8 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserInfo>> GetCurrentUser(CancellationToken cancellationToken)
     {
-        var userId = User.GetUserId();
-        var organizationId = User.GetOrganizationId();
-
-        if (userId == null || organizationId == null)
-        {
-            throw new UnauthorizedException(
-                "Invalid token: user ID or organization ID not found in claims.",
-                "UNAUTHORIZED");
-        }
+        var userId = HttpContext.GetValidatedUserId();
+        var organizationId = HttpContext.GetValidatedOrganizationId();
 
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
@@ -106,15 +101,8 @@ public class UsersController : ControllerBase
         [FromBody] UpdateUserRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = User.GetUserId();
-        var organizationId = User.GetOrganizationId();
-
-        if (userId == null || organizationId == null)
-        {
-            throw new UnauthorizedException(
-                "Invalid token: user ID or organization ID not found in claims.",
-                "UNAUTHORIZED");
-        }
+        var userId = HttpContext.GetValidatedUserId();
+        var organizationId = HttpContext.GetValidatedOrganizationId();
 
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);

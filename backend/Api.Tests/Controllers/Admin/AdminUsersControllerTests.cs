@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Api.Common.Constants;
+using Api.Configuration;
 using Api.Controllers.Admin;
 using Api.Data;
 using Api.DTOs.Admin;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 
@@ -115,10 +117,12 @@ public class AdminUsersControllerTests : IDisposable
             .Setup(p => p.HashPassword(It.IsAny<string>()))
             .Returns("new-hashed-password");
 
+        var securitySettings = Options.Create(new SecuritySettings());
         _controller = new AdminUsersController(
             _context,
             _passwordServiceMock.Object,
             _timeProvider,
+            securitySettings,
             _loggerMock.Object);
     }
 

@@ -541,10 +541,15 @@ public class AuthControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task Login_WithXForwardedFor_ShouldUseForwardedIp()
+    public async Task Login_WithForwardedIp_ShouldUseRemoteIpAddress()
     {
         // Arrange
-        _controller.ControllerContext.HttpContext.Request.Headers["X-Forwarded-For"] = "192.168.1.100, 10.0.0.1";
+        // Note: In production, the ForwardedHeaders middleware processes X-Forwarded-For
+        // and sets Connection.RemoteIpAddress. In unit tests, we simulate this by
+        // setting RemoteIpAddress directly.
+        var httpContext = new DefaultHttpContext();
+        httpContext.Connection.RemoteIpAddress = IPAddress.Parse("192.168.1.100");
+        _controller.ControllerContext.HttpContext = httpContext;
 
         var request = new LoginRequest
         {

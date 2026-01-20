@@ -2,7 +2,9 @@ using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Api.Common.Errors;
+using Api.Configuration;
 using Api.Data;
 using Api.DTOs.Common;
 using Api.DTOs.Organizations;
@@ -26,15 +28,18 @@ public class OrganizationMembersController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IPasswordService _passwordService;
     private readonly TimeProvider _timeProvider;
+    private readonly SecuritySettings _securitySettings;
 
     public OrganizationMembersController(
         ApplicationDbContext context,
         IPasswordService passwordService,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IOptions<SecuritySettings> securitySettings)
     {
         _context = context;
         _passwordService = passwordService;
         _timeProvider = timeProvider;
+        _securitySettings = securitySettings.Value;
     }
 
     /// <summary>
@@ -240,7 +245,7 @@ public class OrganizationMembersController : ControllerBase
         }
 
         // Generate temporary password
-        var temporaryPassword = _passwordService.GenerateTemporaryPassword(16);
+        var temporaryPassword = _passwordService.GenerateTemporaryPassword(_securitySettings.TemporaryPasswordLength);
         var passwordHash = _passwordService.HashPassword(temporaryPassword);
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;

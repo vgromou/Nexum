@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -35,6 +36,19 @@ builder.Services.AddSingleton<IJwtService, JwtService>();
 
 // Configure Security settings
 builder.Services.Configure<SecuritySettings>(builder.Configuration.GetSection(SecuritySettings.SectionName));
+
+// Register background services
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
+
+// Configure Forwarded Headers for reverse proxy scenarios
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Clear default network restrictions for development
+    // In production, configure KnownProxies or KnownIPNetworks for your specific infrastructure
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Configure IP Rate Limiting
 builder.Services.AddMemoryCache();
@@ -106,7 +120,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Global exception handling - must be first in the pipeline
+// Forwarded headers - must be first to correctly identify client IPs behind reverse proxy
+app.UseForwardedHeaders();
+
+// Global exception handling
 app.UseApiExceptionHandling();
 
 // Rate limiting - early in pipeline to protect against abuse

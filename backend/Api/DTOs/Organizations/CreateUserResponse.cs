@@ -41,9 +41,10 @@ public sealed class UserInfo
 
     /// <summary>
     /// Unique identifier of the organization membership.
+    /// Null if the user is not a member of the current organization context.
     /// </summary>
     /// <example>550e8400-e29b-41d4-a716-446655440002</example>
-    public required Guid MemberId { get; init; }
+    public Guid? MemberId { get; init; }
 
     /// <summary>
     /// User's email address.

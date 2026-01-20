@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Api.Configuration;
 using Api.Controllers.Organizations;
 using Api.Data;
 using Api.DTOs.Common;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 
@@ -51,7 +53,8 @@ public class OrganizationMembersControllerTests : IDisposable
         _context.Organizations.Add(organization);
         _context.SaveChanges();
 
-        _controller = new OrganizationMembersController(_context, _passwordServiceMock.Object, _timeProvider);
+        var securitySettings = Options.Create(new SecuritySettings());
+        _controller = new OrganizationMembersController(_context, _passwordServiceMock.Object, _timeProvider, securitySettings);
 
         // Set up HttpContext with User claims for authorization
         var claims = new List<Claim>

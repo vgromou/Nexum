@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Api.Common.Constants;
 using Api.Common.Errors;
+using Api.Configuration;
 using Api.Data;
 using Api.DTOs.Admin;
 using Api.Exceptions;
 using Api.Extensions;
+using Api.Filters;
 using Api.Services;
 
 namespace Api.Controllers.Admin;
@@ -20,22 +23,26 @@ namespace Api.Controllers.Admin;
 [Produces("application/json")]
 [Tags("Admin Users")]
 [Authorize(Roles = "admin")]
+[RequireValidClaims]
 public class AdminUsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IPasswordService _passwordService;
     private readonly TimeProvider _timeProvider;
+    private readonly SecuritySettings _securitySettings;
     private readonly ILogger<AdminUsersController> _logger;
 
     public AdminUsersController(
         ApplicationDbContext context,
         IPasswordService passwordService,
         TimeProvider timeProvider,
+        IOptions<SecuritySettings> securitySettings,
         ILogger<AdminUsersController> logger)
     {
         _context = context;
         _passwordService = passwordService;
         _timeProvider = timeProvider;
+        _securitySettings = securitySettings.Value;
         _logger = logger;
     }
 
@@ -72,14 +79,9 @@ public class AdminUsersController : ControllerBase
     {
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-        // 1. Get caller's organization from JWT
-        var callerOrganizationId = User.GetOrganizationId();
-        var callerUserId = User.GetUserId();
-
-        if (!callerOrganizationId.HasValue || !callerUserId.HasValue)
-        {
-            throw new UnauthorizedException("Invalid token: user ID or organization ID not found");
-        }
+        // 1. Get caller's organization from JWT (validated by RequireValidClaimsAttribute)
+        var callerOrganizationId = HttpContext.GetValidatedOrganizationId();
+        var callerUserId = HttpContext.GetValidatedUserId();
 
         // 2. Find target user and verify they belong to caller's organization
         var targetUser = await _context.Users
@@ -93,7 +95,7 @@ public class AdminUsersController : ControllerBase
 
         // Check if target user is in the same organization as caller
         var isInSameOrganization = targetUser.OrganizationMemberships
-            .Any(m => m.OrganizationId == callerOrganizationId.Value);
+            .Any(m => m.OrganizationId == callerOrganizationId);
 
         if (!isInSameOrganization)
         {
@@ -104,7 +106,7 @@ public class AdminUsersController : ControllerBase
         }
 
         // 3. Generate temporary password
-        var temporaryPassword = _passwordService.GenerateTemporaryPassword(16);
+        var temporaryPassword = _passwordService.GenerateTemporaryPassword(_securitySettings.TemporaryPasswordLength);
 
         // 4. Hash and update user's password
         targetUser.PasswordHash = _passwordService.HashPassword(temporaryPassword);

@@ -30,4 +30,9 @@ public static class RevokedReasons
     /// Token was revoked because the user's password was reset by an admin.
     /// </summary>
     public const string PasswordReset = "password_reset";
+
+    /// <summary>
+    /// Token was revoked because the user exceeded the maximum number of active sessions.
+    /// </summary>
+    public const string SessionLimitExceeded = "session_limit_exceeded";
 }

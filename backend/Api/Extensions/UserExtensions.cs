@@ -19,7 +19,7 @@ public static class UserExtensions
         return new UserInfo
         {
             Id = user.Id,
-            MemberId = membership?.Id ?? Guid.Empty,
+            MemberId = membership?.Id,
             Email = user.Email,
             Username = user.Username,
             FirstName = user.FirstName,

@@ -157,7 +157,30 @@ public class AuthController : ControllerBase
         // 9. Generate access token
         var accessToken = _jwtService.GenerateAccessToken(user, membership);
 
-        // 10. Generate and store refresh token
+        // 10. Enforce max active sessions limit
+        if (_securitySettings.MaxActiveSessionsPerUser > 0)
+        {
+            var activeTokens = await _context.RefreshTokens
+                .Where(t => t.UserId == user.Id && t.RevokedAt == null && t.ExpiresAt > now)
+                .OrderBy(t => t.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            // Revoke oldest sessions if at limit
+            var tokensToRevoke = activeTokens.Count - _securitySettings.MaxActiveSessionsPerUser + 1;
+            if (tokensToRevoke > 0)
+            {
+                foreach (var oldToken in activeTokens.Take(tokensToRevoke))
+                {
+                    oldToken.RevokedAt = now;
+                    oldToken.RevokedReason = RevokedReasons.SessionLimitExceeded;
+                }
+                _logger.LogInformation(
+                    "Revoked {Count} oldest session(s) for user {UserId} due to session limit",
+                    tokensToRevoke, user.Id);
+            }
+        }
+
+        // 11. Generate and store new refresh token
         var refreshTokenValue = _jwtService.GenerateRefreshToken();
         var refreshTokenHash = HashToken(refreshTokenValue);
 
@@ -173,11 +196,11 @@ public class AuthController : ControllerBase
 
         _context.RefreshTokens.Add(refreshToken);
 
-        // 11. Log successful login and save all changes in single transaction
+        // 12. Log successful login and save all changes in single transaction
         AddLoginAttempt(request.Login, ipAddress, userAgent, true, null);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // 12. Build response
+        // 13. Build response
         var response = new LoginResponse
         {
             AccessToken = accessToken,
@@ -421,24 +444,12 @@ public class AuthController : ControllerBase
     /// Gets the client IP address from the request.
     /// </summary>
     /// <remarks>
-    /// Note: X-Forwarded-For header can be spoofed by clients.
-    /// In production, configure trusted proxies in ASP.NET Core's ForwardedHeaders middleware.
+    /// The ForwardedHeaders middleware (configured in Program.cs) automatically processes
+    /// X-Forwarded-For headers from trusted proxies and updates RemoteIpAddress accordingly.
+    /// In production, configure KnownProxies or KnownNetworks in ForwardedHeadersOptions.
     /// </remarks>
     private IPAddress? GetClientIpAddress()
     {
-        // Check for forwarded IP (behind proxy/load balancer)
-        // WARNING: Only trust this header when behind a known proxy.
-        // Configure ForwardedHeadersOptions.KnownProxies in production.
-        var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            var ips = forwardedFor.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            if (ips.Length > 0 && IPAddress.TryParse(ips[0].Trim(), out var forwardedIp))
-            {
-                return forwardedIp;
-            }
-        }
-
         return HttpContext.Connection.RemoteIpAddress;
     }
 
