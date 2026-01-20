@@ -8,9 +8,12 @@ using Api.Common.Errors;
 using Api.Configuration;
 using Api.Data;
 using Api.DTOs.Admin;
+using Api.DTOs.Organizations;
+using Api.DTOs.Users;
 using Api.Exceptions;
 using Api.Extensions;
 using Api.Filters;
+using Api.Models;
 using Api.Services;
 
 namespace Api.Controllers.Admin;
@@ -142,5 +145,142 @@ public class AdminUsersController : ControllerBase
             UserId = userId,
             TemporaryPassword = temporaryPassword
         });
+    }
+
+    /// <summary>
+    /// Update a user's profile by ID.
+    /// </summary>
+    /// <remarks>
+    /// Updates the profile of a user by their ID. Only provided fields are updated (PATCH semantics).
+    ///
+    /// **Access Control:**
+    /// - Requires admin role
+    /// - Can only update users within the same organization
+    ///
+    /// **Business Rules:**
+    /// - `email` must be unique across all users (case-insensitive)
+    /// - `username` must be unique across all users (case-insensitive)
+    /// - Cannot demote the last admin in the organization
+    /// </remarks>
+    /// <param name="userId">User ID to update.</param>
+    /// <param name="request">Fields to update.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Updated user profile.</returns>
+    /// <response code="200">User profile updated successfully.</response>
+    /// <response code="400">Invalid input data.</response>
+    /// <response code="401">Not authenticated.</response>
+    /// <response code="403">User is outside your organization or cannot demote last admin.</response>
+    /// <response code="404">User not found.</response>
+    /// <response code="409">Email or username already taken.</response>
+    [HttpPatch("{userId:guid}")]
+    [ProducesResponseType(typeof(UserInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<UserInfo>> UpdateUser(
+        Guid userId,
+        [FromBody] UpdateUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var callerOrganizationId = HttpContext.GetValidatedOrganizationId();
+
+        // Find target user
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw NotFoundException.User(userId);
+        }
+
+        // Get target user's membership in caller's organization
+        var targetMembership = await _context.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == callerOrganizationId && m.UserId == userId, cancellationToken);
+
+        if (targetMembership == null)
+        {
+            throw ForbiddenException.InsufficientPermissions("update users outside your organization");
+        }
+
+        // Check email uniqueness (exclude target user)
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var emailLower = request.Email.Trim().ToLowerInvariant();
+            var emailExists = await _context.Users
+                .AnyAsync(u => u.Id != userId && u.Email == emailLower, cancellationToken);
+
+            if (emailExists)
+            {
+                throw ConflictException.EmailExists(emailLower);
+            }
+        }
+
+        // Check username uniqueness (exclude target user)
+        if (!string.IsNullOrWhiteSpace(request.Username))
+        {
+            var usernameLower = request.Username.Trim().ToLowerInvariant();
+            var usernameExists = await _context.Users
+                .AnyAsync(u => u.Id != userId && u.Username == usernameLower, cancellationToken);
+
+            if (usernameExists)
+            {
+                throw ConflictException.UsernameExists(usernameLower);
+            }
+        }
+
+        // Handle organizationRole change
+        if (request.OrganizationRole.HasValue)
+        {
+            var newRole = request.OrganizationRole.Value;
+            var currentRole = targetMembership.OrganizationRole;
+
+            // Check if demoting an admin
+            if (currentRole == OrganizationRole.Admin && newRole != OrganizationRole.Admin)
+            {
+                // Count active admins in organization
+                var adminCount = await _context.OrganizationMembers
+                    .CountAsync(m => m.OrganizationId == callerOrganizationId && m.OrganizationRole == OrganizationRole.Admin, cancellationToken);
+
+                if (adminCount <= 1)
+                {
+                    throw new BusinessRuleException(
+                        "Cannot demote the last admin in the organization.",
+                        "CANNOT_REMOVE_LAST_ADMIN");
+                }
+            }
+
+            targetMembership.OrganizationRole = newRole;
+        }
+
+        // Apply updates (only non-null fields) - PATCH semantics
+        if (!string.IsNullOrWhiteSpace(request.Email))
+            user.Email = request.Email.Trim().ToLowerInvariant();
+
+        if (!string.IsNullOrWhiteSpace(request.Username))
+            user.Username = request.Username.Trim().ToLowerInvariant();
+
+        if (request.FirstName != null)
+            user.FirstName = request.FirstName.Trim();
+
+        if (request.LastName != null)
+            user.LastName = request.LastName.Trim();
+
+        if (request.Position != null)
+            user.Position = string.IsNullOrWhiteSpace(request.Position) ? null : request.Position.Trim();
+
+        if (request.DateOfBirth.HasValue)
+            user.DateOfBirth = request.DateOfBirth.Value;
+
+        if (request.AvatarUrl != null)
+            user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+
+        // Update timestamp
+        user.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Ok(user.ToUserInfo(targetMembership));
     }
 }

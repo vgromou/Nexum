@@ -4,6 +4,8 @@ using Api.Configuration;
 using Api.Controllers.Admin;
 using Api.Data;
 using Api.DTOs.Admin;
+using Api.DTOs.Organizations;
+using Api.DTOs.Users;
 using Api.Exceptions;
 using Api.Models;
 using Api.Services;
@@ -518,6 +520,366 @@ public class AdminUsersControllerTests : IDisposable
         // Assert
         var token = await _context.RefreshTokens.FirstAsync(t => t.Id == adminToken.Id);
         token.RevokedAt.Should().BeNull();
+    }
+
+    #endregion
+
+    #region UpdateUser Success Tests
+
+    [Fact]
+    public async Task UpdateUser_WithValidRequest_ShouldReturn200Ok()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { FirstName = "Updated" };
+
+        // Act
+        var result = await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.Id.Should().Be(_targetUserId);
+        response.FirstName.Should().Be("Updated");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdateFirstName()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { FirstName = "NewFirst" };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.FirstName.Should().Be("NewFirst");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdateLastName()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { LastName = "NewLast" };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.LastName.Should().Be("NewLast");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdateEmail()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { Email = "newemail@example.com" };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.Email.Should().Be("newemail@example.com");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdateUsername()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { Username = "newusername" };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.Username.Should().Be("newusername");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdatePosition()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { Position = "Senior Developer" };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.Position.Should().Be("Senior Developer");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdateOrganizationRole()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { OrganizationRole = OrganizationRole.Manager };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var membership = await _context.OrganizationMembers
+            .FirstAsync(m => m.UserId == _targetUserId && m.OrganizationId == _organizationId);
+        membership.OrganizationRole.Should().Be(OrganizationRole.Manager);
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldPromoteToAdmin()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { OrganizationRole = OrganizationRole.Admin };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var membership = await _context.OrganizationMembers
+            .FirstAsync(m => m.UserId == _targetUserId && m.OrganizationId == _organizationId);
+        membership.OrganizationRole.Should().Be(OrganizationRole.Admin);
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdateTimestamp()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var beforeUpdate = DateTime.UtcNow;
+        var request = new UpdateUserRequest { FirstName = "Updated" };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.UpdatedAt.Should().BeOnOrAfter(beforeUpdate);
+    }
+
+    [Fact]
+    public async Task UpdateUser_WithMultipleFields_ShouldUpdateAll()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest
+        {
+            FirstName = "New",
+            LastName = "Name",
+            Position = "CTO"
+        };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.FirstName.Should().Be("New");
+        user.LastName.Should().Be("Name");
+        user.Position.Should().Be("CTO");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldNotUpdateUnprovidedFields()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var originalUser = await _context.Users.AsNoTracking().FirstAsync(u => u.Id == _targetUserId);
+        var request = new UpdateUserRequest { FirstName = "OnlyFirst" };
+
+        // Act
+        await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        var user = await _context.Users.FirstAsync(u => u.Id == _targetUserId);
+        user.FirstName.Should().Be("OnlyFirst");
+        user.LastName.Should().Be(originalUser.LastName);
+        user.Email.Should().Be(originalUser.Email);
+        user.Username.Should().Be(originalUser.Username);
+    }
+
+    #endregion
+
+    #region UpdateUser Forbidden Tests
+
+    [Fact]
+    public async Task UpdateUser_WhenUserNotInSameOrganization_ShouldThrow403Forbidden()
+    {
+        // Arrange
+        var otherOrgId = Guid.NewGuid();
+        var otherOrg = new Organization
+        {
+            Id = otherOrgId,
+            Name = "Other Organization",
+            Slug = "other-org-update"
+        };
+        _context.Organizations.Add(otherOrg);
+
+        var userInOtherOrg = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "otherupdate@example.com",
+            Username = "otherupdateuser",
+            PasswordHash = "hash",
+            FirstName = "Other",
+            LastName = "User",
+            IsActive = true
+        };
+        _context.Users.Add(userInOtherOrg);
+
+        var otherMembership = new OrganizationMember
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = otherOrgId,
+            UserId = userInOtherOrg.Id,
+            OrganizationRole = OrganizationRole.User,
+            JoinedAt = DateTime.UtcNow
+        };
+        _context.OrganizationMembers.Add(otherMembership);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { FirstName = "Hacked" };
+
+        // Act
+        var act = () => _controller.UpdateUser(userInOtherOrg.Id, request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*update users outside your organization*");
+    }
+
+    [Fact]
+    public async Task UpdateUser_WhenDemotingLastAdmin_ShouldThrow403Forbidden()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { OrganizationRole = OrganizationRole.User };
+
+        // Act - try to demote the only admin (caller is the only admin)
+        var act = () => _controller.UpdateUser(_adminUserId, request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*Cannot demote the last admin*");
+    }
+
+    [Fact]
+    public async Task UpdateUser_WhenMultipleAdmins_ShouldAllowDemotion()
+    {
+        // Arrange
+        // First, promote target user to admin
+        var targetMembership = await _context.OrganizationMembers
+            .FirstAsync(m => m.UserId == _targetUserId && m.OrganizationId == _organizationId);
+        targetMembership.OrganizationRole = OrganizationRole.Admin;
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { OrganizationRole = OrganizationRole.User };
+
+        // Act - demote target user (there's still the caller as admin)
+        var result = await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var membership = await _context.OrganizationMembers
+            .FirstAsync(m => m.UserId == _targetUserId && m.OrganizationId == _organizationId);
+        membership.OrganizationRole.Should().Be(OrganizationRole.User);
+    }
+
+    #endregion
+
+    #region UpdateUser NotFound Tests
+
+    [Fact]
+    public async Task UpdateUser_WhenUserNotFound_ShouldThrow404NotFound()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var nonExistentUserId = Guid.NewGuid();
+        var request = new UpdateUserRequest { FirstName = "Test" };
+
+        // Act
+        var act = () => _controller.UpdateUser(nonExistentUserId, request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>()
+            .WithMessage($"*User*{nonExistentUserId}*not found*");
+    }
+
+    #endregion
+
+    #region UpdateUser Conflict Tests
+
+    [Fact]
+    public async Task UpdateUser_WhenEmailAlreadyExists_ShouldThrow409Conflict()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { Email = "admin@example.com" }; // Admin's email
+
+        // Act
+        var act = () => _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*email*already exists*");
+    }
+
+    [Fact]
+    public async Task UpdateUser_WhenUsernameAlreadyExists_ShouldThrow409Conflict()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { Username = "adminuser" }; // Admin's username
+
+        // Act
+        var act = () => _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*username*already exists*");
+    }
+
+    [Fact]
+    public async Task UpdateUser_WhenEmailIsSameAsCurrentUser_ShouldSucceed()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, _organizationId);
+        var request = new UpdateUserRequest { Email = "target@example.com" }; // Same as target's email
+
+        // Act
+        var result = await _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+    }
+
+    #endregion
+
+    #region UpdateUser Unauthorized Tests
+
+    [Fact]
+    public async Task UpdateUser_WithoutOrganizationId_ShouldThrowUnauthorizedException()
+    {
+        // Arrange
+        SetupAuthenticatedAdmin(_adminUserId, null);
+        var request = new UpdateUserRequest { FirstName = "Test" };
+
+        // Act
+        var act = () => _controller.UpdateUser(_targetUserId, request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
     }
 
     #endregion
