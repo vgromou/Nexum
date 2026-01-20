@@ -17,7 +17,11 @@ using Api.Swagger;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Global filter to enforce password change when MustChangePassword flag is set
+        options.Filters.Add<Api.Filters.EnforceMustChangePasswordAttribute>();
+    })
     .AddJsonOptions(options =>
     {
         // Serialize enums as lowercase strings (admin, manager, user)
@@ -28,6 +32,7 @@ builder.Services.AddControllers()
 
 // Register application services
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
+builder.Services.AddSingleton<IAvatarUrlValidator, AvatarUrlValidator>();
 builder.Services.AddSingleton(TimeProvider.System);
 
 // Configure JWT settings
@@ -44,10 +49,17 @@ builder.Services.AddHostedService<RefreshTokenCleanupService>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    // Clear default network restrictions for development
-    // In production, configure KnownProxies or KnownIPNetworks for your specific infrastructure
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+
+    if (builder.Environment.IsDevelopment())
+    {
+        // Clear default network restrictions for development only
+        // This allows any X-Forwarded-For header to be trusted
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    }
+    // In production, KnownProxies/KnownNetworks should be configured via environment variables
+    // or appsettings.Production.json to specify trusted proxy IP addresses
+    // Example: options.KnownProxies.Add(IPAddress.Parse("10.0.0.100"));
 });
 
 // Configure IP Rate Limiting
@@ -56,8 +68,34 @@ builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection(
 builder.Services.AddSingleton<IRateLimitConfiguration, CustomRateLimitConfiguration>();
 builder.Services.AddInMemoryRateLimiting();
 
-// Configure JWT authentication
+// Configure JWT authentication with startup validation
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;
+
+// SECURITY: Validate JWT secret at startup
+if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
+{
+    throw new InvalidOperationException(
+        "JWT Secret must be configured and at least 32 characters. " +
+        "Set via environment variable Jwt__Secret or in appsettings.{Environment}.json");
+}
+
+// SECURITY: Reject known placeholder values in non-development environments
+if (!builder.Environment.IsDevelopment())
+{
+    var insecureSecrets = new[]
+    {
+        "dev-only-secret-not-for-production-min-32-chars!",
+        "CHANGE-THIS-SECRET-IN-PRODUCTION-MIN-32-CHARS"
+    };
+
+    if (insecureSecrets.Any(s => jwtSettings.Secret.Contains(s, StringComparison.OrdinalIgnoreCase)))
+    {
+        throw new InvalidOperationException(
+            "SECURITY ERROR: JWT Secret contains development placeholder value. " +
+            "Configure a secure secret via environment variable Jwt__Secret for production.");
+    }
+}
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

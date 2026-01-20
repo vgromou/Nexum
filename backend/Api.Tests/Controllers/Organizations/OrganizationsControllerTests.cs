@@ -226,17 +226,16 @@ public class OrganizationsControllerTests : IDisposable
         {
             Name = "Timestamp Org"
         };
-        var before = DateTime.UtcNow;
+        var expectedTime = _timeProvider.GetUtcNow().UtcDateTime;
 
         // Act
         var result = await _controller.CreateOrganization(request, CancellationToken.None);
 
         // Assert
-        var after = DateTime.UtcNow;
         var createdResult = result.Result.Should().BeOfType<CreatedAtActionResult>().Subject;
         var response = createdResult.Value.Should().BeOfType<OrganizationResponse>().Subject;
-        response.CreatedAt.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
-        response.UpdatedAt.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+        response.CreatedAt.Should().Be(expectedTime);
+        response.UpdatedAt.Should().Be(expectedTime);
     }
 
     [Fact]

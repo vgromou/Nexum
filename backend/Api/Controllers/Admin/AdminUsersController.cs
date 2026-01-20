@@ -34,6 +34,7 @@ public class AdminUsersController : ControllerBase
     private readonly IPasswordService _passwordService;
     private readonly TimeProvider _timeProvider;
     private readonly SecuritySettings _securitySettings;
+    private readonly IAvatarUrlValidator _avatarUrlValidator;
     private readonly ILogger<AdminUsersController> _logger;
 
     public AdminUsersController(
@@ -41,12 +42,14 @@ public class AdminUsersController : ControllerBase
         IPasswordService passwordService,
         TimeProvider timeProvider,
         IOptions<SecuritySettings> securitySettings,
+        IAvatarUrlValidator avatarUrlValidator,
         ILogger<AdminUsersController> logger)
     {
         _context = context;
         _passwordService = passwordService;
         _timeProvider = timeProvider;
         _securitySettings = securitySettings.Value;
+        _avatarUrlValidator = avatarUrlValidator;
         _logger = logger;
     }
 
@@ -186,6 +189,12 @@ public class AdminUsersController : ControllerBase
     {
         var callerOrganizationId = HttpContext.GetValidatedOrganizationId();
 
+        // Use Serializable transaction to prevent race conditions:
+        // - Uniqueness checks for email/username
+        // - Last admin check when demoting roles
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         // Find target user
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
@@ -239,7 +248,7 @@ public class AdminUsersController : ControllerBase
             // Check if demoting an admin
             if (currentRole == OrganizationRole.Admin && newRole != OrganizationRole.Admin)
             {
-                // Count active admins in organization
+                // Count active admins in organization (transaction ensures atomicity)
                 var adminCount = await _context.OrganizationMembers
                     .CountAsync(m => m.OrganizationId == callerOrganizationId && m.OrganizationRole == OrganizationRole.Admin, cancellationToken);
 
@@ -274,12 +283,17 @@ public class AdminUsersController : ControllerBase
             user.DateOfBirth = request.DateOfBirth.Value;
 
         if (request.AvatarUrl != null)
-            user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        {
+            var avatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+            _avatarUrlValidator.ValidateAvatarUrl(avatarUrl);
+            user.AvatarUrl = avatarUrl;
+        }
 
         // Update timestamp
         user.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Ok(user.ToUserInfo(targetMembership));
     }

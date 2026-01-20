@@ -135,9 +135,9 @@ public class ApplicationDbContext : DbContext
     {
         var now = DateTime.UtcNow;
 
-        // Set CreatedAt for all new entities
+        // Set CreatedAt for all new entities (only if not already set)
         foreach (var entry in ChangeTracker.Entries<BaseEntity>()
-            .Where(e => e.State == EntityState.Added))
+            .Where(e => e.State == EntityState.Added && e.Entity.CreatedAt == default))
         {
             entry.Entity.CreatedAt = now;
         }
@@ -145,8 +145,14 @@ public class ApplicationDbContext : DbContext
         // Set UpdatedAt only for auditable entities (not for immutable logs)
         foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
         {
-            if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+            if (entry.State == EntityState.Modified)
             {
+                // Always update on modification
+                entry.Entity.UpdatedAt = now;
+            }
+            else if (entry.State == EntityState.Added && entry.Entity.UpdatedAt == default)
+            {
+                // Only set on creation if not already set
                 entry.Entity.UpdatedAt = now;
             }
         }

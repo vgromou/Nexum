@@ -28,6 +28,13 @@ namespace Api.Controllers.Auth;
 [Tags("Authentication")]
 public class AuthController : ControllerBase
 {
+    /// <summary>
+    /// Dummy password hash used for constant-time comparison when user doesn't exist.
+    /// This prevents timing attacks that could reveal whether a user exists.
+    /// Pre-computed BCrypt hash of a random string with work factor 12.
+    /// </summary>
+    private const string DummyPasswordHash = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.3/vBR8Z9.F.P.K";
+
     private readonly ApplicationDbContext _context;
     private readonly IJwtService _jwtService;
     private readonly IPasswordService _passwordService;
@@ -103,21 +110,27 @@ public class AuthController : ControllerBase
                 .Include(u => u.OrganizationMemberships)
                 .FirstOrDefaultAsync(u => u.Username == loginLower, cancellationToken);
 
-        // 3. Check if user exists (don't reveal which credential is wrong)
+        // 3. Verify password with constant-time comparison to prevent timing attacks
+        // Always perform password verification, even if user doesn't exist, to ensure
+        // consistent response time and prevent user enumeration via timing analysis
+        var passwordHash = user?.PasswordHash ?? DummyPasswordHash;
+        var isPasswordValid = _passwordService.VerifyPassword(request.Password, passwordHash);
+
+        // 4. Check if user exists (don't reveal which credential is wrong)
         if (user == null)
         {
             await LogAndSaveLoginAttempt(request.Login, ipAddress, userAgent, false, "User not found", cancellationToken);
             throw UnauthorizedException.InvalidCredentials();
         }
 
-        // 4. Check if account is active
+        // 5. Check if account is active
         if (!user.IsActive)
         {
             await LogAndSaveLoginAttempt(request.Login, ipAddress, userAgent, false, "Account deactivated", cancellationToken);
             throw UnauthorizedException.AccountDeactivated();
         }
 
-        // 5. Check lockout
+        // 6. Check lockout
         if (user.LockoutUntil.HasValue && user.LockoutUntil > now)
         {
             var remainingMinutes = (int)Math.Ceiling((user.LockoutUntil.Value - now).TotalMinutes);
@@ -125,8 +138,8 @@ public class AuthController : ControllerBase
             throw UnauthorizedException.AccountLocked(user.LockoutUntil.Value, remainingMinutes);
         }
 
-        // 6. Verify password
-        if (!_passwordService.VerifyPassword(request.Password, user.PasswordHash))
+        // 7. Check password verification result
+        if (!isPasswordValid)
         {
             user.FailedLoginAttempts++;
 
@@ -141,7 +154,7 @@ public class AuthController : ControllerBase
             throw UnauthorizedException.InvalidCredentials();
         }
 
-        // 7. Get user's organization membership (MVP: single organization)
+        // 8. Get user's organization membership (MVP: single organization)
         var membership = user.OrganizationMemberships.FirstOrDefault();
         if (membership == null)
         {
@@ -149,19 +162,19 @@ public class AuthController : ControllerBase
             throw UnauthorizedException.InvalidCredentials();
         }
 
-        // 8. Reset failed attempts and update timestamps
+        // 9. Reset failed attempts and update timestamps
         user.FailedLoginAttempts = 0;
         user.LockoutUntil = null;
         user.LastLoginAt = now;
 
-        // 9. Generate access token
+        // 10. Generate access token
         var accessToken = _jwtService.GenerateAccessToken(user, membership);
 
         // Use transaction to prevent race condition when multiple login requests arrive simultaneously
         await using var transaction = await _context.Database
             .BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
 
-        // 10. Enforce max active sessions limit
+        // 11. Enforce max active sessions limit
         if (_securitySettings.MaxActiveSessionsPerUser > 0)
         {
             var activeTokens = await _context.RefreshTokens
@@ -184,7 +197,7 @@ public class AuthController : ControllerBase
             }
         }
 
-        // 11. Generate and store new refresh token
+        // 12. Generate and store new refresh token
         var refreshTokenValue = _jwtService.GenerateRefreshToken();
         var refreshTokenHash = HashToken(refreshTokenValue);
 
@@ -200,12 +213,12 @@ public class AuthController : ControllerBase
 
         _context.RefreshTokens.Add(refreshToken);
 
-        // 12. Log successful login and save all changes in single transaction
+        // 13. Log successful login and save all changes in single transaction
         AddLoginAttempt(request.Login, ipAddress, userAgent, true, null);
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        // 13. Build response
+        // 14. Build response
         var response = new LoginResponse
         {
             AccessToken = accessToken,
@@ -262,6 +275,11 @@ public class AuthController : ControllerBase
         CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userId, out var userIdGuid))
+        {
+            _logger.LogWarning("Logout attempted with invalid user ID claim");
+            return Ok(); // Idempotent - don't reveal internal state
+        }
 
         // Hash the provided refresh token
         var tokenHash = HashToken(request.RefreshToken);
@@ -269,6 +287,16 @@ public class AuthController : ControllerBase
         // Find the token by hash
         var token = await _context.RefreshTokens
             .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
+
+        // Verify token belongs to the authenticated user (SECURITY: prevent users from revoking others' tokens)
+        if (token != null && token.UserId != userIdGuid)
+        {
+            _logger.LogWarning(
+                "SECURITY: User {UserId} attempted to revoke token belonging to user {TokenOwner}",
+                userIdGuid, token.UserId);
+            // Return OK to maintain idempotent behavior and not reveal token ownership
+            return Ok();
+        }
 
         // If token exists and not already revoked, revoke it
         if (token != null && token.RevokedAt == null)
@@ -329,9 +357,11 @@ public class AuthController : ControllerBase
         var ipAddress = GetClientIpAddress();
         var userAgent = Request.Headers.UserAgent.ToString();
 
-        // Use transaction to prevent race condition when multiple refresh requests arrive simultaneously
+        // Use Serializable isolation to prevent race condition when multiple refresh requests arrive simultaneously
+        // RepeatableRead is insufficient as it doesn't prevent phantom reads - two concurrent refreshes
+        // could both see the token as valid and create duplicate new tokens
         await using var transaction = await _context.Database
-            .BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
         // 1. Hash the provided refresh token
         var tokenHash = HashToken(request.RefreshToken);
@@ -380,6 +410,35 @@ public class AuthController : ControllerBase
         {
             _logger.LogInformation("Refresh attempted with expired token for user {UserId}", token.UserId);
             throw UnauthorizedException.RefreshTokenExpired();
+        }
+
+        // 5a. Validate IP address binding (detect potential token theft)
+        var storedIp = token.IpAddress?.ToString();
+        var currentIp = ipAddress?.ToString();
+        if (!string.IsNullOrEmpty(storedIp) && storedIp != currentIp)
+        {
+            _logger.LogWarning(
+                "SECURITY: Token refresh from different IP. User {UserId}, Original IP: {OriginalIp}, Current IP: {CurrentIp}, DeviceInfo: {DeviceInfo}",
+                token.UserId, storedIp, currentIp, token.DeviceInfo);
+
+            if (_securitySettings.EnforceTokenIpBinding)
+            {
+                // Revoke this token family as potential theft
+                var userTokens = await _context.RefreshTokens
+                    .Where(t => t.UserId == token.UserId && t.RevokedAt == null)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var userToken in userTokens)
+                {
+                    userToken.RevokedAt = now;
+                    userToken.RevokedReason = RevokedReasons.SecurityRevocation;
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                throw UnauthorizedException.TokenInvalid();
+            }
         }
 
         // 6. Check if user is active
@@ -496,5 +555,89 @@ public class AuthController : ControllerBase
     {
         AddLoginAttempt(login, ipAddress, userAgent, success, failureReason);
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Change the current user's password.
+    /// </summary>
+    /// <remarks>
+    /// Allows authenticated users to change their password. This endpoint is required
+    /// when `mustChangePassword` is true after login with a temporary password.
+    ///
+    /// **Security:**
+    /// - Requires valid current password
+    /// - All active sessions are terminated after password change (refresh tokens revoked)
+    /// - Clears the `mustChangePassword` flag
+    ///
+    /// **Note:** After successful password change, the user must log in again.
+    /// </remarks>
+    /// <param name="request">Current and new password.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Empty response on success.</returns>
+    /// <response code="200">Password changed successfully.</response>
+    /// <response code="400">Invalid request body or new password requirements not met.</response>
+    /// <response code="401">User is not authenticated or current password is incorrect.</response>
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
+        // Get user ID from claims
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            throw new UnauthorizedException("Invalid token", "UNAUTHORIZED");
+        }
+
+        // Find user
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new UnauthorizedException("User not found", "UNAUTHORIZED");
+        }
+
+        // Verify current password
+        if (!_passwordService.VerifyPassword(request.CurrentPassword, user.PasswordHash))
+        {
+            _logger.LogWarning("Password change failed for user {UserId}: incorrect current password", userId);
+            throw new UnauthorizedException("Current password is incorrect", "INVALID_PASSWORD");
+        }
+
+        // Use transaction to ensure password update and token revocation are atomic
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        // Update password
+        user.PasswordHash = _passwordService.HashPassword(request.NewPassword);
+        user.MustChangePassword = false;
+        user.PasswordChangedAt = now;
+
+        // Revoke all user's refresh tokens (force re-login)
+        var userTokens = await _context.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var token in userTokens)
+        {
+            token.RevokedAt = now;
+            token.RevokedReason = RevokedReasons.PasswordChange;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "User {UserId} changed their password. {TokenCount} refresh tokens revoked.",
+            userId, userTokens.Count);
+
+        return Ok();
     }
 }

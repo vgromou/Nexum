@@ -291,19 +291,19 @@ public class OrganizationMembersController : ControllerBase
 
 #if DEBUG
     /// <summary>
-    /// Remove a member from the organization.
+    /// Delete a user from the organization.
     /// </summary>
     /// <remarks>
     /// **DEBUG ONLY** - This endpoint is only available in DEBUG builds for testing purposes.
     ///
-    /// Removes a user's membership from the organization. The user account itself is NOT deleted.
+    /// Deletes the user and their membership from the organization completely.
     /// Cannot remove the last admin from an organization.
     /// </remarks>
     /// <param name="organizationId">The organization's unique identifier.</param>
     /// <param name="userId">The user's unique identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>No content on success.</returns>
-    /// <response code="204">Member removed successfully.</response>
+    /// <response code="204">User deleted successfully.</response>
     /// <response code="400">Invalid request.</response>
     /// <response code="404">Organization or member not found.</response>
     /// <response code="422">Cannot remove the last admin.</response>
@@ -343,10 +343,20 @@ public class OrganizationMembersController : ControllerBase
                 throw BusinessRuleException.CannotRemoveLastAdmin();
         }
 
-        // 4. Remove membership
-        _context.OrganizationMembers.Remove(membership);
-        await _context.SaveChangesAsync(cancellationToken);
+        // 4. Find and remove the user (cascade will remove membership)
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user != null)
+        {
+            _context.Users.Remove(user);
+        }
+        else
+        {
+            // Fallback: just remove membership if user not found
+            _context.OrganizationMembers.Remove(membership);
+        }
 
+        await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return NoContent();

@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ using Api.Exceptions;
 using Api.Extensions;
 using Api.Filters;
 using Api.Models;
+using Api.Services;
 
 namespace Api.Controllers.Users;
 
@@ -25,11 +27,16 @@ public class UsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly TimeProvider _timeProvider;
+    private readonly IAvatarUrlValidator _avatarUrlValidator;
 
-    public UsersController(ApplicationDbContext context, TimeProvider timeProvider)
+    public UsersController(
+        ApplicationDbContext context,
+        TimeProvider timeProvider,
+        IAvatarUrlValidator avatarUrlValidator)
     {
         _context = context;
         _timeProvider = timeProvider;
+        _avatarUrlValidator = avatarUrlValidator;
     }
 
     /// <summary>
@@ -102,8 +109,20 @@ public class UsersController : ControllerBase
         [FromBody] UpdateUserRequest request,
         CancellationToken cancellationToken)
     {
+        // Users cannot change their own organizationRole - reject if provided
+        if (request.OrganizationRole.HasValue)
+        {
+            throw new BadRequestException(
+                "Users cannot change their own organization role. Contact an administrator.",
+                "ORGANIZATION_ROLE_NOT_ALLOWED");
+        }
+
         var userId = HttpContext.GetValidatedUserId();
         var organizationId = HttpContext.GetValidatedOrganizationId();
+
+        // Use transaction to prevent race conditions with uniqueness checks
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
@@ -161,12 +180,17 @@ public class UsersController : ControllerBase
             user.DateOfBirth = request.DateOfBirth.Value;
 
         if (request.AvatarUrl != null)
-            user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        {
+            var avatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+            _avatarUrlValidator.ValidateAvatarUrl(avatarUrl);
+            user.AvatarUrl = avatarUrl;
+        }
 
         // Update timestamp
         user.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         // Get membership for response
         var membership = await _context.OrganizationMembers

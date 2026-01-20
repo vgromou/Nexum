@@ -26,6 +26,7 @@ public class AdminUsersControllerTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly FakeTimeProvider _timeProvider;
     private readonly Mock<IPasswordService> _passwordServiceMock;
+    private readonly Mock<IAvatarUrlValidator> _avatarUrlValidatorMock;
     private readonly Mock<ILogger<AdminUsersController>> _loggerMock;
     private readonly AdminUsersController _controller;
     private readonly Guid _organizationId;
@@ -121,12 +122,14 @@ public class AdminUsersControllerTests : IDisposable
             .Setup(p => p.HashPassword(It.IsAny<string>()))
             .Returns("new-hashed-password");
 
+        _avatarUrlValidatorMock = new Mock<IAvatarUrlValidator>();
         var securitySettings = Options.Create(new SecuritySettings());
         _controller = new AdminUsersController(
             _context,
             _passwordServiceMock.Object,
             _timeProvider,
             securitySettings,
+            _avatarUrlValidatorMock.Object,
             _loggerMock.Object);
     }
 

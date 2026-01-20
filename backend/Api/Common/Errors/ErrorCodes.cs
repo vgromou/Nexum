@@ -22,6 +22,10 @@ public static class ErrorCodes
     public const string ACCESS_INSUFFICIENT_PERMISSIONS = "ACCESS_INSUFFICIENT_PERMISSIONS";
     public const string ACCESS_ORGANIZATION_REQUIRED = "ACCESS_ORGANIZATION_REQUIRED";
 
+    // Bad request errors - Status 400
+    public const string BAD_REQUEST = "BAD_REQUEST";
+    public const string INVALID_INPUT = "INVALID_INPUT";
+
     // Validation errors (VALIDATION_*) - Status 400
     public const string VALIDATION_MISSING_CONFIRMATION = "VALIDATION_MISSING_CONFIRMATION";
     public const string VALIDATION_ERROR = "VALIDATION_ERROR";

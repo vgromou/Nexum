@@ -5,12 +5,14 @@ using Api.DTOs.Organizations;
 using Api.DTOs.Users;
 using Api.Exceptions;
 using Api.Models;
+using Api.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Time.Testing;
+using Moq;
 
 namespace Api.Tests.Controllers.Users;
 
@@ -18,6 +20,7 @@ public class UsersControllerTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly FakeTimeProvider _timeProvider;
+    private readonly Mock<IAvatarUrlValidator> _avatarUrlValidatorMock;
     private readonly UsersController _controller;
     private readonly Guid _organizationId;
     private readonly Guid _userId;
@@ -76,7 +79,8 @@ public class UsersControllerTests : IDisposable
         _context.OrganizationMembers.Add(membership);
         _context.SaveChanges();
 
-        _controller = new UsersController(_context, _timeProvider);
+        _avatarUrlValidatorMock = new Mock<IAvatarUrlValidator>();
+        _controller = new UsersController(_context, _timeProvider, _avatarUrlValidatorMock.Object);
     }
 
     public void Dispose()
@@ -181,9 +185,9 @@ public class UsersControllerTests : IDisposable
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
 
-        // CreatedAt and UpdatedAt are set automatically by ApplicationDbContext.SaveChanges()
-        response.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
-        response.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
+        // Timestamps should match the values set during test setup
+        response.CreatedAt.Should().Be(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        response.UpdatedAt.Should().Be(new DateTime(2025, 1, 10, 0, 0, 0, DateTimeKind.Utc));
         response.LastLoginAt.Should().Be(new DateTime(2025, 1, 15, 12, 0, 0, DateTimeKind.Utc));
     }
 

@@ -49,4 +49,24 @@ public sealed class SecuritySettings
     /// </summary>
     [Range(0, 100)]
     public int MaxActiveSessionsPerUser { get; init; } = 10;
+
+    /// <summary>
+    /// When true, refresh tokens can only be used from the same IP address
+    /// that was used during login. When false (default), IP changes are logged
+    /// as warnings but refresh is allowed.
+    /// </summary>
+    public bool EnforceTokenIpBinding { get; init; } = false;
+
+    /// <summary>
+    /// Allowed URL schemes for avatar URLs. Empty list allows all schemes.
+    /// Default: ["https"] (only HTTPS allowed).
+    /// </summary>
+    public List<string> AllowedAvatarUrlSchemes { get; init; } = new() { "https" };
+
+    /// <summary>
+    /// Allowed domains for avatar URLs. Empty list allows all domains.
+    /// Use this to restrict avatars to specific CDNs or storage services.
+    /// Example: ["storage.example.com", "cdn.example.com"]
+    /// </summary>
+    public List<string> AllowedAvatarUrlDomains { get; init; } = new();
 }

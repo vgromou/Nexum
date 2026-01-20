@@ -617,4 +617,366 @@ public class AuthControllerTests : IDisposable
     }
 
     #endregion
+
+    #region Logout Tests
+
+    [Fact]
+    public async Task Logout_WithValidToken_ShouldRevokeToken()
+    {
+        // Arrange
+        var refreshTokenValue = "test-refresh-token";
+        var tokenHash = ComputeTokenHash(refreshTokenValue);
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = tokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId);
+
+        var request = new LogoutRequest { RefreshToken = refreshTokenValue };
+
+        // Act
+        var result = await _controller.Logout(request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkResult>();
+        var revokedToken = await _context.RefreshTokens.FirstAsync(t => t.Id == refreshToken.Id);
+        revokedToken.RevokedAt.Should().NotBeNull();
+        revokedToken.RevokedReason.Should().Be("logout");
+    }
+
+    [Fact]
+    public async Task Logout_WithTokenBelongingToAnotherUser_ShouldNotRevokeToken()
+    {
+        // Arrange
+        var anotherUserId = Guid.NewGuid();
+        var anotherUser = new User
+        {
+            Id = anotherUserId,
+            Email = "another@example.com",
+            Username = "anotheruser",
+            PasswordHash = "hash",
+            FirstName = "Another",
+            LastName = "User",
+            IsActive = true
+        };
+        _context.Users.Add(anotherUser);
+
+        var refreshTokenValue = "other-user-token";
+        var tokenHash = ComputeTokenHash(refreshTokenValue);
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = anotherUserId, // Belongs to another user
+            TokenHash = tokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId); // Current user is different
+
+        var request = new LogoutRequest { RefreshToken = refreshTokenValue };
+
+        // Act
+        var result = await _controller.Logout(request, CancellationToken.None);
+
+        // Assert - Should return OK but NOT revoke the token (security)
+        result.Should().BeOfType<OkResult>();
+        var notRevokedToken = await _context.RefreshTokens.FirstAsync(t => t.Id == refreshToken.Id);
+        notRevokedToken.RevokedAt.Should().BeNull(); // Token should NOT be revoked
+    }
+
+    [Fact]
+    public async Task Logout_WithAlreadyRevokedToken_ShouldReturnOk()
+    {
+        // Arrange
+        var refreshTokenValue = "revoked-token";
+        var tokenHash = ComputeTokenHash(refreshTokenValue);
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = tokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            RevokedAt = _timeProvider.GetUtcNow().UtcDateTime.AddHours(-1),
+            RevokedReason = "logout",
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(_userId);
+
+        var request = new LogoutRequest { RefreshToken = refreshTokenValue };
+
+        // Act
+        var result = await _controller.Logout(request, CancellationToken.None);
+
+        // Assert - Should return OK (idempotent)
+        result.Should().BeOfType<OkResult>();
+    }
+
+    #endregion
+
+    #region Refresh Token Tests
+
+    [Fact]
+    public async Task Refresh_WithValidToken_ShouldReturnNewTokens()
+    {
+        // Arrange
+        var refreshTokenValue = "valid-refresh-token";
+        var tokenHash = ComputeTokenHash(refreshTokenValue);
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = tokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        var request = new RefreshRequest { RefreshToken = refreshTokenValue };
+
+        // Act
+        var result = await _controller.Refresh(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<RefreshResponse>().Subject;
+        response.AccessToken.Should().Be("test-access-token");
+        response.RefreshToken.Should().Be("test-refresh-token");
+
+        // Old token should be revoked
+        var oldToken = await _context.RefreshTokens.FirstAsync(t => t.Id == refreshToken.Id);
+        oldToken.RevokedAt.Should().NotBeNull();
+        oldToken.RevokedReason.Should().Be("refresh");
+    }
+
+    [Fact]
+    public async Task Refresh_WithExpiredToken_ShouldThrowUnauthorizedException()
+    {
+        // Arrange
+        var refreshTokenValue = "expired-refresh-token";
+        var tokenHash = ComputeTokenHash(refreshTokenValue);
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = tokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(-1), // Expired
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        var request = new RefreshRequest { RefreshToken = refreshTokenValue };
+
+        // Act
+        var act = () => _controller.Refresh(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("*expired*");
+    }
+
+    [Fact]
+    public async Task Refresh_WithRevokedToken_ShouldRevokeAllUserTokens()
+    {
+        // Arrange - Create a revoked token and an active token
+        var revokedTokenValue = "revoked-token";
+        var revokedTokenHash = ComputeTokenHash(revokedTokenValue);
+        var revokedToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = revokedTokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            RevokedAt = _timeProvider.GetUtcNow().UtcDateTime.AddHours(-1),
+            RevokedReason = "refresh",
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+
+        var activeTokenValue = "active-token";
+        var activeTokenHash = ComputeTokenHash(activeTokenValue);
+        var activeToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = activeTokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+
+        _context.RefreshTokens.AddRange(revokedToken, activeToken);
+        await _context.SaveChangesAsync();
+
+        var request = new RefreshRequest { RefreshToken = revokedTokenValue };
+
+        // Act - Try to reuse the revoked token
+        var act = () => _controller.Refresh(request, CancellationToken.None);
+
+        // Assert - Should throw and revoke all user tokens (security)
+        await act.Should().ThrowAsync<UnauthorizedException>();
+
+        var allTokens = await _context.RefreshTokens
+            .Where(t => t.UserId == _userId)
+            .ToListAsync();
+
+        allTokens.Should().AllSatisfy(t => t.RevokedAt.Should().NotBeNull());
+    }
+
+    [Fact]
+    public async Task Refresh_WithDeactivatedUser_ShouldThrowUnauthorizedException()
+    {
+        // Arrange
+        var user = await _context.Users.FirstAsync(u => u.Id == _userId);
+        user.IsActive = false;
+        await _context.SaveChangesAsync();
+
+        var refreshTokenValue = "valid-refresh-token";
+        var tokenHash = ComputeTokenHash(refreshTokenValue);
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = tokenHash,
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        var request = new RefreshRequest { RefreshToken = refreshTokenValue };
+
+        // Act
+        var act = () => _controller.Refresh(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("*deactivated*");
+    }
+
+    #endregion
+
+    #region Session Limit Tests
+
+    [Fact]
+    public async Task Login_ShouldRevokeOldestSessionsWhenLimitExceeded()
+    {
+        // Arrange
+        var settingsWithLimit = Options.Create(new SecuritySettings
+        {
+            MaxFailedLoginAttempts = 5,
+            LockoutDurationMinutes = 15,
+            MaxActiveSessionsPerUser = 2
+        });
+
+        var controller = new AuthController(
+            _context,
+            _jwtServiceMock.Object,
+            _passwordServiceMock.Object,
+            _timeProvider,
+            settingsWithLimit,
+            _loggerMock.Object);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                Connection = { RemoteIpAddress = IPAddress.Loopback }
+            }
+        };
+
+        // Create 2 existing active sessions
+        var oldestToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = "hash1",
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            CreatedAt = _timeProvider.GetUtcNow().UtcDateTime.AddHours(-2),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        var newerToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = "hash2",
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            CreatedAt = _timeProvider.GetUtcNow().UtcDateTime.AddHours(-1),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.AddRange(oldestToken, newerToken);
+        await _context.SaveChangesAsync();
+
+        var request = new LoginRequest
+        {
+            Login = "test@example.com",
+            Password = "correct-password"
+        };
+
+        // Act
+        await controller.Login(request, CancellationToken.None);
+
+        // Assert - Oldest session should be revoked
+        var tokens = await _context.RefreshTokens
+            .Where(t => t.UserId == _userId)
+            .ToListAsync();
+
+        tokens.Count.Should().Be(3); // 2 old + 1 new
+        var revokedTokens = tokens.Where(t => t.RevokedAt != null).ToList();
+        revokedTokens.Should().HaveCount(1);
+
+        // Verify the revoked token is the oldest one (has hash1)
+        var revokedToken = revokedTokens.First();
+        revokedToken.TokenHash.Should().Be("hash1");
+
+        // Verify the newer token is NOT revoked
+        var newerTokenFromDb = tokens.First(t => t.TokenHash == "hash2");
+        newerTokenFromDb.RevokedAt.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private void SetupAuthenticatedUser(Guid userId)
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim("org_id", _organizationId.ToString())
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        _controller.ControllerContext.HttpContext.User = principal;
+    }
+
+    private static string ComputeTokenHash(string token)
+    {
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
+        return Convert.ToBase64String(bytes);
+    }
+
+    #endregion
 }
