@@ -25,4 +25,9 @@ public static class RevokedReasons
     /// Token was revoked as part of a security measure (e.g., family revocation after reuse detection).
     /// </summary>
     public const string SecurityRevocation = "security_revocation";
+
+    /// <summary>
+    /// Token was revoked because the user's password was reset by an admin.
+    /// </summary>
+    public const string PasswordReset = "password_reset";
 }
