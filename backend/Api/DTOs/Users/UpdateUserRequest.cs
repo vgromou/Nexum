@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Api.Models;
 
 namespace Api.DTOs.Users;
 
@@ -60,4 +61,11 @@ public sealed class UpdateUserRequest
     [Url(ErrorMessage = "Invalid URL format.")]
     [StringLength(500, ErrorMessage = "Avatar URL must not exceed 500 characters.")]
     public string? AvatarUrl { get; init; }
+
+    /// <summary>
+    /// User's role in the organization.
+    /// Only admins can change this field. Non-admins' requests will have this field ignored.
+    /// </summary>
+    /// <example>manager</example>
+    public OrganizationRole? OrganizationRole { get; init; }
 }
