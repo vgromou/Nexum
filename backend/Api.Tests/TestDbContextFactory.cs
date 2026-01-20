@@ -1,5 +1,6 @@
 using Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Api.Tests;
 
@@ -12,6 +13,7 @@ public static class TestDbContextFactory
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName ?? Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         return new ApplicationDbContext(options);

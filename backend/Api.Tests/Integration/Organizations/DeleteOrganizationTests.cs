@@ -10,6 +10,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
@@ -70,6 +71,7 @@ public class DeleteOrganizationTests : IAsyncLifetime
                     services.AddDbContext<ApplicationDbContext>(options =>
                     {
                         options.UseInMemoryDatabase(_dbName);
+                        options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
                     });
                 });
             });

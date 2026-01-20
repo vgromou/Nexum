@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 
@@ -26,6 +27,7 @@ public class OrganizationsControllerTests : IDisposable
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         _context = new ApplicationDbContext(options);

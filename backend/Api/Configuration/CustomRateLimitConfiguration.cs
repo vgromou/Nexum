@@ -29,6 +29,7 @@ public class CustomRateLimitConfiguration : RateLimitConfiguration
 public class CustomIpRateLimitMiddleware : IpRateLimitMiddleware
 {
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly TimeProvider _timeProvider;
 
     public CustomIpRateLimitMiddleware(
         RequestDelegate next,
@@ -36,9 +37,11 @@ public class CustomIpRateLimitMiddleware : IpRateLimitMiddleware
         IOptions<IpRateLimitOptions> options,
         IIpPolicyStore policyStore,
         IRateLimitConfiguration config,
-        ILogger<IpRateLimitMiddleware> logger)
+        ILogger<IpRateLimitMiddleware> logger,
+        TimeProvider timeProvider)
         : base(next, processingStrategy, options, policyStore, config, logger)
     {
+        _timeProvider = timeProvider;
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -61,7 +64,7 @@ public class CustomIpRateLimitMiddleware : IpRateLimitMiddleware
                 Code = "RATE_LIMIT_EXCEEDED",
                 Message = GetMessageForEndpoint(httpContext.Request.Path),
                 DisplayType = DisplayType.Toast,
-                Timestamp = DateTime.UtcNow,
+                Timestamp = _timeProvider.GetUtcNow().UtcDateTime,
                 TraceId = httpContext.TraceIdentifier,
                 Details = new ApiErrorDetails
                 {
@@ -78,7 +81,7 @@ public class CustomIpRateLimitMiddleware : IpRateLimitMiddleware
         httpContext.Response.Headers.RetryAfter = retryAfter;
         httpContext.Response.Headers["X-RateLimit-Limit"] = rule.Limit.ToString();
         httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
-        httpContext.Response.Headers["X-RateLimit-Reset"] = DateTimeOffset.UtcNow.AddSeconds(retryAfterMs / 1000).ToUnixTimeSeconds().ToString();
+        httpContext.Response.Headers["X-RateLimit-Reset"] = _timeProvider.GetUtcNow().AddSeconds(retryAfterMs / 1000).ToUnixTimeSeconds().ToString();
 
         httpContext.Response.StatusCode = 429;
         httpContext.Response.ContentType = "application/json";

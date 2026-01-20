@@ -9,6 +9,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Api.Tests.Controllers.Users;
@@ -26,6 +27,7 @@ public class UsersControllerTests : IDisposable
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         _context = new ApplicationDbContext(options);

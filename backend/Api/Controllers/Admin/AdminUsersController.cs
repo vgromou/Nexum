@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -108,6 +109,10 @@ public class AdminUsersController : ControllerBase
         // 3. Generate temporary password
         var temporaryPassword = _passwordService.GenerateTemporaryPassword(_securitySettings.TemporaryPasswordLength);
 
+        // Use transaction to ensure password update and token revocation are atomic
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         // 4. Hash and update user's password
         targetUser.PasswordHash = _passwordService.HashPassword(temporaryPassword);
         targetUser.MustChangePassword = true;
@@ -125,6 +130,7 @@ public class AdminUsersController : ControllerBase
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         _logger.LogInformation(
             "Admin {AdminId} reset password for user {UserId}. {TokenCount} refresh tokens revoked.",

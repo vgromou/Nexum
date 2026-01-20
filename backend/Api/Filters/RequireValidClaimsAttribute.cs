@@ -65,7 +65,9 @@ public static class ValidatedClaimsExtensions
         // Check if filter has already validated and cached the value
         if (httpContext.Items.TryGetValue(RequireValidClaimsAttribute.UserIdKey, out var userId))
         {
-            return (Guid)userId!;
+            return userId is Guid guidValue
+                ? guidValue
+                : throw new UnauthorizedException("Invalid user ID in context", "UNAUTHORIZED");
         }
 
         // Fallback: validate directly from claims (for unit tests or when filter is not applied)
@@ -92,7 +94,9 @@ public static class ValidatedClaimsExtensions
         // Check if filter has already validated and cached the value
         if (httpContext.Items.TryGetValue(RequireValidClaimsAttribute.OrganizationIdKey, out var organizationId))
         {
-            return (Guid)organizationId!;
+            return organizationId is Guid guidValue
+                ? guidValue
+                : throw new UnauthorizedException("Invalid organization ID in context", "UNAUTHORIZED");
         }
 
         // Fallback: validate directly from claims (for unit tests or when filter is not applied)

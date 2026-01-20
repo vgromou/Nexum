@@ -157,6 +157,10 @@ public class AuthController : ControllerBase
         // 9. Generate access token
         var accessToken = _jwtService.GenerateAccessToken(user, membership);
 
+        // Use transaction to prevent race condition when multiple login requests arrive simultaneously
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+
         // 10. Enforce max active sessions limit
         if (_securitySettings.MaxActiveSessionsPerUser > 0)
         {
@@ -199,6 +203,7 @@ public class AuthController : ControllerBase
         // 12. Log successful login and save all changes in single transaction
         AddLoginAttempt(request.Login, ipAddress, userAgent, true, null);
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         // 13. Build response
         var response = new LoginResponse

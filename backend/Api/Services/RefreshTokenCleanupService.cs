@@ -14,6 +14,8 @@ public sealed class RefreshTokenCleanupService : BackgroundService
     private readonly ILogger<RefreshTokenCleanupService> _logger;
     private readonly TimeSpan _cleanupInterval;
     private readonly int _retentionDays;
+    private const int MaxConsecutiveFailures = 5;
+    private const int BaseRetryDelaySeconds = 30;
 
     public RefreshTokenCleanupService(
         IServiceScopeFactory scopeFactory,
@@ -32,18 +34,57 @@ public sealed class RefreshTokenCleanupService : BackgroundService
             "Refresh token cleanup service started. Cleanup interval: {Interval}h, Retention: {Retention} days",
             _cleanupInterval.TotalHours, _retentionDays);
 
+        var consecutiveFailures = 0;
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 await CleanupExpiredTokensAsync(stoppingToken);
+                consecutiveFailures = 0; // Reset on success
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred during refresh token cleanup");
+                consecutiveFailures++;
+
+                if (consecutiveFailures >= MaxConsecutiveFailures)
+                {
+                    _logger.LogCritical(ex,
+                        "Refresh token cleanup has failed {FailureCount} consecutive times. " +
+                        "Manual intervention may be required. Continuing with normal interval.",
+                        consecutiveFailures);
+                    consecutiveFailures = 0; // Reset to continue attempting
+                }
+                else
+                {
+                    _logger.LogError(ex,
+                        "Error occurred during refresh token cleanup (attempt {FailureCount}/{MaxFailures})",
+                        consecutiveFailures, MaxConsecutiveFailures);
+
+                    // Apply exponential backoff: 30s, 60s, 120s, 240s...
+                    var retryDelay = TimeSpan.FromSeconds(BaseRetryDelaySeconds * Math.Pow(2, consecutiveFailures - 1));
+                    _logger.LogInformation("Retrying cleanup in {RetryDelay} seconds", retryDelay.TotalSeconds);
+
+                    try
+                    {
+                        await Task.Delay(retryDelay, stoppingToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    continue; // Skip the normal interval delay, retry immediately after backoff
+                }
             }
 
-            await Task.Delay(_cleanupInterval, stoppingToken);
+            try
+            {
+                await Task.Delay(_cleanupInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
