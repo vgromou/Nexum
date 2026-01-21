@@ -89,4 +89,14 @@ public class BusinessRuleException : ApiException
             "Cannot deactivate the last active administrator in the organization",
             ErrorCodes.CANNOT_DEACTIVATE_LAST_ADMIN);
     }
+
+    /// <summary>
+    /// Creates an exception when trying to activate an already active user.
+    /// </summary>
+    public static BusinessRuleException UserAlreadyActive()
+    {
+        return new BusinessRuleException(
+            "User is already active",
+            ErrorCodes.USER_ALREADY_ACTIVE);
+    }
 }

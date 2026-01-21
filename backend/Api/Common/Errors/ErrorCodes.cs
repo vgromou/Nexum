@@ -62,6 +62,7 @@ public static class ErrorCodes
     public const string CANNOT_REMOVE_LAST_ADMIN = "CANNOT_REMOVE_LAST_ADMIN"; // 422
     public const string CANNOT_DEACTIVATE_SELF = "CANNOT_DEACTIVATE_SELF"; // 422
     public const string CANNOT_DEACTIVATE_LAST_ADMIN = "CANNOT_DEACTIVATE_LAST_ADMIN"; // 422
+    public const string USER_ALREADY_ACTIVE = "USER_ALREADY_ACTIVE"; // 422
 
     // Server errors (SERVER_*)
     public const string SERVER_ERROR = "SERVER_ERROR";                     // 500

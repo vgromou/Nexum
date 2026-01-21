@@ -404,6 +404,84 @@ public class OrganizationMembersController : ControllerBase
         return Ok(user.ToUserInfo(membership));
     }
 
+    /// <summary>
+    /// Activate a deactivated member in the organization.
+    /// </summary>
+    /// <remarks>
+    /// Reactivates a previously deactivated user account, allowing them to log in again
+    /// with their existing credentials.
+    ///
+    /// **Authorization:** Requires Admin role in the organization.
+    ///
+    /// **Business Rules:**
+    /// - Cannot activate if user is already active.
+    /// - Does NOT generate a new password (user keeps their existing password).
+    /// - Does NOT reset the must_change_password flag.
+    /// </remarks>
+    /// <param name="organizationId">The organization's unique identifier.</param>
+    /// <param name="userId">The user's unique identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Updated user info with isActive set to true.</returns>
+    /// <response code="200">Member activated successfully.</response>
+    /// <response code="401">Not authenticated.</response>
+    /// <response code="403">Not authorized to activate members in this organization.</response>
+    /// <response code="404">Organization or member not found.</response>
+    /// <response code="422">User is already active.</response>
+    [HttpPost("{userId:guid}/activate")]
+    [Authorize(Roles = "admin")]
+    [RequireValidClaims]
+    [ProducesResponseType(typeof(UserInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<UserInfo>> ActivateMember(
+        [FromRoute] Guid organizationId,
+        [FromRoute] Guid userId,
+        CancellationToken cancellationToken)
+    {
+        // 1. Verify organization exists
+        var organizationExists = await _context.Organizations
+            .AnyAsync(o => o.Id == organizationId, cancellationToken);
+
+        if (!organizationExists)
+        {
+            throw NotFoundException.Organization(organizationId);
+        }
+
+        // 2. Verify caller belongs to this organization
+        var tokenOrgId = User.GetOrganizationId();
+        if (tokenOrgId != organizationId)
+        {
+            throw ForbiddenException.InsufficientPermissions("activate members in this organization");
+        }
+
+        // 3. Find target membership with User
+        var membership = await _context.OrganizationMembers
+            .Include(m => m.User)
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId, cancellationToken);
+
+        if (membership == null)
+        {
+            throw NotFoundException.Member(userId, organizationId);
+        }
+
+        // 4. Check if user is already active
+        var user = membership.User;
+        if (user.IsActive)
+        {
+            throw BusinessRuleException.UserAlreadyActive();
+        }
+
+        // 5. Activate user
+        user.IsActive = true;
+        user.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Ok(user.ToUserInfo(membership));
+    }
+
 #if DEBUG
     /// <summary>
     /// Delete a user from the organization.

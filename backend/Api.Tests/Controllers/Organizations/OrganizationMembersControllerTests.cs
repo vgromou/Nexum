@@ -1744,4 +1744,185 @@ public class OrganizationMembersControllerTests : IDisposable
     }
 
     #endregion
+
+    #region ActivateMember Tests
+
+    [Fact]
+    public async Task ActivateMember_WithValidRequest_ShouldReturn200Ok()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "activateadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "activatetarget");
+        targetUser.IsActive = false;
+        await _context.SaveChangesAsync();
+        SetCallerContext(admin.Id);
+
+        // Act
+        var result = await _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.StatusCode.Should().Be(200);
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.IsActive.Should().BeTrue();
+        response.Id.Should().Be(targetUser.Id);
+    }
+
+    [Fact]
+    public async Task ActivateMember_WithNonExistentOrganization_ShouldThrow404()
+    {
+        // Arrange
+        var nonExistentOrgId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var callerId = Guid.NewGuid();
+        SetCallerContext(callerId, nonExistentOrgId);
+
+        // Act
+        var act = () => _controller.ActivateMember(nonExistentOrgId, userId, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>()
+            .WithMessage($"*Organization*{nonExistentOrgId}*not found*");
+    }
+
+    [Fact]
+    public async Task ActivateMember_WithNonExistentMember_ShouldThrow404()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "activateadmin2");
+        var nonExistentUserId = Guid.NewGuid();
+        SetCallerContext(admin.Id);
+
+        // Act
+        var act = () => _controller.ActivateMember(_organizationId, nonExistentUserId, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>()
+            .WithMessage($"*User*{nonExistentUserId}*not a member*{_organizationId}*");
+    }
+
+    [Fact]
+    public async Task ActivateMember_WhenAlreadyActive_ShouldThrow422()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "alreadyactiveadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "alreadyactivetarget");
+        targetUser.IsActive.Should().BeTrue(); // Verify initial state
+        SetCallerContext(admin.Id);
+
+        // Act
+        var act = () => _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*already active*");
+    }
+
+    [Fact]
+    public async Task ActivateMember_ShouldSetIsActiveTrue()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "setactiveadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "setactivetarget");
+        targetUser.IsActive = false;
+        await _context.SaveChangesAsync();
+        SetCallerContext(admin.Id);
+
+        // Act
+        await _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert
+        var updatedUser = await _context.Users.FirstAsync(u => u.Id == targetUser.Id);
+        updatedUser.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ActivateMember_WithDifferentOrganization_ShouldThrow403()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "activatedifforgadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "activatedifforgtarget");
+        targetUser.IsActive = false;
+        await _context.SaveChangesAsync();
+
+        // Set caller context with a different org ID
+        var differentOrgId = Guid.NewGuid();
+        SetCallerContext(admin.Id, differentOrgId);
+
+        // Act
+        var act = () => _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*activate members*");
+    }
+
+    [Fact]
+    public async Task ActivateMember_ShouldReturnUserInfoWithCorrectFields()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "activatefieldsadmin");
+
+        var targetUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "activatefields@test.com",
+            Username = "activatefieldsuser",
+            PasswordHash = "hash",
+            FirstName = "Activate",
+            LastName = "Fields",
+            Position = "Developer",
+            IsActive = false
+        };
+        var targetMembership = new OrganizationMember
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            UserId = targetUser.Id,
+            OrganizationRole = OrganizationRole.User,
+            JoinedAt = DateTime.UtcNow
+        };
+        _context.Users.Add(targetUser);
+        _context.OrganizationMembers.Add(targetMembership);
+        await _context.SaveChangesAsync();
+
+        SetCallerContext(admin.Id);
+
+        // Act
+        var result = await _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+
+        response.Id.Should().Be(targetUser.Id);
+        response.Email.Should().Be("activatefields@test.com");
+        response.Username.Should().Be("activatefieldsuser");
+        response.FirstName.Should().Be("Activate");
+        response.LastName.Should().Be("Fields");
+        response.OrganizationRole.Should().Be(OrganizationRole.User);
+        response.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ActivateMember_ShouldNotResetMustChangePassword()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "mustchangeadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "mustchangetarget");
+        targetUser.IsActive = false;
+        targetUser.MustChangePassword = true;
+        await _context.SaveChangesAsync();
+        SetCallerContext(admin.Id);
+
+        // Act
+        await _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert
+        var updatedUser = await _context.Users.FirstAsync(u => u.Id == targetUser.Id);
+        updatedUser.IsActive.Should().BeTrue();
+        updatedUser.MustChangePassword.Should().BeTrue(); // Should NOT be reset
+    }
+
+    #endregion
 }
