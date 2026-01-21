@@ -1559,84 +1559,39 @@ public class OrganizationMembersControllerTests : IDisposable
     [Fact]
     public async Task DeactivateMember_ForLastActiveAdmin_ShouldThrow422()
     {
-        // Arrange
-        var (caller, _) = await CreateMemberAsync(OrganizationRole.Admin, "calleradmin3");
-        var (lastAdmin, _) = await CreateMemberAsync(OrganizationRole.Admin, "lastadmin2");
-
-        // Deactivate the caller so only lastAdmin is active
-        caller.IsActive = false;
-        await _context.SaveChangesAsync();
-
-        // Create another admin caller for this test
-        var (newCaller, _) = await CreateMemberAsync(OrganizationRole.Admin, "newcaller");
-        SetCallerContext(newCaller.Id);
-
-        // Deactivate newCaller so lastAdmin is the only active admin
-        newCaller.IsActive = false;
-        await _context.SaveChangesAsync();
-
-        // Re-activate one admin as caller
-        var (activeCaller, _) = await CreateMemberAsync(OrganizationRole.User, "activecaller");
-        activeCaller.IsActive = true;
-        await _context.SaveChangesAsync();
-
-        // Update membership to admin for activeCaller - actually, let me redo this test
-        // Let me simplify this - create a scenario where lastAdmin is the only active admin
-        _context.OrganizationMembers.RemoveRange(_context.OrganizationMembers);
-        _context.Users.RemoveRange(_context.Users);
-        await _context.SaveChangesAsync();
-
-        // Create fresh users
-        var callerUser = new User
-        {
-            Id = Guid.NewGuid(),
-            Email = "caller@test.com",
-            Username = "caller",
-            PasswordHash = "hash",
-            FirstName = "Caller",
-            LastName = "Admin",
-            IsActive = true
-        };
-        var targetAdmin = new User
-        {
-            Id = Guid.NewGuid(),
-            Email = "target@test.com",
-            Username = "target",
-            PasswordHash = "hash",
-            FirstName = "Target",
-            LastName = "Admin",
-            IsActive = true
-        };
-
-        var callerMembership = new OrganizationMember
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = _organizationId,
-            UserId = callerUser.Id,
-            OrganizationRole = OrganizationRole.Manager, // Not admin, so won't be counted
-            JoinedAt = DateTime.UtcNow
-        };
-        var targetMembership = new OrganizationMember
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = _organizationId,
-            UserId = targetAdmin.Id,
-            OrganizationRole = OrganizationRole.Admin, // Only active admin
-            JoinedAt = DateTime.UtcNow
-        };
-
-        _context.Users.AddRange(callerUser, targetAdmin);
-        _context.OrganizationMembers.AddRange(callerMembership, targetMembership);
-        await _context.SaveChangesAsync();
-
-        SetCallerContext(callerUser.Id);
+        // Arrange: create manager (caller) and the only admin (target)
+        var (manager, _) = await CreateMemberAsync(OrganizationRole.Manager, "managercaller");
+        var (lastAdmin, _) = await CreateMemberAsync(OrganizationRole.Admin, "lastadmin");
+        SetCallerContext(manager.Id);
 
         // Act
-        var act = () => _controller.DeactivateMember(_organizationId, targetAdmin.Id, CancellationToken.None);
+        var act = () => _controller.DeactivateMember(_organizationId, lastAdmin.Id, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*Cannot deactivate the last active administrator*");
+    }
+
+    [Fact]
+    public async Task DeactivateMember_WhenAlreadyDeactivated_ShouldSucceedIdempotently()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "idempotentadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "idempotenttarget");
+
+        // Deactivate first time
+        targetUser.IsActive = false;
+        await _context.SaveChangesAsync();
+
+        SetCallerContext(admin.Id);
+
+        // Act - second deactivation
+        var result = await _controller.DeactivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert - should succeed
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.IsActive.Should().BeFalse();
     }
 
     [Fact]

@@ -52,6 +52,7 @@ public class DebugController : ControllerBase
         var orgCount = await _context.Organizations.CountAsync(cancellationToken);
 
         // Clear tables in correct order (respecting foreign keys)
+        // Note: Table names include schema prefixes (auth.*, core.*) specific to PostgreSQL setup
         await _context.Database.ExecuteSqlRawAsync(
             "TRUNCATE auth.refresh_tokens, auth.login_attempts, core.organization_members, auth.users, core.organizations CASCADE",
             cancellationToken);
