@@ -21,6 +21,7 @@ public static class ErrorCodes
     public const string ACCESS_FORBIDDEN = "ACCESS_FORBIDDEN";
     public const string ACCESS_INSUFFICIENT_PERMISSIONS = "ACCESS_INSUFFICIENT_PERMISSIONS";
     public const string ACCESS_ORGANIZATION_REQUIRED = "ACCESS_ORGANIZATION_REQUIRED";
+    public const string PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED";
 
     // Bad request errors - Status 400
     public const string BAD_REQUEST = "BAD_REQUEST";

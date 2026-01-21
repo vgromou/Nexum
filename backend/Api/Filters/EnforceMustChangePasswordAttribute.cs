@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.EntityFrameworkCore;
-using Api.Data;
+using Api.Common.Errors;
 using Api.Exceptions;
-using Api.Extensions;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Api.Filters;
 
@@ -11,9 +9,12 @@ namespace Api.Filters;
 /// Users must change their password before accessing protected resources.
 /// </summary>
 /// <remarks>
+/// The must_change_password claim is read directly from the JWT token (no DB query).
+///
 /// When MustChangePassword is true, only specific endpoints are allowed:
 /// - POST /api/auth/change-password (to change the password)
 /// - POST /api/auth/logout (to logout)
+/// - POST /api/auth/refresh (to refresh tokens)
 /// - GET /api/me (to view profile)
 ///
 /// All other authenticated requests return 403 Forbidden with PASSWORD_CHANGE_REQUIRED error.
@@ -30,6 +31,7 @@ public sealed class EnforceMustChangePasswordAttribute : ActionFilterAttribute
     {
         "POST:/api/auth/change-password",
         "POST:/api/auth/logout",
+        "POST:/api/auth/refresh",
         "GET:/api/me"
     };
 
@@ -63,26 +65,13 @@ public sealed class EnforceMustChangePasswordAttribute : ActionFilterAttribute
             return;
         }
 
-        // Get user ID from claims
-        var userId = context.HttpContext.User.GetUserId();
-        if (!userId.HasValue)
-        {
-            await next();
-            return;
-        }
-
-        // Check MustChangePassword flag from database
-        var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
-        var mustChangePassword = await dbContext.Users
-            .Where(u => u.Id == userId.Value)
-            .Select(u => u.MustChangePassword)
-            .FirstOrDefaultAsync();
-
-        if (mustChangePassword)
+        // Check MustChangePassword flag from JWT claim (no DB query)
+        var mustChangePasswordClaim = context.HttpContext.User.FindFirst("must_change_password")?.Value;
+        if (mustChangePasswordClaim == "true")
         {
             throw new ForbiddenException(
-                "Password change required. Please change your password before accessing this resource.",
-                "PASSWORD_CHANGE_REQUIRED");
+                "You must change your password before continuing",
+                ErrorCodes.PASSWORD_CHANGE_REQUIRED);
         }
 
         await next();

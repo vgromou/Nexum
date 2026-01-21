@@ -90,7 +90,8 @@ public sealed class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
             new("org_id", membership.OrganizationId.ToString()),
-            new(ClaimTypes.Role, membership.OrganizationRole.ToString().ToLowerInvariant())
+            new(ClaimTypes.Role, membership.OrganizationRole.ToString().ToLowerInvariant()),
+            new("must_change_password", user.MustChangePassword.ToString().ToLowerInvariant())
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor

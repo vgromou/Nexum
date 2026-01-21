@@ -569,24 +569,28 @@ public class AuthController : ControllerBase
     /// - All active sessions are terminated after password change (refresh tokens revoked)
     /// - Clears the `mustChangePassword` flag
     ///
-    /// **Note:** After successful password change, the user must log in again.
+    /// **Response:**
+    /// - Returns new access and refresh tokens with `must_change_password=false`
+    /// - Client should replace stored tokens with the new ones
     /// </remarks>
     /// <param name="request">Current and new password.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Empty response on success.</returns>
+    /// <returns>New authentication tokens.</returns>
     /// <response code="200">Password changed successfully.</response>
     /// <response code="400">Invalid request body or new password requirements not met.</response>
     /// <response code="401">User is not authenticated or current password is incorrect.</response>
     [HttpPost("change-password")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ChangePasswordResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ChangePassword(
+    public async Task<ActionResult<ChangePasswordResponse>> ChangePassword(
         [FromBody] ChangePasswordRequest request,
         CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var ipAddress = GetClientIpAddress();
+        var userAgent = Request.Headers.UserAgent.ToString();
 
         // Get user ID from claims
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -595,8 +599,9 @@ public class AuthController : ControllerBase
             throw new UnauthorizedException("Invalid token", "UNAUTHORIZED");
         }
 
-        // Find user
+        // Find user with organization membership
         var user = await _context.Users
+            .Include(u => u.OrganizationMemberships)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
@@ -611,16 +616,23 @@ public class AuthController : ControllerBase
             throw new UnauthorizedException("Current password is incorrect", "INVALID_PASSWORD");
         }
 
+        // Get user's organization membership (MVP: single organization)
+        var membership = user.OrganizationMemberships.FirstOrDefault();
+        if (membership == null)
+        {
+            throw new UnauthorizedException("User has no organization membership", "UNAUTHORIZED");
+        }
+
         // Use transaction to ensure password update and token revocation are atomic
         await using var transaction = await _context.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
-        // Update password
+        // Update password and clear must_change_password flag
         user.PasswordHash = _passwordService.HashPassword(request.NewPassword);
         user.MustChangePassword = false;
         user.PasswordChangedAt = now;
 
-        // Revoke all user's refresh tokens (force re-login)
+        // Revoke all user's existing refresh tokens
         var userTokens = await _context.RefreshTokens
             .Where(t => t.UserId == userId && t.RevokedAt == null)
             .ToListAsync(cancellationToken);
@@ -631,13 +643,38 @@ public class AuthController : ControllerBase
             token.RevokedReason = RevokedReasons.PasswordChange;
         }
 
+        // Generate new access token (with must_change_password=false)
+        var accessToken = _jwtService.GenerateAccessToken(user, membership);
+
+        // Generate and store new refresh token
+        var refreshTokenValue = _jwtService.GenerateRefreshToken();
+        var refreshTokenHash = HashToken(refreshTokenValue);
+
+        var newRefreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = refreshTokenHash,
+            ExpiresAt = now.Add(_jwtService.RefreshTokenExpiration),
+            DeviceInfo = userAgent,
+            IpAddress = ipAddress
+        };
+
+        _context.RefreshTokens.Add(newRefreshToken);
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         _logger.LogInformation(
-            "User {UserId} changed their password. {TokenCount} refresh tokens revoked.",
+            "User {UserId} changed their password. {TokenCount} old refresh tokens revoked, new tokens issued.",
             userId, userTokens.Count);
 
-        return Ok();
+        var response = new ChangePasswordResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshTokenValue,
+            ExpiresIn = (int)_jwtService.AccessTokenExpiration.TotalSeconds
+        };
+
+        return Ok(response);
     }
 }
