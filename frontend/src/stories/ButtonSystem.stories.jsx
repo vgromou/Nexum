@@ -42,6 +42,7 @@ export const Interactive = {
       <button
         className={`btn ${args.variant} ${args.size} ${args.iconPosition}`}
         disabled={args.disabled}
+        aria-label={args.iconPosition === 'btn-icon' && IconComponent ? 'Icon button' : undefined}
       >
         {args.iconPosition === 'btn-icon-left' && IconComponent && <IconComponent />}
         {args.iconPosition === 'btn-icon-both' && IconComponent && <IconComponent />}
@@ -111,24 +112,24 @@ export const TextOnly = {
       <SectionHeader>Small (26px)</SectionHeader>
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-primary btn-sm">Default</button>
-        <button className="btn btn-primary btn-sm" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>Hover</button>
-        <button className="btn btn-primary btn-sm" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>Active</button>
+        <button className="btn btn-primary btn-sm" data-state="hover">Hover</button>
+        <button className="btn btn-primary btn-sm" data-state="active">Active</button>
         <button className="btn btn-primary btn-sm" disabled>Disabled</button>
       </div>
 
       <SectionHeader>Medium (36px)</SectionHeader>
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-primary">Default</button>
-        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>Hover</button>
-        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>Active</button>
+        <button className="btn btn-primary" data-state="hover">Hover</button>
+        <button className="btn btn-primary" data-state="active">Active</button>
         <button className="btn btn-primary" disabled>Disabled</button>
       </div>
 
       <SectionHeader>Large (40px)</SectionHeader>
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         <button className="btn btn-primary btn-lg">Default</button>
-        <button className="btn btn-primary btn-lg" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>Hover</button>
-        <button className="btn btn-primary btn-lg" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>Active</button>
+        <button className="btn btn-primary btn-lg" data-state="hover">Hover</button>
+        <button className="btn btn-primary btn-lg" data-state="active">Active</button>
         <button className="btn btn-primary btn-lg" disabled>Disabled</button>
       </div>
     </div>
@@ -148,26 +149,26 @@ export const IconOnly = {
     <div>
       <SectionHeader>Icon Only - All Sizes</SectionHeader>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
-        <button className="btn btn-primary btn-icon btn-sm">
+        <button className="btn btn-primary btn-icon btn-sm" aria-label="Notifications">
           <Bell />
         </button>
-        <button className="btn btn-primary btn-icon">
+        <button className="btn btn-primary btn-icon" aria-label="Notifications">
           <Bell />
         </button>
-        <button className="btn btn-primary btn-icon btn-lg">
+        <button className="btn btn-primary btn-icon btn-lg" aria-label="Notifications">
           <Bell />
         </button>
       </div>
 
       <SectionHeader>Icon Only - Disabled</SectionHeader>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-        <button className="btn btn-primary btn-icon btn-sm" disabled>
+        <button className="btn btn-primary btn-icon btn-sm" disabled aria-label="Notifications">
           <Bell />
         </button>
-        <button className="btn btn-primary btn-icon" disabled>
+        <button className="btn btn-primary btn-icon" disabled aria-label="Notifications">
           <Bell />
         </button>
-        <button className="btn btn-primary btn-icon btn-lg" disabled>
+        <button className="btn btn-primary btn-icon btn-lg" disabled aria-label="Notifications">
           <Bell />
         </button>
       </div>
@@ -333,10 +334,10 @@ export const AllStates = {
       <SectionHeader>Primary Button States</SectionHeader>
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
         <button className="btn btn-primary">Default</button>
-        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>
+        <button className="btn btn-primary" data-state="hover">
           Hover (simulated)
         </button>
-        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>
+        <button className="btn btn-primary" data-state="active">
           Active (simulated)
         </button>
         <button className="btn btn-primary" disabled>Disabled</button>
@@ -348,7 +349,7 @@ export const AllStates = {
         color: 'var(--text-tertiary)',
         marginTop: '8px'
       }}>
-        Hover and active states are interactive - hover over the "Default" button to see the hover state.
+        Hover and active states are interactive - hover over the "Default" button to see the hover state. Simulated states use data-state attributes instead of inline styles.
       </p>
     </div>
   ),
@@ -378,7 +379,7 @@ export const PrimaryVariant = {
       <SectionHeader>Small (26px)</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-primary btn-sm">Text</button>
-        <button className="btn btn-primary btn-sm btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-sm btn-icon" aria-label="Notifications"><Bell /></button>
         <button className="btn btn-primary btn-sm btn-icon-left"><Plus />Icon Left</button>
         <button className="btn btn-primary btn-sm btn-icon-right">Icon Right<ChevronDown /></button>
         <button className="btn btn-primary btn-sm btn-icon-both"><Check />Both Icons<X /></button>
@@ -387,7 +388,7 @@ export const PrimaryVariant = {
       <SectionHeader>Medium (36px - Default)</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-primary">Text</button>
-        <button className="btn btn-primary btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-icon" aria-label="Notifications"><Bell /></button>
         <button className="btn btn-primary btn-icon-left"><Plus />Icon Left</button>
         <button className="btn btn-primary btn-icon-right">Icon Right<ChevronDown /></button>
         <button className="btn btn-primary btn-icon-both"><Check />Both Icons<X /></button>
@@ -396,7 +397,7 @@ export const PrimaryVariant = {
       <SectionHeader>Large (40px)</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-primary btn-lg">Text</button>
-        <button className="btn btn-primary btn-lg btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-lg btn-icon" aria-label="Notifications"><Bell /></button>
         <button className="btn btn-primary btn-lg btn-icon-left"><Plus />Icon Left</button>
         <button className="btn btn-primary btn-lg btn-icon-right">Icon Right<ChevronDown /></button>
         <button className="btn btn-primary btn-lg btn-icon-both"><Check />Both Icons<X /></button>
@@ -407,9 +408,9 @@ export const PrimaryVariant = {
         <button className="btn btn-primary btn-sm" disabled>Small</button>
         <button className="btn btn-primary" disabled>Medium</button>
         <button className="btn btn-primary btn-lg" disabled>Large</button>
-        <button className="btn btn-primary btn-icon btn-sm" disabled><Bell /></button>
-        <button className="btn btn-primary btn-icon" disabled><Bell /></button>
-        <button className="btn btn-primary btn-icon btn-lg" disabled><Bell /></button>
+        <button className="btn btn-primary btn-icon btn-sm" disabled aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-primary btn-icon" disabled aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-primary btn-icon btn-lg" disabled aria-label="Notifications"><Bell /></button>
       </div>
     </div>
   ),
@@ -441,9 +442,9 @@ export const GhostVariant = {
         <button className="btn btn-ghost btn-sm">Small</button>
         <button className="btn btn-ghost">Medium</button>
         <button className="btn btn-ghost btn-lg">Large</button>
-        <button className="btn btn-ghost btn-icon btn-sm"><Bell /></button>
-        <button className="btn btn-ghost btn-icon"><Bell /></button>
-        <button className="btn btn-ghost btn-icon btn-lg"><Bell /></button>
+        <button className="btn btn-ghost btn-icon btn-sm" aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-ghost btn-icon" aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-ghost btn-icon btn-lg" aria-label="Notifications"><Bell /></button>
       </div>
 
       <SectionHeader>With Icons - Different Sizes</SectionHeader>
@@ -461,9 +462,9 @@ export const GhostVariant = {
         <button className="btn btn-ghost btn-sm" disabled>Small</button>
         <button className="btn btn-ghost" disabled>Medium</button>
         <button className="btn btn-ghost btn-lg" disabled>Large</button>
-        <button className="btn btn-ghost btn-icon btn-sm" disabled><Bell /></button>
-        <button className="btn btn-ghost btn-icon" disabled><Bell /></button>
-        <button className="btn btn-ghost btn-icon btn-lg" disabled><Bell /></button>
+        <button className="btn btn-ghost btn-icon btn-sm" disabled aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-ghost btn-icon" disabled aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-ghost btn-icon btn-lg" disabled aria-label="Notifications"><Bell /></button>
       </div>
     </div>
   ),
@@ -495,9 +496,9 @@ export const OutlineVariant = {
         <button className="btn btn-outline btn-sm">Small</button>
         <button className="btn btn-outline">Medium</button>
         <button className="btn btn-outline btn-lg">Large</button>
-        <button className="btn btn-outline btn-icon btn-sm"><Bell /></button>
-        <button className="btn btn-outline btn-icon"><Bell /></button>
-        <button className="btn btn-outline btn-icon btn-lg"><Bell /></button>
+        <button className="btn btn-outline btn-icon btn-sm" aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-outline btn-icon" aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-outline btn-icon btn-lg" aria-label="Notifications"><Bell /></button>
       </div>
 
       <SectionHeader>With Icons - Different Sizes</SectionHeader>
@@ -515,9 +516,9 @@ export const OutlineVariant = {
         <button className="btn btn-outline btn-sm" disabled>Small</button>
         <button className="btn btn-outline" disabled>Medium</button>
         <button className="btn btn-outline btn-lg" disabled>Large</button>
-        <button className="btn btn-outline btn-icon btn-sm" disabled><Bell /></button>
-        <button className="btn btn-outline btn-icon" disabled><Bell /></button>
-        <button className="btn btn-outline btn-icon btn-lg" disabled><Bell /></button>
+        <button className="btn btn-outline btn-icon btn-sm" disabled aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-outline btn-icon" disabled aria-label="Notifications"><Bell /></button>
+        <button className="btn btn-outline btn-icon btn-lg" disabled aria-label="Notifications"><Bell /></button>
       </div>
     </div>
   ),
@@ -549,9 +550,9 @@ export const DestructiveVariants = {
         <button className="btn btn-destructive btn-sm">Small</button>
         <button className="btn btn-destructive">Medium</button>
         <button className="btn btn-destructive btn-lg">Large</button>
-        <button className="btn btn-destructive btn-icon btn-sm"><X /></button>
-        <button className="btn btn-destructive btn-icon"><X /></button>
-        <button className="btn btn-destructive btn-icon btn-lg"><X /></button>
+        <button className="btn btn-destructive btn-icon btn-sm" aria-label="Delete"><X /></button>
+        <button className="btn btn-destructive btn-icon" aria-label="Delete"><X /></button>
+        <button className="btn btn-destructive btn-icon btn-lg" aria-label="Delete"><X /></button>
         <button className="btn btn-destructive btn-icon-left btn-sm"><X />Delete</button>
         <button className="btn btn-destructive btn-icon-left"><X />Delete</button>
         <button className="btn btn-destructive btn-icon-left btn-lg"><X />Delete</button>
@@ -567,9 +568,9 @@ export const DestructiveVariants = {
         <button className="btn btn-destructive-ghost btn-sm">Small</button>
         <button className="btn btn-destructive-ghost">Medium</button>
         <button className="btn btn-destructive-ghost btn-lg">Large</button>
-        <button className="btn btn-destructive-ghost btn-icon btn-sm"><X /></button>
-        <button className="btn btn-destructive-ghost btn-icon"><X /></button>
-        <button className="btn btn-destructive-ghost btn-icon btn-lg"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon btn-sm" aria-label="Delete"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon" aria-label="Delete"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon btn-lg" aria-label="Delete"><X /></button>
         <button className="btn btn-destructive-ghost btn-icon-left btn-sm"><X />Delete</button>
         <button className="btn btn-destructive-ghost btn-icon-left"><X />Delete</button>
         <button className="btn btn-destructive-ghost btn-icon-left btn-lg"><X />Delete</button>
@@ -585,9 +586,9 @@ export const DestructiveVariants = {
         <button className="btn btn-destructive-outline btn-sm">Small</button>
         <button className="btn btn-destructive-outline">Medium</button>
         <button className="btn btn-destructive-outline btn-lg">Large</button>
-        <button className="btn btn-destructive-outline btn-icon btn-sm"><X /></button>
-        <button className="btn btn-destructive-outline btn-icon"><X /></button>
-        <button className="btn btn-destructive-outline btn-icon btn-lg"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon btn-sm" aria-label="Delete"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon" aria-label="Delete"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon btn-lg" aria-label="Delete"><X /></button>
         <button className="btn btn-destructive-outline btn-icon-left btn-sm"><X />Delete</button>
         <button className="btn btn-destructive-outline btn-icon-left"><X />Delete</button>
         <button className="btn btn-destructive-outline btn-icon-left btn-lg"><X />Delete</button>
@@ -627,9 +628,9 @@ export const SuccessVariants = {
         <button className="btn btn-success btn-sm">Small</button>
         <button className="btn btn-success">Medium</button>
         <button className="btn btn-success btn-lg">Large</button>
-        <button className="btn btn-success btn-icon btn-sm"><Check /></button>
-        <button className="btn btn-success btn-icon"><Check /></button>
-        <button className="btn btn-success btn-icon btn-lg"><Check /></button>
+        <button className="btn btn-success btn-icon btn-sm" aria-label="Confirm"><Check /></button>
+        <button className="btn btn-success btn-icon" aria-label="Confirm"><Check /></button>
+        <button className="btn btn-success btn-icon btn-lg" aria-label="Confirm"><Check /></button>
         <button className="btn btn-success btn-icon-left btn-sm"><Check />Save</button>
         <button className="btn btn-success btn-icon-left"><Check />Save</button>
         <button className="btn btn-success btn-icon-left btn-lg"><Check />Save</button>
@@ -645,9 +646,9 @@ export const SuccessVariants = {
         <button className="btn btn-success-ghost btn-sm">Small</button>
         <button className="btn btn-success-ghost">Medium</button>
         <button className="btn btn-success-ghost btn-lg">Large</button>
-        <button className="btn btn-success-ghost btn-icon btn-sm"><Check /></button>
-        <button className="btn btn-success-ghost btn-icon"><Check /></button>
-        <button className="btn btn-success-ghost btn-icon btn-lg"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon btn-sm" aria-label="Confirm"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon" aria-label="Confirm"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon btn-lg" aria-label="Confirm"><Check /></button>
         <button className="btn btn-success-ghost btn-icon-left btn-sm"><Check />Save</button>
         <button className="btn btn-success-ghost btn-icon-left"><Check />Save</button>
         <button className="btn btn-success-ghost btn-icon-left btn-lg"><Check />Save</button>
@@ -663,9 +664,9 @@ export const SuccessVariants = {
         <button className="btn btn-success-outline btn-sm">Small</button>
         <button className="btn btn-success-outline">Medium</button>
         <button className="btn btn-success-outline btn-lg">Large</button>
-        <button className="btn btn-success-outline btn-icon btn-sm"><Check /></button>
-        <button className="btn btn-success-outline btn-icon"><Check /></button>
-        <button className="btn btn-success-outline btn-icon btn-lg"><Check /></button>
+        <button className="btn btn-success-outline btn-icon btn-sm" aria-label="Confirm"><Check /></button>
+        <button className="btn btn-success-outline btn-icon" aria-label="Confirm"><Check /></button>
+        <button className="btn btn-success-outline btn-icon btn-lg" aria-label="Confirm"><Check /></button>
         <button className="btn btn-success-outline btn-icon-left btn-sm"><Check />Save</button>
         <button className="btn btn-success-outline btn-icon-left"><Check />Save</button>
         <button className="btn btn-success-outline btn-icon-left btn-lg"><Check />Save</button>
@@ -724,10 +725,10 @@ export const CompleteMatrix = {
       <div style={{ marginBottom: '16px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Icon Only</div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary btn-sm btn-icon"><Bell /></button>
-          <button className="btn btn-primary btn-sm btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }}><Bell /></button>
-          <button className="btn btn-primary btn-sm btn-icon" style={{ background: 'var(--button-primary-bg-active)' }}><Bell /></button>
-          <button className="btn btn-primary btn-sm btn-icon" disabled><Bell /></button>
+          <button className="btn btn-primary btn-sm btn-icon" aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-sm btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }} aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-sm btn-icon" style={{ background: 'var(--button-primary-bg-active)' }} aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-sm btn-icon" disabled aria-label="Notifications"><Bell /></button>
         </div>
       </div>
 
@@ -779,10 +780,10 @@ export const CompleteMatrix = {
       <div style={{ marginBottom: '16px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Icon Only</div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary btn-icon"><Bell /></button>
-          <button className="btn btn-primary btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }}><Bell /></button>
-          <button className="btn btn-primary btn-icon" style={{ background: 'var(--button-primary-bg-active)' }}><Bell /></button>
-          <button className="btn btn-primary btn-icon" disabled><Bell /></button>
+          <button className="btn btn-primary btn-icon" aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }} aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-icon" style={{ background: 'var(--button-primary-bg-active)' }} aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-icon" disabled aria-label="Notifications"><Bell /></button>
         </div>
       </div>
 
@@ -834,10 +835,10 @@ export const CompleteMatrix = {
       <div style={{ marginBottom: '16px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Icon Only</div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary btn-lg btn-icon"><Bell /></button>
-          <button className="btn btn-primary btn-lg btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }}><Bell /></button>
-          <button className="btn btn-primary btn-lg btn-icon" style={{ background: 'var(--button-primary-bg-active)' }}><Bell /></button>
-          <button className="btn btn-primary btn-lg btn-icon" disabled><Bell /></button>
+          <button className="btn btn-primary btn-lg btn-icon" aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-lg btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }} aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-lg btn-icon" style={{ background: 'var(--button-primary-bg-active)' }} aria-label="Notifications"><Bell /></button>
+          <button className="btn btn-primary btn-lg btn-icon" disabled aria-label="Notifications"><Bell /></button>
         </div>
       </div>
 
@@ -906,7 +907,7 @@ export const AllColorVariants = {
       <SectionHeader>Primary</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-primary">Primary</button>
-        <button className="btn btn-primary btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-icon" aria-label="Notifications"><Bell /></button>
         <button className="btn btn-primary btn-icon-left"><Plus />Add</button>
         <button className="btn btn-primary" disabled>Disabled</button>
       </div>
@@ -914,7 +915,7 @@ export const AllColorVariants = {
       <SectionHeader>Ghost</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-ghost">Ghost</button>
-        <button className="btn btn-ghost btn-icon"><Bell /></button>
+        <button className="btn btn-ghost btn-icon" aria-label="Notifications"><Bell /></button>
         <button className="btn btn-ghost btn-icon-left"><Plus />Add</button>
         <button className="btn btn-ghost" disabled>Disabled</button>
       </div>
@@ -922,7 +923,7 @@ export const AllColorVariants = {
       <SectionHeader>Outline</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-outline">Outline</button>
-        <button className="btn btn-outline btn-icon"><Bell /></button>
+        <button className="btn btn-outline btn-icon" aria-label="Notifications"><Bell /></button>
         <button className="btn btn-outline btn-icon-left"><Plus />Add</button>
         <button className="btn btn-outline" disabled>Disabled</button>
       </div>
@@ -930,7 +931,7 @@ export const AllColorVariants = {
       <SectionHeader>Destructive</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-destructive">Destructive</button>
-        <button className="btn btn-destructive btn-icon"><X /></button>
+        <button className="btn btn-destructive btn-icon" aria-label="Delete"><X /></button>
         <button className="btn btn-destructive btn-icon-left"><X />Delete</button>
         <button className="btn btn-destructive" disabled>Disabled</button>
       </div>
@@ -938,7 +939,7 @@ export const AllColorVariants = {
       <SectionHeader>Destructive Ghost</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-destructive-ghost">Destructive Ghost</button>
-        <button className="btn btn-destructive-ghost btn-icon"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon" aria-label="Delete"><X /></button>
         <button className="btn btn-destructive-ghost btn-icon-left"><X />Delete</button>
         <button className="btn btn-destructive-ghost" disabled>Disabled</button>
       </div>
@@ -946,7 +947,7 @@ export const AllColorVariants = {
       <SectionHeader>Destructive Outline</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-destructive-outline">Destructive Outline</button>
-        <button className="btn btn-destructive-outline btn-icon"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon" aria-label="Delete"><X /></button>
         <button className="btn btn-destructive-outline btn-icon-left"><X />Delete</button>
         <button className="btn btn-destructive-outline" disabled>Disabled</button>
       </div>
@@ -954,7 +955,7 @@ export const AllColorVariants = {
       <SectionHeader>Success</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-success">Success</button>
-        <button className="btn btn-success btn-icon"><Check /></button>
+        <button className="btn btn-success btn-icon" aria-label="Confirm"><Check /></button>
         <button className="btn btn-success btn-icon-left"><Check />Confirm</button>
         <button className="btn btn-success" disabled>Disabled</button>
       </div>
@@ -962,7 +963,7 @@ export const AllColorVariants = {
       <SectionHeader>Success Ghost</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button className="btn btn-success-ghost">Success Ghost</button>
-        <button className="btn btn-success-ghost btn-icon"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon" aria-label="Confirm"><Check /></button>
         <button className="btn btn-success-ghost btn-icon-left"><Check />Confirm</button>
         <button className="btn btn-success-ghost" disabled>Disabled</button>
       </div>
@@ -970,7 +971,7 @@ export const AllColorVariants = {
       <SectionHeader>Success Outline</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button className="btn btn-success-outline">Success Outline</button>
-        <button className="btn btn-success-outline btn-icon"><Check /></button>
+        <button className="btn btn-success-outline btn-icon" aria-label="Confirm"><Check /></button>
         <button className="btn btn-success-outline btn-icon-left"><Check />Confirm</button>
         <button className="btn btn-success-outline" disabled>Disabled</button>
       </div>
@@ -1009,16 +1010,16 @@ export const IconButtons = {
 
       <SectionHeader>All Sizes</SectionHeader>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '24px' }}>
-        <button className="icon-btn icon-btn-xs">
+        <button className="icon-btn icon-btn-xs" aria-label="Notifications">
           <Bell />
         </button>
-        <button className="icon-btn icon-btn-sm">
+        <button className="icon-btn icon-btn-sm" aria-label="Notifications">
           <Bell />
         </button>
-        <button className="icon-btn icon-btn-md">
+        <button className="icon-btn icon-btn-md" aria-label="Notifications">
           <Bell />
         </button>
-        <button className="icon-btn icon-btn-lg">
+        <button className="icon-btn icon-btn-lg" aria-label="Notifications">
           <Bell />
         </button>
       </div>
@@ -1027,16 +1028,16 @@ export const IconButtons = {
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="icon-btn icon-btn-xs">
+          <button className="icon-btn icon-btn-xs" aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-xs" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+          <button className="icon-btn icon-btn-xs" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-xs" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+          <button className="icon-btn icon-btn-xs" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-xs" disabled>
+          <button className="icon-btn icon-btn-xs" disabled aria-label="Notifications">
             <Bell />
           </button>
         </div>
@@ -1046,16 +1047,16 @@ export const IconButtons = {
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="icon-btn icon-btn-sm">
+          <button className="icon-btn icon-btn-sm" aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-sm" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+          <button className="icon-btn icon-btn-sm" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-sm" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+          <button className="icon-btn icon-btn-sm" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-sm" disabled>
+          <button className="icon-btn icon-btn-sm" disabled aria-label="Notifications">
             <Bell />
           </button>
         </div>
@@ -1065,16 +1066,16 @@ export const IconButtons = {
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="icon-btn">
+          <button className="icon-btn" aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+          <button className="icon-btn" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+          <button className="icon-btn" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn" disabled>
+          <button className="icon-btn" disabled aria-label="Notifications">
             <Bell />
           </button>
         </div>
@@ -1084,16 +1085,16 @@ export const IconButtons = {
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="icon-btn icon-btn-lg">
+          <button className="icon-btn icon-btn-lg" aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-lg" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+          <button className="icon-btn icon-btn-lg" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-lg" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+          <button className="icon-btn icon-btn-lg" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }} aria-label="Notifications">
             <Bell />
           </button>
-          <button className="icon-btn icon-btn-lg" disabled>
+          <button className="icon-btn icon-btn-lg" disabled aria-label="Notifications">
             <Bell />
           </button>
         </div>
@@ -1101,22 +1102,22 @@ export const IconButtons = {
 
       <SectionHeader>Different Icons</SectionHeader>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        <button className="icon-btn icon-btn-md">
+        <button className="icon-btn icon-btn-md" aria-label="Notifications">
           <Bell />
         </button>
-        <button className="icon-btn icon-btn-md">
+        <button className="icon-btn icon-btn-md" aria-label="Add">
           <Plus />
         </button>
-        <button className="icon-btn icon-btn-md">
+        <button className="icon-btn icon-btn-md" aria-label="Search">
           <Search />
         </button>
-        <button className="icon-btn icon-btn-md">
+        <button className="icon-btn icon-btn-md" aria-label="Close">
           <X />
         </button>
-        <button className="icon-btn icon-btn-md">
+        <button className="icon-btn icon-btn-md" aria-label="Confirm">
           <Check />
         </button>
-        <button className="icon-btn icon-btn-md">
+        <button className="icon-btn icon-btn-md" aria-label="Expand">
           <ChevronDown />
         </button>
       </div>
@@ -1242,9 +1243,9 @@ export const UsageExamples = {
         <div>
           <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Toolbar</div>
           <div style={{ display: 'flex', gap: '4px' }}>
-            <button className="btn btn-ghost btn-icon btn-sm"><Plus /></button>
-            <button className="btn btn-ghost btn-icon btn-sm"><Search /></button>
-            <button className="btn btn-ghost btn-icon btn-sm"><Bell /></button>
+            <button className="btn btn-ghost btn-icon btn-sm" aria-label="Add"><Plus /></button>
+            <button className="btn btn-ghost btn-icon btn-sm" aria-label="Search"><Search /></button>
+            <button className="btn btn-ghost btn-icon btn-sm" aria-label="Notifications"><Bell /></button>
           </div>
         </div>
 
