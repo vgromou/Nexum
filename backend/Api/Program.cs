@@ -42,6 +42,14 @@ builder.Services.AddSingleton<IJwtService, JwtService>();
 // Configure Security settings
 builder.Services.Configure<SecuritySettings>(builder.Configuration.GetSection(SecuritySettings.SectionName));
 
+// Configure MinIO and FileStorage settings
+builder.Services.Configure<MinIOSettings>(builder.Configuration.GetSection(MinIOSettings.SectionName));
+builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection(FileStorageSettings.SectionName));
+
+// Register file storage and avatar services
+builder.Services.AddSingleton<IFileStorageService, MinIOFileStorageService>();
+builder.Services.AddScoped<IAvatarService, AvatarService>();
+
 // Register background services
 builder.Services.AddHostedService<RefreshTokenCleanupService>();
 

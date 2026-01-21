@@ -50,11 +50,13 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.LastName).HasMaxLength(100).IsRequired();
             entity.Property(e => e.Position).HasMaxLength(200);
             entity.Property(e => e.AvatarUrl).HasMaxLength(500);
+            entity.Property(e => e.AvatarStoragePath).HasMaxLength(200);
 
             entity.HasIndex(e => e.Email).IsUnique();
             entity.HasIndex(e => e.Username).IsUnique();
             entity.HasIndex(e => e.IsActive);
             entity.HasIndex(e => e.LockoutUntil);
+            entity.HasIndex(e => e.AvatarStoragePath);
         });
 
         // OrganizationMember configuration (core schema)

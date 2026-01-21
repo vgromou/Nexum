@@ -49,6 +49,21 @@ public class User : AuditableEntity
     public string? AvatarUrl { get; set; }
 
     /// <summary>
+    /// Storage path for uploaded avatar (S3 key/path)
+    /// </summary>
+    public string? AvatarStoragePath { get; set; }
+
+    /// <summary>
+    /// Timestamp when avatar was uploaded
+    /// </summary>
+    public DateTime? AvatarUploadedAt { get; set; }
+
+    /// <summary>
+    /// Avatar file size in bytes
+    /// </summary>
+    public long? AvatarFileSize { get; set; }
+
+    /// <summary>
     /// Whether the account is active (can be deactivated by admin)
     /// </summary>
     public bool IsActive { get; set; } = true;
