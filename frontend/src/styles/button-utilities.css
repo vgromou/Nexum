@@ -1,22 +1,50 @@
 /*
  * BUTTON UTILITY CLASSES
- * Utility classes for applying button styles from Figma design tokens
- * Last updated: 2026-01-21
+ * Redesigned to match Figma specifications
+ * Last updated: 2026-01-22
+ *
+ * REGULAR BUTTONS (60 base variants):
+ * - 3 sizes × 5 content types × 4 states = 60 base variants
+ * - × 9 color variants = 540 total combinations
+ *
+ * SIZING RULES:
+ * - Small (.btn-sm):   height 26px, padding 3px 8px, typography 13px/18px, icons 16x16
+ * - Medium (.btn):     height 36px, padding 7px 12px, typography 14px/20px, icons 18x18
+ * - Large (.btn-lg):   height 40px, padding 7px 16px, typography 16px/24px, icons 20x20
+ *
+ * ICON BUTTONS (16 variants):
+ * - Compact square buttons with only icons (no text)
+ * - 4 sizes × 4 states = 16 variants
+ * - XS (.icon-btn-xs): 20px total, padding 2px, icon 16px
+ * - S (.icon-btn-sm):  26px total, padding 4px, icon 18px
+ * - M (.icon-btn-md):  28px total, padding 4px, icon 20px (default)
+ * - L (.icon-btn-lg):  40px total, padding 8px, icon 24px
  */
 
 /* ===== BASE BUTTON ===== */
 .btn {
+  /* Layout */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-md);
+  gap: var(--space-sm); /* 8px - medium button gap */
+  box-sizing: border-box;
+
+  /* Sizing - Medium (default) */
+  padding: 7px var(--space-md); /* 7px 12px - exact height: 7+20+7+2=36px */
+  border-radius: var(--radius-md); /* 6px */
+  height: 36px;
+
+  /* Border */
   border: 1px solid;
+
+  /* Typography - Medium (ALWAYS button-default for medium buttons) */
   font-family: var(--font-family-sans);
-  font-size: var(--typography-button-default-size);
-  line-height: var(--typography-button-default-line-height);
-  font-weight: var(--typography-button-default-weight);
+  font-size: var(--typography-button-default-size); /* 14px */
+  line-height: var(--typography-button-default-line-height); /* 20px */
+  font-weight: var(--typography-button-default-weight); /* 500 */
+
+  /* Behavior */
   cursor: pointer;
   transition: var(--transition-fast);
   user-select: none;
@@ -34,26 +62,115 @@
 }
 
 /* ===== SIZE VARIANTS ===== */
+/* ALWAYS: Small text = button-small (13px/18px), Medium text = button-default (14px/20px), Large text = button-large (16px/24px) */
+/* ALWAYS: Small icons = 16x16, Medium icons = 18x18, Large icons = 20x20 */
+
+/* Small - 26px height */
 .btn-sm {
-  padding: var(--space-xs) var(--space-md);
-  font-size: var(--typography-button-small-size);
-  line-height: var(--typography-button-small-line-height);
-  font-weight: var(--typography-button-small-weight);
+  gap: var(--space-xs); /* 4px */
+  padding: 3px var(--space-sm); /* 3px 8px - exact height: 3+18+3+2=26px */
+  border-radius: var(--radius-sm); /* 4px */
+  height: 26px;
+  /* Typography: ALWAYS button-small */
+  font-size: var(--typography-button-small-size); /* 13px */
+  line-height: var(--typography-button-small-line-height); /* 18px */
+  font-weight: var(--typography-button-small-weight); /* 500 */
 }
 
+/* Medium - 36px height (default, defined in .btn) */
 .btn-md {
-  /* Default size - same as .btn */
-  padding: var(--space-sm) var(--space-lg);
-  font-size: var(--typography-button-default-size);
-  line-height: var(--typography-button-default-line-height);
-  font-weight: var(--typography-button-default-weight);
+  gap: var(--space-sm); /* 8px */
+  padding: 7px var(--space-md); /* 7px 12px - exact height: 7+20+7+2=36px */
+  border-radius: var(--radius-md); /* 6px */
+  height: 36px;
+  /* Typography: ALWAYS button-default */
+  font-size: var(--typography-button-default-size); /* 14px */
+  line-height: var(--typography-button-default-line-height); /* 20px */
+  font-weight: var(--typography-button-default-weight); /* 500 */
 }
 
+/* Large - 40px height */
 .btn-lg {
-  padding: var(--space-md) var(--space-xl);
-  font-size: var(--typography-button-large-size);
-  line-height: var(--typography-button-large-line-height);
-  font-weight: var(--typography-button-large-weight);
+  gap: var(--space-sm); /* 8px */
+  padding: 7px var(--space-lg); /* 7px 16px - exact height: 7+24+7+2=40px */
+  border-radius: var(--radius-lg); /* 8px */
+  height: 40px;
+  /* Typography: ALWAYS button-large */
+  font-size: var(--typography-button-large-size); /* 16px */
+  line-height: var(--typography-button-large-line-height); /* 24px */
+  font-weight: var(--typography-button-large-weight); /* 500 */
+}
+
+/* ===== ICON BUTTON VARIANTS ===== */
+
+/* Icon-only button - uses EXACT SAME padding as regular buttons */
+.btn-icon {
+  /* Padding inherited from .btn: 7px 12px (same as text buttons) */
+  /* No override needed - uses default .btn padding */
+}
+
+.btn-icon.btn-sm {
+  /* Padding inherited from .btn-sm: 3px 8px (same as text buttons) */
+  /* No override needed - uses .btn-sm padding */
+}
+
+.btn-icon.btn-lg {
+  /* Padding inherited from .btn-lg: 7px 16px (same as text buttons) */
+  /* No override needed - uses .btn-lg padding */
+}
+
+/* Button with left icon */
+.btn-icon-left {
+  /* Gap is already defined in .btn */
+}
+
+.btn-icon-left svg,
+.btn-icon-left img {
+  flex-shrink: 0;
+}
+
+/* Button with right icon */
+.btn-icon-right {
+  /* Gap is already defined in .btn */
+}
+
+.btn-icon-right svg,
+.btn-icon-right img {
+  flex-shrink: 0;
+}
+
+/* Button with both icons */
+.btn-icon-both {
+  /* Gap is already defined in .btn */
+}
+
+.btn-icon-both svg,
+.btn-icon-both img {
+  flex-shrink: 0;
+}
+
+/* Icon sizing - ALWAYS strict sizes */
+/* Small buttons: ALWAYS 16x16 icons */
+.btn-sm svg,
+.btn-sm img {
+  width: 16px;
+  height: 16px;
+}
+
+/* Medium buttons: ALWAYS 18x18 icons */
+.btn svg,
+.btn-md svg,
+.btn img,
+.btn-md img {
+  width: 18px;
+  height: 18px;
+}
+
+/* Large buttons: ALWAYS 20x20 icons */
+.btn-lg svg,
+.btn-lg img {
+  width: 20px;
+  height: 20px;
 }
 
 /* ===== STYLE VARIANTS ===== */
@@ -283,21 +400,114 @@
   border-color: var(--button-success-outline-border-disabled);
 }
 
-/* ===== ICON BUTTONS ===== */
-.btn-icon {
-  padding: var(--space-sm);
-  aspect-ratio: 1;
-}
-
-.btn-icon.btn-sm {
-  padding: var(--space-xs);
-}
-
-.btn-icon.btn-lg {
-  padding: var(--space-md);
-}
-
 /* ===== FULL WIDTH ===== */
 .btn-full {
   width: 100%;
+}
+
+/* ===== ICON BUTTONS ===== */
+/* Icon buttons are compact, square buttons with only an icon (no text) */
+/* Different from .btn-icon which is a regular button with icon content */
+
+.icon-btn {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+
+  /* Default size: Medium */
+  padding: var(--space-xs); /* 4px */
+  border-radius: var(--radius-md); /* 6px */
+
+  /* Border */
+  border: none;
+  background: transparent;
+
+  /* Behavior */
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+
+  /* Icon color */
+  color: var(--text-tertiary); /* #9CA3AF */
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--background-hover); /* #F3F4F6 */
+  color: var(--text-secondary); /* #6B7280 */
+}
+
+.icon-btn:active:not(:disabled) {
+  background: var(--accent-primary-light); /* #ECEEFF */
+  color: var(--accent-primary); /* #5E6AD2 */
+}
+
+.icon-btn:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+  color: var(--border-light); /* #E5E7EB */
+  background: transparent;
+}
+
+/* ===== ICON BUTTON SIZES ===== */
+
+/* Extra Small - 20px total (2px padding + 16px icon + 2px padding) */
+.icon-btn-xs {
+  padding: 2px; /* var(--space-xxs) */
+  border-radius: var(--radius-sm); /* 4px */
+}
+
+.icon-btn-xs svg,
+.icon-btn-xs img {
+  width: 16px;
+  height: 16px;
+}
+
+/* Small - 26px total (4px padding + 18px icon + 4px padding) */
+.icon-btn-sm {
+  padding: var(--space-xs); /* 4px */
+  border-radius: var(--radius-sm); /* 4px */
+}
+
+.icon-btn-sm svg,
+.icon-btn-sm img {
+  width: 18px;
+  height: 18px;
+}
+
+/* Medium - 28px total (4px padding + 20px icon + 4px padding) - DEFAULT */
+.icon-btn-md {
+  padding: var(--space-xs); /* 4px */
+  border-radius: var(--radius-md); /* 6px */
+}
+
+.icon-btn-md svg,
+.icon-btn-md img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Medium is default, so also apply to base .icon-btn */
+.icon-btn svg,
+.icon-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Large - 40px total (8px padding + 24px icon + 8px padding) */
+.icon-btn-lg {
+  padding: var(--space-sm); /* 8px */
+  border-radius: var(--radius-lg); /* 8px */
+}
+
+.icon-btn-lg svg,
+.icon-btn-lg img {
+  width: 24px;
+  height: 24px;
 }

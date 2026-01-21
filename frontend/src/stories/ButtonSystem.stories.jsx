@@ -1,205 +1,1281 @@
 import React from 'react';
+import { Bell, Plus, Check, X, Search, ChevronDown } from 'lucide-react';
 
 export default {
-  title: 'Design System/Button Utilities',
+  title: 'Design System/Buttons',
   parameters: {
     layout: 'padded',
+    docs: {
+      description: {
+        component: 'Comprehensive button system redesigned to match Figma specifications exactly.\n\n**Regular Buttons:** 3 sizes × 5 content types × 4 states × 9 color variants = 540 total combinations.\n\n**Icon Buttons:** Compact square buttons with 4 sizes × 4 states = 16 variants.',
+      },
+    },
   },
 };
 
-const ButtonShowcase = ({ variant, label }) => (
-  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
-    <button className={`btn ${variant}`}>{label}</button>
-    <button className={`btn ${variant}`} disabled>{label} Disabled</button>
-    <button className={`btn ${variant} btn-sm`}>{label} Small</button>
-    <button className={`btn ${variant} btn-lg`}>{label} Large</button>
-  </div>
+// Helper component to create consistent headers
+const SectionHeader = ({ children }) => (
+  <h3 style={{
+    marginBottom: '16px',
+    marginTop: '32px',
+    fontFamily: 'var(--font-family-sans)',
+    color: 'var(--text-secondary)',
+    fontSize: '14px',
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em'
+  }}>
+    {children}
+  </h3>
 );
 
-export const AllButtonVariants = {
+const Divider = () => (
+  <div style={{ height: '1px', background: 'var(--border-light)', margin: '32px 0' }} />
+);
+
+// ===== 1. INTERACTIVE (with controls) =====
+export const Interactive = {
+  render: (args) => {
+    const IconComponent = args.showIcon ? Bell : null;
+
+    return (
+      <button
+        className={`btn ${args.variant} ${args.size} ${args.iconPosition}`}
+        disabled={args.disabled}
+      >
+        {args.iconPosition === 'btn-icon-left' && IconComponent && <IconComponent />}
+        {args.iconPosition === 'btn-icon-both' && IconComponent && <IconComponent />}
+        {args.iconPosition !== 'btn-icon' && args.text}
+        {args.iconPosition === 'btn-icon' && IconComponent && <IconComponent />}
+        {args.iconPosition === 'btn-icon-right' && IconComponent && <IconComponent />}
+        {args.iconPosition === 'btn-icon-both' && IconComponent && <IconComponent />}
+      </button>
+    );
+  },
+  args: {
+    text: 'Button Text',
+    variant: 'btn-primary',
+    size: '',
+    iconPosition: '',
+    showIcon: false,
+    disabled: false,
+  },
+  argTypes: {
+    text: { control: 'text' },
+    variant: {
+      control: 'select',
+      options: ['btn-primary', 'btn-ghost', 'btn-outline', 'btn-destructive', 'btn-destructive-ghost', 'btn-destructive-outline', 'btn-success', 'btn-success-ghost', 'btn-success-outline'],
+    },
+    size: {
+      control: 'select',
+      options: ['', 'btn-sm', 'btn-md', 'btn-lg'],
+    },
+    iconPosition: {
+      control: 'select',
+      options: ['', 'btn-icon', 'btn-icon-left', 'btn-icon-right', 'btn-icon-both'],
+    },
+    showIcon: { control: 'boolean' },
+    disabled: { control: 'boolean' },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Interactive button with all available controls. Use the controls panel to experiment with different combinations.',
+      },
+    },
+  },
+};
+
+// ===== 2. ALL SIZES =====
+export const AllSizes = {
   render: () => (
-    <div style={{ padding: '20px' }}>
-      <h2 style={{ marginBottom: '24px', fontFamily: 'var(--font-family-sans)' }}>
-        Button System - All Variants
-      </h2>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+      <button className="btn btn-primary btn-sm">Small (26px)</button>
+      <button className="btn btn-primary">Medium (36px)</button>
+      <button className="btn btn-primary btn-lg">Large (40px)</button>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Three button sizes: Small (26px height), Medium (36px height, default), Large (40px height).',
+      },
+    },
+  },
+};
 
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{
-          marginBottom: '16px',
-          fontFamily: 'var(--font-family-sans)',
-          color: 'var(--text-secondary)',
-          fontSize: '14px',
-          fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em'
-        }}>
-          Primary
-        </h3>
-        <ButtonShowcase variant="btn-primary" label="Primary" />
+// ===== 3. TEXT ONLY =====
+export const TextOnly = {
+  render: () => (
+    <div>
+      <SectionHeader>Small (26px)</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-primary btn-sm">Default</button>
+        <button className="btn btn-primary btn-sm" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>Hover</button>
+        <button className="btn btn-primary btn-sm" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>Active</button>
+        <button className="btn btn-primary btn-sm" disabled>Disabled</button>
       </div>
 
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{
-          marginBottom: '16px',
-          fontFamily: 'var(--font-family-sans)',
-          color: 'var(--text-secondary)',
-          fontSize: '14px',
-          fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em'
-        }}>
-          Ghost
-        </h3>
-        <ButtonShowcase variant="btn-ghost" label="Ghost" />
+      <SectionHeader>Medium (36px)</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-primary">Default</button>
+        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>Hover</button>
+        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>Active</button>
+        <button className="btn btn-primary" disabled>Disabled</button>
       </div>
 
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{
-          marginBottom: '16px',
-          fontFamily: 'var(--font-family-sans)',
-          color: 'var(--text-secondary)',
-          fontSize: '14px',
-          fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em'
-        }}>
-          Outline
-        </h3>
-        <ButtonShowcase variant="btn-outline" label="Outline" />
-      </div>
-
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{
-          marginBottom: '16px',
-          fontFamily: 'var(--font-family-sans)',
-          color: 'var(--text-secondary)',
-          fontSize: '14px',
-          fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em'
-        }}>
-          Destructive
-        </h3>
-        <ButtonShowcase variant="btn-destructive" label="Destructive" />
-        <ButtonShowcase variant="btn-destructive-ghost" label="Destructive Ghost" />
-        <ButtonShowcase variant="btn-destructive-outline" label="Destructive Outline" />
-      </div>
-
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{
-          marginBottom: '16px',
-          fontFamily: 'var(--font-family-sans)',
-          color: 'var(--text-secondary)',
-          fontSize: '14px',
-          fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em'
-        }}>
-          Success
-        </h3>
-        <ButtonShowcase variant="btn-success" label="Success" />
-        <ButtonShowcase variant="btn-success-ghost" label="Success Ghost" />
-        <ButtonShowcase variant="btn-success-outline" label="Success Outline" />
+      <SectionHeader>Large (40px)</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <button className="btn btn-primary btn-lg">Default</button>
+        <button className="btn btn-primary btn-lg" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>Hover</button>
+        <button className="btn btn-primary btn-lg" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>Active</button>
+        <button className="btn btn-primary btn-lg" disabled>Disabled</button>
       </div>
     </div>
   ),
   parameters: {
     docs: {
       description: {
-        story: 'All button variants from Figma design tokens with states (default, hover, active, disabled) and sizes (small, medium, large).',
+        story: 'Buttons with text only, showing all sizes (Small 26px, Medium 36px, Large 40px) and all 4 states (default, hover, active, disabled).',
       },
     },
   },
 };
 
-export const Primary = {
+// ===== 4. ICON ONLY =====
+export const IconOnly = {
   render: () => (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-      <button className="btn btn-primary">Primary</button>
-      <button className="btn btn-primary" disabled>Disabled</button>
+    <div>
+      <SectionHeader>Icon Only - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+        <button className="btn btn-primary btn-icon btn-sm">
+          <Bell />
+        </button>
+        <button className="btn btn-primary btn-icon">
+          <Bell />
+        </button>
+        <button className="btn btn-primary btn-icon btn-lg">
+          <Bell />
+        </button>
+      </div>
+
+      <SectionHeader>Icon Only - Disabled</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <button className="btn btn-primary btn-icon btn-sm" disabled>
+          <Bell />
+        </button>
+        <button className="btn btn-primary btn-icon" disabled>
+          <Bell />
+        </button>
+        <button className="btn btn-primary btn-icon btn-lg" disabled>
+          <Bell />
+        </button>
+      </div>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Icon-only buttons (square, aspect-ratio 1:1). Small: 26×26px with 16px icons, Medium: 36×36px with 18px icons, Large: 40×40px with 20px icons.',
+      },
+    },
+  },
 };
 
-export const Ghost = {
+// ===== 5. WITH LEFT ICON =====
+export const WithLeftIcon = {
   render: () => (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-      <button className="btn btn-ghost">Ghost</button>
-      <button className="btn btn-ghost" disabled>Disabled</button>
+    <div>
+      <SectionHeader>Left Icon - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+        <button className="btn btn-primary btn-icon-left btn-sm">
+          <Plus />
+          Add Small
+        </button>
+        <button className="btn btn-primary btn-icon-left">
+          <Plus />
+          Add Medium
+        </button>
+        <button className="btn btn-primary btn-icon-left btn-lg">
+          <Plus />
+          Add Large
+        </button>
+      </div>
+
+      <SectionHeader>Left Icon - Disabled</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <button className="btn btn-primary btn-icon-left btn-sm" disabled>
+          <Plus />
+          Add Small
+        </button>
+        <button className="btn btn-primary btn-icon-left" disabled>
+          <Plus />
+          Add Medium
+        </button>
+        <button className="btn btn-primary btn-icon-left btn-lg" disabled>
+          <Plus />
+          Add Large
+        </button>
+      </div>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Buttons with icon on the left side. Icon spacing controlled by button gap (4px for small, 8px for medium/large).',
+      },
+    },
+  },
 };
 
-export const Outline = {
+// ===== 6. WITH RIGHT ICON =====
+export const WithRightIcon = {
   render: () => (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-      <button className="btn btn-outline">Outline</button>
-      <button className="btn btn-outline" disabled>Disabled</button>
+    <div>
+      <SectionHeader>Right Icon - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+        <button className="btn btn-primary btn-icon-right btn-sm">
+          Search Small
+          <Search />
+        </button>
+        <button className="btn btn-primary btn-icon-right">
+          Search Medium
+          <Search />
+        </button>
+        <button className="btn btn-primary btn-icon-right btn-lg">
+          Search Large
+          <Search />
+        </button>
+      </div>
+
+      <SectionHeader>Right Icon - Disabled</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <button className="btn btn-primary btn-icon-right btn-sm" disabled>
+          Search Small
+          <Search />
+        </button>
+        <button className="btn btn-primary btn-icon-right" disabled>
+          Search Medium
+          <Search />
+        </button>
+        <button className="btn btn-primary btn-icon-right btn-lg" disabled>
+          Search Large
+          <Search />
+        </button>
+      </div>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Buttons with icon on the right side. Useful for dropdown indicators, navigation arrows, etc.',
+      },
+    },
+  },
 };
 
-export const Destructive = {
+// ===== 7. WITH BOTH ICONS =====
+export const WithBothIcons = {
   render: () => (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-      <button className="btn btn-destructive">Destructive</button>
-      <button className="btn btn-destructive-ghost">Ghost</button>
-      <button className="btn btn-destructive-outline">Outline</button>
+    <div>
+      <SectionHeader>Both Icons - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+        <button className="btn btn-primary btn-icon-both btn-sm">
+          <Check />
+          Confirm Small
+          <ChevronDown />
+        </button>
+        <button className="btn btn-primary btn-icon-both">
+          <Check />
+          Confirm Medium
+          <ChevronDown />
+        </button>
+        <button className="btn btn-primary btn-icon-both btn-lg">
+          <Check />
+          Confirm Large
+          <ChevronDown />
+        </button>
+      </div>
+
+      <SectionHeader>Both Icons - Disabled</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <button className="btn btn-primary btn-icon-both btn-sm" disabled>
+          <Check />
+          Confirm Small
+          <ChevronDown />
+        </button>
+        <button className="btn btn-primary btn-icon-both" disabled>
+          <Check />
+          Confirm Medium
+          <ChevronDown />
+        </button>
+        <button className="btn btn-primary btn-icon-both btn-lg" disabled>
+          <Check />
+          Confirm Large
+          <ChevronDown />
+        </button>
+      </div>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Buttons with icons on both sides. Gap spacing applies between left icon + text and text + right icon.',
+      },
+    },
+  },
 };
 
-export const Success = {
+// ===== 8. ALL STATES =====
+export const AllStates = {
   render: () => (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-      <button className="btn btn-success">Success</button>
-      <button className="btn btn-success-ghost">Ghost</button>
-      <button className="btn btn-success-outline">Outline</button>
+    <div>
+      <SectionHeader>Primary Button States</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        <button className="btn btn-primary">Default</button>
+        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-hover)', borderColor: 'var(--button-primary-border-hover)' }}>
+          Hover (simulated)
+        </button>
+        <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-active)', borderColor: 'var(--button-primary-border-active)' }}>
+          Active (simulated)
+        </button>
+        <button className="btn btn-primary" disabled>Disabled</button>
+      </div>
+
+      <p style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '13px',
+        color: 'var(--text-tertiary)',
+        marginTop: '8px'
+      }}>
+        Hover and active states are interactive - hover over the "Default" button to see the hover state.
+      </p>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'All four button states: Default, Hover, Active, and Disabled. Hover and active states are automatically applied via CSS pseudo-classes.',
+      },
+    },
+  },
 };
 
-export const Sizes = {
+// ===== 9. PRIMARY VARIANT =====
+export const PrimaryVariant = {
   render: () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-      <button className="btn btn-primary btn-sm">Small</button>
-      <button className="btn btn-primary btn-md">Medium</button>
-      <button className="btn btn-primary btn-lg">Large</button>
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '24px',
+        color: 'var(--text-primary)'
+      }}>
+        Primary Buttons - All Combinations
+      </h2>
+
+      <SectionHeader>Small (26px)</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-primary btn-sm">Text</button>
+        <button className="btn btn-primary btn-sm btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-sm btn-icon-left"><Plus />Icon Left</button>
+        <button className="btn btn-primary btn-sm btn-icon-right">Icon Right<ChevronDown /></button>
+        <button className="btn btn-primary btn-sm btn-icon-both"><Check />Both Icons<X /></button>
+      </div>
+
+      <SectionHeader>Medium (36px - Default)</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-primary">Text</button>
+        <button className="btn btn-primary btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-icon-left"><Plus />Icon Left</button>
+        <button className="btn btn-primary btn-icon-right">Icon Right<ChevronDown /></button>
+        <button className="btn btn-primary btn-icon-both"><Check />Both Icons<X /></button>
+      </div>
+
+      <SectionHeader>Large (40px)</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-primary btn-lg">Text</button>
+        <button className="btn btn-primary btn-lg btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-lg btn-icon-left"><Plus />Icon Left</button>
+        <button className="btn btn-primary btn-lg btn-icon-right">Icon Right<ChevronDown /></button>
+        <button className="btn btn-primary btn-lg btn-icon-both"><Check />Both Icons<X /></button>
+      </div>
+
+      <SectionHeader>Disabled States</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button className="btn btn-primary btn-sm" disabled>Small</button>
+        <button className="btn btn-primary" disabled>Medium</button>
+        <button className="btn btn-primary btn-lg" disabled>Large</button>
+        <button className="btn btn-primary btn-icon btn-sm" disabled><Bell /></button>
+        <button className="btn btn-primary btn-icon" disabled><Bell /></button>
+        <button className="btn btn-primary btn-icon btn-lg" disabled><Bell /></button>
+      </div>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Primary button variant showing all size and content type combinations (15 variants × 4 states = 60 primary button variations).',
+      },
+    },
+  },
 };
 
+// ===== 10. GHOST VARIANT =====
+export const GhostVariant = {
+  render: () => (
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '24px',
+        color: 'var(--text-primary)'
+      }}>
+        Ghost Buttons - All Combinations
+      </h2>
+
+      <SectionHeader>All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-ghost btn-sm">Small</button>
+        <button className="btn btn-ghost">Medium</button>
+        <button className="btn btn-ghost btn-lg">Large</button>
+        <button className="btn btn-ghost btn-icon btn-sm"><Bell /></button>
+        <button className="btn btn-ghost btn-icon"><Bell /></button>
+        <button className="btn btn-ghost btn-icon btn-lg"><Bell /></button>
+      </div>
+
+      <SectionHeader>With Icons - Different Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-ghost btn-icon-left btn-sm"><Plus />Small</button>
+        <button className="btn btn-ghost btn-icon-left"><Plus />Medium</button>
+        <button className="btn btn-ghost btn-icon-left btn-lg"><Plus />Large</button>
+        <button className="btn btn-ghost btn-icon-right btn-sm">Small<ChevronDown /></button>
+        <button className="btn btn-ghost btn-icon-right">Medium<ChevronDown /></button>
+        <button className="btn btn-ghost btn-icon-right btn-lg">Large<ChevronDown /></button>
+      </div>
+
+      <SectionHeader>Disabled States</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button className="btn btn-ghost btn-sm" disabled>Small</button>
+        <button className="btn btn-ghost" disabled>Medium</button>
+        <button className="btn btn-ghost btn-lg" disabled>Large</button>
+        <button className="btn btn-ghost btn-icon btn-sm" disabled><Bell /></button>
+        <button className="btn btn-ghost btn-icon" disabled><Bell /></button>
+        <button className="btn btn-ghost btn-icon btn-lg" disabled><Bell /></button>
+      </div>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Ghost button variant - transparent with subtle hover effect. Used for secondary actions.',
+      },
+    },
+  },
+};
+
+// ===== 11. OUTLINE VARIANT =====
+export const OutlineVariant = {
+  render: () => (
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '24px',
+        color: 'var(--text-primary)'
+      }}>
+        Outline Buttons - All Combinations
+      </h2>
+
+      <SectionHeader>All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-outline btn-sm">Small</button>
+        <button className="btn btn-outline">Medium</button>
+        <button className="btn btn-outline btn-lg">Large</button>
+        <button className="btn btn-outline btn-icon btn-sm"><Bell /></button>
+        <button className="btn btn-outline btn-icon"><Bell /></button>
+        <button className="btn btn-outline btn-icon btn-lg"><Bell /></button>
+      </div>
+
+      <SectionHeader>With Icons - Different Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-outline btn-icon-left btn-sm"><Plus />Small</button>
+        <button className="btn btn-outline btn-icon-left"><Plus />Medium</button>
+        <button className="btn btn-outline btn-icon-left btn-lg"><Plus />Large</button>
+        <button className="btn btn-outline btn-icon-right btn-sm">Small<ChevronDown /></button>
+        <button className="btn btn-outline btn-icon-right">Medium<ChevronDown /></button>
+        <button className="btn btn-outline btn-icon-right btn-lg">Large<ChevronDown /></button>
+      </div>
+
+      <SectionHeader>Disabled States</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button className="btn btn-outline btn-sm" disabled>Small</button>
+        <button className="btn btn-outline" disabled>Medium</button>
+        <button className="btn btn-outline btn-lg" disabled>Large</button>
+        <button className="btn btn-outline btn-icon btn-sm" disabled><Bell /></button>
+        <button className="btn btn-outline btn-icon" disabled><Bell /></button>
+        <button className="btn btn-outline btn-icon btn-lg" disabled><Bell /></button>
+      </div>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Outline button variant - bordered style for alternative actions.',
+      },
+    },
+  },
+};
+
+// ===== 12. DESTRUCTIVE VARIANTS =====
+export const DestructiveVariants = {
+  render: () => (
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '24px',
+        color: 'var(--text-primary)'
+      }}>
+        Destructive Buttons - All Variants
+      </h2>
+
+      <SectionHeader>Destructive (Solid) - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-destructive btn-sm">Small</button>
+        <button className="btn btn-destructive">Medium</button>
+        <button className="btn btn-destructive btn-lg">Large</button>
+        <button className="btn btn-destructive btn-icon btn-sm"><X /></button>
+        <button className="btn btn-destructive btn-icon"><X /></button>
+        <button className="btn btn-destructive btn-icon btn-lg"><X /></button>
+        <button className="btn btn-destructive btn-icon-left btn-sm"><X />Delete</button>
+        <button className="btn btn-destructive btn-icon-left"><X />Delete</button>
+        <button className="btn btn-destructive btn-icon-left btn-lg"><X />Delete</button>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-destructive btn-sm" disabled>Disabled Small</button>
+        <button className="btn btn-destructive" disabled>Disabled Medium</button>
+        <button className="btn btn-destructive btn-lg" disabled>Disabled Large</button>
+      </div>
+
+      <SectionHeader>Destructive Ghost - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-destructive-ghost btn-sm">Small</button>
+        <button className="btn btn-destructive-ghost">Medium</button>
+        <button className="btn btn-destructive-ghost btn-lg">Large</button>
+        <button className="btn btn-destructive-ghost btn-icon btn-sm"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon btn-lg"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon-left btn-sm"><X />Delete</button>
+        <button className="btn btn-destructive-ghost btn-icon-left"><X />Delete</button>
+        <button className="btn btn-destructive-ghost btn-icon-left btn-lg"><X />Delete</button>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-destructive-ghost btn-sm" disabled>Disabled Small</button>
+        <button className="btn btn-destructive-ghost" disabled>Disabled Medium</button>
+        <button className="btn btn-destructive-ghost btn-lg" disabled>Disabled Large</button>
+      </div>
+
+      <SectionHeader>Destructive Outline - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        <button className="btn btn-destructive-outline btn-sm">Small</button>
+        <button className="btn btn-destructive-outline">Medium</button>
+        <button className="btn btn-destructive-outline btn-lg">Large</button>
+        <button className="btn btn-destructive-outline btn-icon btn-sm"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon btn-lg"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon-left btn-sm"><X />Delete</button>
+        <button className="btn btn-destructive-outline btn-icon-left"><X />Delete</button>
+        <button className="btn btn-destructive-outline btn-icon-left btn-lg"><X />Delete</button>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button className="btn btn-destructive-outline btn-sm" disabled>Disabled Small</button>
+        <button className="btn btn-destructive-outline" disabled>Disabled Medium</button>
+        <button className="btn btn-destructive-outline btn-lg" disabled>Disabled Large</button>
+      </div>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Destructive button variants for dangerous actions like delete, remove, cancel. Three styles: solid, ghost, and outline.',
+      },
+    },
+  },
+};
+
+// ===== 13. SUCCESS VARIANTS =====
+export const SuccessVariants = {
+  render: () => (
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '24px',
+        color: 'var(--text-primary)'
+      }}>
+        Success Buttons - All Variants
+      </h2>
+
+      <SectionHeader>Success (Solid) - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-success btn-sm">Small</button>
+        <button className="btn btn-success">Medium</button>
+        <button className="btn btn-success btn-lg">Large</button>
+        <button className="btn btn-success btn-icon btn-sm"><Check /></button>
+        <button className="btn btn-success btn-icon"><Check /></button>
+        <button className="btn btn-success btn-icon btn-lg"><Check /></button>
+        <button className="btn btn-success btn-icon-left btn-sm"><Check />Save</button>
+        <button className="btn btn-success btn-icon-left"><Check />Save</button>
+        <button className="btn btn-success btn-icon-left btn-lg"><Check />Save</button>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-success btn-sm" disabled>Disabled Small</button>
+        <button className="btn btn-success" disabled>Disabled Medium</button>
+        <button className="btn btn-success btn-lg" disabled>Disabled Large</button>
+      </div>
+
+      <SectionHeader>Success Ghost - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-success-ghost btn-sm">Small</button>
+        <button className="btn btn-success-ghost">Medium</button>
+        <button className="btn btn-success-ghost btn-lg">Large</button>
+        <button className="btn btn-success-ghost btn-icon btn-sm"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon btn-lg"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon-left btn-sm"><Check />Save</button>
+        <button className="btn btn-success-ghost btn-icon-left"><Check />Save</button>
+        <button className="btn btn-success-ghost btn-icon-left btn-lg"><Check />Save</button>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-success-ghost btn-sm" disabled>Disabled Small</button>
+        <button className="btn btn-success-ghost" disabled>Disabled Medium</button>
+        <button className="btn btn-success-ghost btn-lg" disabled>Disabled Large</button>
+      </div>
+
+      <SectionHeader>Success Outline - All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        <button className="btn btn-success-outline btn-sm">Small</button>
+        <button className="btn btn-success-outline">Medium</button>
+        <button className="btn btn-success-outline btn-lg">Large</button>
+        <button className="btn btn-success-outline btn-icon btn-sm"><Check /></button>
+        <button className="btn btn-success-outline btn-icon"><Check /></button>
+        <button className="btn btn-success-outline btn-icon btn-lg"><Check /></button>
+        <button className="btn btn-success-outline btn-icon-left btn-sm"><Check />Save</button>
+        <button className="btn btn-success-outline btn-icon-left"><Check />Save</button>
+        <button className="btn btn-success-outline btn-icon-left btn-lg"><Check />Save</button>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button className="btn btn-success-outline btn-sm" disabled>Disabled Small</button>
+        <button className="btn btn-success-outline" disabled>Disabled Medium</button>
+        <button className="btn btn-success-outline btn-lg" disabled>Disabled Large</button>
+      </div>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Success button variants for positive actions like save, confirm, approve. Three styles: solid, ghost, and outline.',
+      },
+    },
+  },
+};
+
+// ===== 14. COMPLETE MATRIX =====
+export const CompleteMatrix = {
+  render: () => (
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '16px',
+        color: 'var(--text-primary)'
+      }}>
+        Complete Button Matrix
+      </h2>
+      <p style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '14px',
+        color: 'var(--text-secondary)',
+        marginBottom: '32px'
+      }}>
+        3 sizes × 5 content types × 4 states = 60 base button variants (shown with Primary variant)
+      </p>
+
+      {/* SIZE: SMALL */}
+      <SectionHeader>Small (26px height)</SectionHeader>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Text Only</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-sm">Default</button>
+          <button className="btn btn-primary btn-sm" style={{ background: 'var(--button-primary-bg-hover)' }}>Hover</button>
+          <button className="btn btn-primary btn-sm" style={{ background: 'var(--button-primary-bg-active)' }}>Active</button>
+          <button className="btn btn-primary btn-sm" disabled>Disabled</button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Icon Only</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-sm btn-icon"><Bell /></button>
+          <button className="btn btn-primary btn-sm btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }}><Bell /></button>
+          <button className="btn btn-primary btn-sm btn-icon" style={{ background: 'var(--button-primary-bg-active)' }}><Bell /></button>
+          <button className="btn btn-primary btn-sm btn-icon" disabled><Bell /></button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Left Icon</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-sm btn-icon-left"><Plus />Text</button>
+          <button className="btn btn-primary btn-sm btn-icon-left" style={{ background: 'var(--button-primary-bg-hover)' }}><Plus />Text</button>
+          <button className="btn btn-primary btn-sm btn-icon-left" style={{ background: 'var(--button-primary-bg-active)' }}><Plus />Text</button>
+          <button className="btn btn-primary btn-sm btn-icon-left" disabled><Plus />Text</button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Right Icon</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-sm btn-icon-right">Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-sm btn-icon-right" style={{ background: 'var(--button-primary-bg-hover)' }}>Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-sm btn-icon-right" style={{ background: 'var(--button-primary-bg-active)' }}>Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-sm btn-icon-right" disabled>Text<ChevronDown /></button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '32px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Both Icons</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-sm btn-icon-both"><Check />Text<X /></button>
+          <button className="btn btn-primary btn-sm btn-icon-both" style={{ background: 'var(--button-primary-bg-hover)' }}><Check />Text<X /></button>
+          <button className="btn btn-primary btn-sm btn-icon-both" style={{ background: 'var(--button-primary-bg-active)' }}><Check />Text<X /></button>
+          <button className="btn btn-primary btn-sm btn-icon-both" disabled><Check />Text<X /></button>
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* SIZE: MEDIUM */}
+      <SectionHeader>Medium (36px height - Default)</SectionHeader>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Text Only</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary">Default</button>
+          <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-hover)' }}>Hover</button>
+          <button className="btn btn-primary" style={{ background: 'var(--button-primary-bg-active)' }}>Active</button>
+          <button className="btn btn-primary" disabled>Disabled</button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Icon Only</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-icon"><Bell /></button>
+          <button className="btn btn-primary btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }}><Bell /></button>
+          <button className="btn btn-primary btn-icon" style={{ background: 'var(--button-primary-bg-active)' }}><Bell /></button>
+          <button className="btn btn-primary btn-icon" disabled><Bell /></button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Left Icon</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-icon-left"><Plus />Text</button>
+          <button className="btn btn-primary btn-icon-left" style={{ background: 'var(--button-primary-bg-hover)' }}><Plus />Text</button>
+          <button className="btn btn-primary btn-icon-left" style={{ background: 'var(--button-primary-bg-active)' }}><Plus />Text</button>
+          <button className="btn btn-primary btn-icon-left" disabled><Plus />Text</button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Right Icon</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-icon-right">Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-icon-right" style={{ background: 'var(--button-primary-bg-hover)' }}>Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-icon-right" style={{ background: 'var(--button-primary-bg-active)' }}>Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-icon-right" disabled>Text<ChevronDown /></button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '32px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Both Icons</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-icon-both"><Check />Text<X /></button>
+          <button className="btn btn-primary btn-icon-both" style={{ background: 'var(--button-primary-bg-hover)' }}><Check />Text<X /></button>
+          <button className="btn btn-primary btn-icon-both" style={{ background: 'var(--button-primary-bg-active)' }}><Check />Text<X /></button>
+          <button className="btn btn-primary btn-icon-both" disabled><Check />Text<X /></button>
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* SIZE: LARGE */}
+      <SectionHeader>Large (40px height)</SectionHeader>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Text Only</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-lg">Default</button>
+          <button className="btn btn-primary btn-lg" style={{ background: 'var(--button-primary-bg-hover)' }}>Hover</button>
+          <button className="btn btn-primary btn-lg" style={{ background: 'var(--button-primary-bg-active)' }}>Active</button>
+          <button className="btn btn-primary btn-lg" disabled>Disabled</button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Icon Only</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-lg btn-icon"><Bell /></button>
+          <button className="btn btn-primary btn-lg btn-icon" style={{ background: 'var(--button-primary-bg-hover)' }}><Bell /></button>
+          <button className="btn btn-primary btn-lg btn-icon" style={{ background: 'var(--button-primary-bg-active)' }}><Bell /></button>
+          <button className="btn btn-primary btn-lg btn-icon" disabled><Bell /></button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Left Icon</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-lg btn-icon-left"><Plus />Text</button>
+          <button className="btn btn-primary btn-lg btn-icon-left" style={{ background: 'var(--button-primary-bg-hover)' }}><Plus />Text</button>
+          <button className="btn btn-primary btn-lg btn-icon-left" style={{ background: 'var(--button-primary-bg-active)' }}><Plus />Text</button>
+          <button className="btn btn-primary btn-lg btn-icon-left" disabled><Plus />Text</button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Right Icon</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-lg btn-icon-right">Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-lg btn-icon-right" style={{ background: 'var(--button-primary-bg-hover)' }}>Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-lg btn-icon-right" style={{ background: 'var(--button-primary-bg-active)' }}>Text<ChevronDown /></button>
+          <button className="btn btn-primary btn-lg btn-icon-right" disabled>Text<ChevronDown /></button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Both Icons</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-lg btn-icon-both"><Check />Text<X /></button>
+          <button className="btn btn-primary btn-lg btn-icon-both" style={{ background: 'var(--button-primary-bg-hover)' }}><Check />Text<X /></button>
+          <button className="btn btn-primary btn-lg btn-icon-both" style={{ background: 'var(--button-primary-bg-active)' }}><Check />Text<X /></button>
+          <button className="btn btn-primary btn-lg btn-icon-both" disabled><Check />Text<X /></button>
+        </div>
+      </div>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Complete matrix showing all 60 base button variants: 3 sizes (S/M/L) × 5 content types (text, icon, left icon, right icon, both icons) × 4 states (default, hover, active, disabled). This represents the complete Figma design specification.',
+      },
+    },
+  },
+};
+
+// ===== 15. ALL COLOR VARIANTS =====
+export const AllColorVariants = {
+  render: () => (
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '16px',
+        color: 'var(--text-primary)'
+      }}>
+        All Color Variants
+      </h2>
+      <p style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '14px',
+        color: 'var(--text-secondary)',
+        marginBottom: '32px'
+      }}>
+        9 color variants × 60 base combinations = 540 total button possibilities
+      </p>
+
+      <SectionHeader>Primary</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-primary">Primary</button>
+        <button className="btn btn-primary btn-icon"><Bell /></button>
+        <button className="btn btn-primary btn-icon-left"><Plus />Add</button>
+        <button className="btn btn-primary" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Ghost</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-ghost">Ghost</button>
+        <button className="btn btn-ghost btn-icon"><Bell /></button>
+        <button className="btn btn-ghost btn-icon-left"><Plus />Add</button>
+        <button className="btn btn-ghost" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Outline</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-outline">Outline</button>
+        <button className="btn btn-outline btn-icon"><Bell /></button>
+        <button className="btn btn-outline btn-icon-left"><Plus />Add</button>
+        <button className="btn btn-outline" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Destructive</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-destructive">Destructive</button>
+        <button className="btn btn-destructive btn-icon"><X /></button>
+        <button className="btn btn-destructive btn-icon-left"><X />Delete</button>
+        <button className="btn btn-destructive" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Destructive Ghost</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-destructive-ghost">Destructive Ghost</button>
+        <button className="btn btn-destructive-ghost btn-icon"><X /></button>
+        <button className="btn btn-destructive-ghost btn-icon-left"><X />Delete</button>
+        <button className="btn btn-destructive-ghost" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Destructive Outline</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-destructive-outline">Destructive Outline</button>
+        <button className="btn btn-destructive-outline btn-icon"><X /></button>
+        <button className="btn btn-destructive-outline btn-icon-left"><X />Delete</button>
+        <button className="btn btn-destructive-outline" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Success</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-success">Success</button>
+        <button className="btn btn-success btn-icon"><Check /></button>
+        <button className="btn btn-success btn-icon-left"><Check />Confirm</button>
+        <button className="btn btn-success" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Success Ghost</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <button className="btn btn-success-ghost">Success Ghost</button>
+        <button className="btn btn-success-ghost btn-icon"><Check /></button>
+        <button className="btn btn-success-ghost btn-icon-left"><Check />Confirm</button>
+        <button className="btn btn-success-ghost" disabled>Disabled</button>
+      </div>
+
+      <SectionHeader>Success Outline</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button className="btn btn-success-outline">Success Outline</button>
+        <button className="btn btn-success-outline btn-icon"><Check /></button>
+        <button className="btn btn-success-outline btn-icon-left"><Check />Confirm</button>
+        <button className="btn btn-success-outline" disabled>Disabled</button>
+      </div>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Overview of all 9 color variants. Each variant supports all 60 base combinations (3 sizes × 5 content types × 4 states).',
+      },
+    },
+  },
+};
+
+// ===== 16. ICON BUTTONS =====
 export const IconButtons = {
   render: () => (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-      <button className="btn btn-primary btn-icon">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-          <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-        </svg>
-      </button>
-      <button className="btn btn-ghost btn-icon">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-          <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm10.03 4.97a.75.75 0 0 1 .011 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.75.75 0 0 1 1.08-.022z"/>
-        </svg>
-      </button>
-      <button className="btn btn-outline btn-icon">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-          <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1H.5zm3.915 10L3.102 4h10.796l-1.313 7h-8.17zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-        </svg>
-      </button>
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '16px',
+        color: 'var(--text-primary)'
+      }}>
+        Icon Buttons
+      </h2>
+      <p style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '14px',
+        color: 'var(--text-secondary)',
+        marginBottom: '32px'
+      }}>
+        Compact, square buttons with only icons. 4 sizes × 4 states = 16 variants.
+      </p>
+
+      <SectionHeader>All Sizes</SectionHeader>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '24px' }}>
+        <button className="icon-btn icon-btn-xs">
+          <Bell />
+        </button>
+        <button className="icon-btn icon-btn-sm">
+          <Bell />
+        </button>
+        <button className="icon-btn icon-btn-md">
+          <Bell />
+        </button>
+        <button className="icon-btn icon-btn-lg">
+          <Bell />
+        </button>
+      </div>
+
+      <SectionHeader>Extra Small (XS) - 20px</SectionHeader>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="icon-btn icon-btn-xs">
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-xs" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-xs" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-xs" disabled>
+            <Bell />
+          </button>
+        </div>
+      </div>
+
+      <SectionHeader>Small (S) - 26px</SectionHeader>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="icon-btn icon-btn-sm">
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-sm" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-sm" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-sm" disabled>
+            <Bell />
+          </button>
+        </div>
+      </div>
+
+      <SectionHeader>Medium (M) - 28px (Default)</SectionHeader>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="icon-btn">
+            <Bell />
+          </button>
+          <button className="icon-btn" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn" disabled>
+            <Bell />
+          </button>
+        </div>
+      </div>
+
+      <SectionHeader>Large (L) - 40px</SectionHeader>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>States: Default, Hover, Active, Disabled</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="icon-btn icon-btn-lg">
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-lg" style={{ background: 'var(--background-hover)', color: 'var(--text-secondary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-lg" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+            <Bell />
+          </button>
+          <button className="icon-btn icon-btn-lg" disabled>
+            <Bell />
+          </button>
+        </div>
+      </div>
+
+      <SectionHeader>Different Icons</SectionHeader>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button className="icon-btn icon-btn-md">
+          <Bell />
+        </button>
+        <button className="icon-btn icon-btn-md">
+          <Plus />
+        </button>
+        <button className="icon-btn icon-btn-md">
+          <Search />
+        </button>
+        <button className="icon-btn icon-btn-md">
+          <X />
+        </button>
+        <button className="icon-btn icon-btn-md">
+          <Check />
+        </button>
+        <button className="icon-btn icon-btn-md">
+          <ChevronDown />
+        </button>
+      </div>
+
+      <Divider />
+
+      <SectionHeader>HTML Structure</SectionHeader>
+      <div style={{
+        background: 'var(--surface-elevated)',
+        padding: '16px',
+        borderRadius: '6px',
+        fontFamily: 'var(--font-family-mono)',
+        fontSize: '13px'
+      }}>
+        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{`<!-- Extra Small -->
+<button class="icon-btn icon-btn-xs">
+  <svg>...</svg>
+</button>
+
+<!-- Small -->
+<button class="icon-btn icon-btn-sm">
+  <svg>...</svg>
+</button>
+
+<!-- Medium (default) -->
+<button class="icon-btn">
+  <svg>...</svg>
+</button>
+
+<!-- Large -->
+<button class="icon-btn icon-btn-lg">
+  <svg>...</svg>
+</button>`}</pre>
+      </div>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Icon buttons are compact, square buttons containing only an icon. They are different from .btn-icon which are regular buttons with icon content. Icon buttons have 4 sizes (XS, S, M, L) and 4 states (default, hover, active, disabled).',
+      },
+    },
+  },
 };
 
-export const FullWidth = {
+// ===== 17. USAGE EXAMPLES =====
+export const UsageExamples = {
   render: () => (
-    <div style={{ maxWidth: '400px' }}>
-      <button className="btn btn-primary btn-full" style={{ marginBottom: '12px' }}>
-        Full Width Primary
-      </button>
-      <button className="btn btn-outline btn-full">
-        Full Width Outline
-      </button>
+    <div>
+      <h2 style={{
+        fontFamily: 'var(--font-family-sans)',
+        fontSize: '20px',
+        fontWeight: 600,
+        marginBottom: '24px',
+        color: 'var(--text-primary)'
+      }}>
+        Usage Examples
+      </h2>
+
+      <SectionHeader>Basic HTML Structure</SectionHeader>
+      <div style={{
+        background: 'var(--surface-elevated)',
+        padding: '16px',
+        borderRadius: '6px',
+        marginBottom: '24px',
+        fontFamily: 'var(--font-family-mono)',
+        fontSize: '13px'
+      }}>
+        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{`<!-- Text only -->
+<button class="btn btn-primary">Text Button</button>
+
+<!-- Icon only -->
+<button class="btn btn-primary btn-icon">
+  <svg>...</svg>
+</button>
+
+<!-- Left icon -->
+<button class="btn btn-primary btn-icon-left">
+  <svg>...</svg>
+  Text Button
+</button>
+
+<!-- Right icon -->
+<button class="btn btn-primary btn-icon-right">
+  Text Button
+  <svg>...</svg>
+</button>
+
+<!-- Both icons -->
+<button class="btn btn-primary btn-icon-both">
+  <svg>...</svg>
+  Text Button
+  <svg>...</svg>
+</button>
+
+<!-- Size variants -->
+<button class="btn btn-primary btn-sm">Small</button>
+<button class="btn btn-primary">Medium (default)</button>
+<button class="btn btn-primary btn-lg">Large</button>`}</pre>
+      </div>
+
+      <SectionHeader>Real-World Examples</SectionHeader>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Dialog Actions</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-ghost">Cancel</button>
+            <button className="btn btn-primary">Save Changes</button>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Dangerous Action Confirmation</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-outline">Cancel</button>
+            <button className="btn btn-destructive btn-icon-left">
+              <X />
+              Delete Account
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Toolbar</div>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button className="btn btn-ghost btn-icon btn-sm"><Plus /></button>
+            <button className="btn btn-ghost btn-icon btn-sm"><Search /></button>
+            <button className="btn btn-ghost btn-icon btn-sm"><Bell /></button>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Form Submission</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-outline" type="button">Reset</button>
+            <button className="btn btn-success btn-icon-left" type="submit">
+              <Check />
+              Submit Form
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Full Width Button</div>
+          <div style={{ maxWidth: '300px' }}>
+            <button className="btn btn-primary btn-full btn-lg btn-icon-left">
+              <Plus />
+              Create New Project
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Common usage patterns and HTML structure examples for implementing buttons.',
+      },
+    },
+  },
 };
