@@ -38,15 +38,14 @@
     align-items: center;
 }
 
-.formatting-menu-button {
-    display: flex;
-    width: 32px;
+/* Color picker button - hug contents, gap 4px, padding left/right 4px */
+.color-picker-button {
+    display: inline-flex;
+    width: auto;
     height: 32px;
-    justify-content: center;
+    padding: 0 4px;
+    gap: 4px;
     align-items: center;
-    gap: 10px;
-    aspect-ratio: 1/1;
-    padding: 0;
     border: none;
     background: transparent;
     border-radius: 6px;
@@ -54,78 +53,31 @@
     transition: background-color 0.1s ease, color 0.1s ease;
 }
 
-/* Formatting button icon default state */
-.formatting-menu-button svg {
-    color: var(--icons-default, #9CA3AF);
-}
-
-/* Formatting button hover state */
-.formatting-menu-button:hover {
-    background-color: var(--background-hover, #F3F4F6);
-}
-
-.formatting-menu-button:hover svg {
-    color: var(--icons-hover, #6B7280);
-}
-
-/* Formatting button active state */
-.formatting-menu-button.active {
-    background-color: var(--accent-primary-light, #ECEEFF);
-}
-
-.formatting-menu-button.active svg {
-    color: var(--icons-active, #5E6AD2);
-}
-
-/* Formatting button disabled state */
-.formatting-menu-button.disabled,
-.formatting-menu-button:disabled {
-    background: transparent;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.formatting-menu-button.disabled svg,
-.formatting-menu-button:disabled svg {
-    color: var(--icons-disabled, #E5E7EB);
-}
-
-.formatting-menu-button.with-dropdown {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    gap: 0;
-}
-
-/* Color picker button - hug contents, gap 4px, padding left/right 4px */
-.formatting-menu-button.color-picker-button {
-    display: inline-flex;
-    width: auto;
-    height: 32px;
-    padding: 0 4px;
-    gap: 4px;
-    align-items: center;
-}
-
 /* Color picker - default state */
-.formatting-menu-button.color-picker-button svg {
+.color-picker-button svg {
     color: var(--icons-default, #9CA3AF);
 }
 
 /* Color picker - hover state */
-.formatting-menu-button.color-picker-button:hover svg {
+.color-picker-button:hover {
+    background-color: var(--background-hover, #F3F4F6);
+}
+
+.color-picker-button:hover svg {
     color: var(--icons-hover, #6B7280);
 }
 
 /* Color picker - active state */
-.formatting-menu-button.color-picker-button.active svg {
+.color-picker-button.active {
+    background-color: var(--accent-primary-light, #ECEEFF);
+}
+
+.color-picker-button.active svg {
     color: var(--icons-active, #5E6AD2);
 }
 
-/* Color picker button states - inherits background from base formatting-menu-button */
-
 /* Turn Into Button with block type label */
-.formatting-menu-button.turn-into-button {
+.turn-into-button {
     display: inline-flex;
     width: auto;
     height: 32px;
@@ -133,56 +85,59 @@
     align-items: center;
     gap: 4px;
     border-radius: 4px;
+    border: none;
     background: transparent;
+    cursor: pointer;
+    transition: background-color 0.1s ease, color 0.1s ease;
 }
 
 /* Turn Into - Default state */
-.formatting-menu-button.turn-into-button svg {
+.turn-into-button svg {
     color: var(--icons-default, #9CA3AF);
 }
 
-.formatting-menu-button.turn-into-button .block-type-label {
+.turn-into-button .block-type-label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-tertiary, #9CA3AF);
     white-space: nowrap;
 }
 
-.formatting-menu-button.turn-into-button .chevron-icon {
+.turn-into-button .chevron-icon {
     color: var(--icons-default, #9CA3AF);
 }
 
 /* Turn Into - Hover state */
-.formatting-menu-button.turn-into-button:hover {
+.turn-into-button:hover {
     background-color: var(--background-hover, #F3F4F6);
 }
 
-.formatting-menu-button.turn-into-button:hover svg {
+.turn-into-button:hover svg {
     color: var(--icons-hover, #6B7280);
 }
 
-.formatting-menu-button.turn-into-button:hover .block-type-label {
+.turn-into-button:hover .block-type-label {
     color: var(--text-primary, #1F2937);
 }
 
-.formatting-menu-button.turn-into-button:hover .chevron-icon {
+.turn-into-button:hover .chevron-icon {
     color: var(--icons-hover, #6B7280);
 }
 
 /* Turn Into - Active state */
-.formatting-menu-button.turn-into-button.active {
+.turn-into-button.active {
     background-color: var(--accent-primary-light, #ECEEFF);
 }
 
-.formatting-menu-button.turn-into-button.active svg {
+.turn-into-button.active svg {
     color: var(--icons-active, #5E6AD2);
 }
 
-.formatting-menu-button.turn-into-button.active .block-type-label {
+.turn-into-button.active .block-type-label {
     color: var(--accent-primary, #5E6AD2);
 }
 
-.formatting-menu-button.turn-into-button.active .chevron-icon {
+.turn-into-button.active .chevron-icon {
     color: var(--icons-active, #5E6AD2);
 }
 

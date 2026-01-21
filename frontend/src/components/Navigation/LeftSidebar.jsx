@@ -159,12 +159,12 @@ const CollectionNameDivider = React.memo(({ collectionKey, name, isPages = false
             {isHovered && !isEditing && (
                 <div className="divider-actions">
                     {!isPages && (
-                        <button className="divider-action-btn" aria-label="Settings">
-                            <Settings size={16} />
+                        <button className="icon-btn icon-btn-xs" aria-label="Settings">
+                            <Settings />
                         </button>
                     )}
-                    <button className="divider-action-btn" aria-label="Add page">
-                        <Plus size={16} />
+                    <button className="icon-btn icon-btn-xs" aria-label="Add page">
+                        <Plus />
                     </button>
                 </div>
             )}

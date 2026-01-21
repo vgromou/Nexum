@@ -334,20 +334,20 @@ const PageContent = () => {
                 </div>
 
                 <div className="nav-actions">
-                    <button className="nav-btn" aria-label="Add to favorites">
+                    <button className="icon-btn" aria-label="Add to favorites">
                         <Star size={18} />
                     </button>
                     {isEditMode ? (
                         <>
                             <button
-                                className="nav-btn nav-btn-cancel"
+                                className="icon-btn"
                                 aria-label="Cancel editing"
                                 onClick={handleCancelRequest}
                             >
                                 <X size={18} />
                             </button>
                             <button
-                                className="nav-btn nav-btn-save"
+                                className="icon-btn"
                                 aria-label="Save changes"
                                 onClick={handleSave}
                             >
@@ -356,17 +356,17 @@ const PageContent = () => {
                         </>
                     ) : (
                         <button
-                            className="nav-btn"
+                            className="icon-btn"
                             aria-label="Edit page"
                             onClick={enterEditMode}
                         >
                             <PenLine size={18} />
                         </button>
                     )}
-                    <button className="nav-btn" aria-label="More options">
+                    <button className="icon-btn" aria-label="More options">
                         <MoreHorizontal size={18} />
                     </button>
-                    <button className="nav-btn ml-1" aria-label="Toggle properties panel">
+                    <button className="icon-btn ml-1" aria-label="Toggle properties panel">
                         <PanelRightClose size={18} />
                     </button>
                 </div>

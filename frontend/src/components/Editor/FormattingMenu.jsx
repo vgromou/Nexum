@@ -201,7 +201,7 @@ const FormattingMenu = ({
                     <div className="formatting-menu-group">
                         <button
                             ref={turnIntoRef}
-                            className={`formatting-menu-button turn-into-button ${activeSubmenu === 'turnInto' ? 'active' : ''}`}
+                            className={`turn-into-button ${activeSubmenu === 'turnInto' ? 'active' : ''}`}
                             onClick={(e) => handleSubmenuToggle(e, 'turnInto')}
                             title="Turn into"
                         >
@@ -216,35 +216,35 @@ const FormattingMenu = ({
                     {/* Text Formatting */}
                     <div className="formatting-menu-group">
                         <button
-                            className={`formatting-menu-button ${activeFormats.bold ? 'active' : ''}`}
+                            className={`icon-btn ${activeFormats.bold ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'bold')}
                             title="Bold (⌘B)"
                         >
                             <Bold size={18} />
                         </button>
                         <button
-                            className={`formatting-menu-button ${activeFormats.italic ? 'active' : ''}`}
+                            className={`icon-btn ${activeFormats.italic ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'italic')}
                             title="Italic (⌘I)"
                         >
                             <Italic size={18} />
                         </button>
                         <button
-                            className={`formatting-menu-button ${activeFormats.underline ? 'active' : ''}`}
+                            className={`icon-btn ${activeFormats.underline ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'underline')}
                             title="Underline (⌘U)"
                         >
                             <Underline size={18} />
                         </button>
                         <button
-                            className={`formatting-menu-button ${activeFormats.strikeThrough ? 'active' : ''}`}
+                            className={`icon-btn ${activeFormats.strikeThrough ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'strikeThrough')}
                             title="Strikethrough"
                         >
                             <Strikethrough size={18} />
                         </button>
                         <button
-                            className={`formatting-menu-button ${activeFormats.inlineCode ? 'active' : ''}`}
+                            className={`icon-btn ${activeFormats.inlineCode ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'inlineCode')}
                             title="Inline Code"
                         >
@@ -257,14 +257,14 @@ const FormattingMenu = ({
                     {/* Links */}
                     <div className="formatting-menu-group">
                         <button
-                            className={`formatting-menu-button ${activeFormats.link ? 'active' : ''}`}
+                            className={`icon-btn ${activeFormats.link ? 'active' : ''}`}
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenLinkPopover(); }}
                             title="Insert link (⌘K)"
                         >
                             <Link size={18} />
                         </button>
                         <button
-                            className={`formatting-menu-button ${!activeFormats.link ? 'disabled' : ''}`}
+                            className={`icon-btn ${!activeFormats.link ? 'disabled' : ''}`}
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (activeFormats.link) onRemoveLink(); }}
                             title="Remove link"
                             disabled={!activeFormats.link}
@@ -279,7 +279,7 @@ const FormattingMenu = ({
                     <div className="formatting-menu-group">
                         <button
                             ref={highlightRef}
-                            className={`formatting-menu-button color-picker-button ${activeSubmenu === 'highlight' || activeFormats.highlightColor || activeFormats.textColor ? 'active' : ''}`}
+                            className={`color-picker-button ${activeSubmenu === 'highlight' || activeFormats.highlightColor || activeFormats.textColor ? 'active' : ''}`}
                             onClick={(e) => handleSubmenuToggle(e, 'highlight')}
                             title="Color"
                         >

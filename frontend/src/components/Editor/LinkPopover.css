@@ -105,45 +105,18 @@
     flex-shrink: 0;
 }
 
-/* Button styles */
-.link-popover-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    border-radius: var(--radius-md);
-    color: var(--icons-disabled);
-    cursor: default;
-    transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-/* Button enabled state */
-.link-popover-button.enabled {
-    color: var(--icons-default);
-    cursor: pointer;
-}
-
-.link-popover-button.enabled:hover {
-    background-color: var(--background-hover);
-    color: var(--icons-hover);
-}
-
-/* Apply button specific */
-.link-popover-button.link-popover-apply.enabled {
+/* Apply button specific - override icon-btn colors */
+.link-popover-apply:not(.disabled) {
     color: var(--accent-primary);
 }
 
-.link-popover-button.link-popover-apply.enabled:hover {
+.link-popover-apply:not(.disabled):hover {
     background-color: var(--accent-primary-light);
     color: var(--accent-primary);
 }
 
-/* Unlink button specific */
-.link-popover-button.link-popover-unlink.enabled:hover {
+/* Unlink button specific - override icon-btn colors on hover */
+.link-popover-unlink:not(.disabled):hover {
     background-color: var(--semantic-error-light);
     color: var(--semantic-error);
 }

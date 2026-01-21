@@ -186,26 +186,6 @@
     flex-shrink: 0;
 }
 
-/* Shuffle/dice button */
-.emoji-picker-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: none;
-    border: none;
-    border-radius: var(--radius-md, 6px);
-    cursor: pointer;
-    color: var(--icons-default, #9CA3AF);
-    transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.emoji-picker-action-btn:hover {
-    background: var(--background-hover, #F3F4F6);
-    color: var(--icons-hover, #6B7280);
-}
-
 /* Color button (for icons tab) */
 .emoji-picker-color-btn {
     display: flex;

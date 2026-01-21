@@ -166,28 +166,6 @@
     flex-shrink: 0;
 }
 
-.divider-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--icons-default);
-    transition: color var(--transition-fast);
-}
-
-.divider-action-btn:hover {
-    color: var(--icons-hover);
-}
-
-.divider-action-btn:active {
-    color: var(--icons-active);
-}
-
 /* ===== PAGE ITEM ===== */
 .page-item {
     display: flex;
