@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Api.Common.Constants;
 using Api.Common.Errors;
 using Api.Configuration;
 using Api.Data;
@@ -10,6 +11,7 @@ using Api.DTOs.Common;
 using Api.DTOs.Organizations;
 using Api.Exceptions;
 using Api.Extensions;
+using Api.Filters;
 using Api.Models;
 using Api.Services;
 
@@ -287,6 +289,119 @@ public class OrganizationMembersController : ControllerBase
         };
 
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    /// <summary>
+    /// Deactivate a member in the organization.
+    /// </summary>
+    /// <remarks>
+    /// Deactivates a user account, preventing them from logging in.
+    /// All active refresh tokens are revoked immediately.
+    ///
+    /// **Authorization:** Requires Admin role in the organization.
+    ///
+    /// **Business Rules:**
+    /// - Cannot deactivate your own account (BR-6).
+    /// - Cannot deactivate the last active administrator in the organization (BR-7).
+    ///
+    /// **Security:** This operation terminates all active sessions for the user.
+    /// </remarks>
+    /// <param name="organizationId">The organization's unique identifier.</param>
+    /// <param name="userId">The user's unique identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Updated user info with isActive set to false.</returns>
+    /// <response code="200">Member deactivated successfully.</response>
+    /// <response code="401">Not authenticated.</response>
+    /// <response code="403">Not authorized to deactivate members in this organization.</response>
+    /// <response code="404">Organization or member not found.</response>
+    /// <response code="422">Cannot deactivate self or last admin.</response>
+    [HttpPost("{userId:guid}/deactivate")]
+    [Authorize(Roles = "admin")]
+    [RequireValidClaims]
+    [ProducesResponseType(typeof(UserInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<UserInfo>> DeactivateMember(
+        [FromRoute] Guid organizationId,
+        [FromRoute] Guid userId,
+        CancellationToken cancellationToken)
+    {
+        // Use transaction to prevent race conditions when checking admin count
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+
+        // 1. Verify organization exists
+        var organizationExists = await _context.Organizations
+            .AnyAsync(o => o.Id == organizationId, cancellationToken);
+
+        if (!organizationExists)
+        {
+            throw NotFoundException.Organization(organizationId);
+        }
+
+        // 2. Verify caller belongs to this organization
+        var tokenOrgId = User.GetOrganizationId();
+        if (tokenOrgId != organizationId)
+        {
+            throw ForbiddenException.InsufficientPermissions("deactivate members in this organization");
+        }
+
+        // 3. Find target membership with User
+        var membership = await _context.OrganizationMembers
+            .Include(m => m.User)
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId, cancellationToken);
+
+        if (membership == null)
+        {
+            throw NotFoundException.Member(userId, organizationId);
+        }
+
+        // 4. BR-6: Cannot deactivate self
+        var callerId = HttpContext.GetValidatedUserId();
+        if (callerId == userId)
+        {
+            throw BusinessRuleException.CannotDeactivateSelf();
+        }
+
+        // 5. BR-7: Cannot deactivate last active admin
+        if (membership.OrganizationRole == OrganizationRole.Admin)
+        {
+            var activeAdminCount = await _context.OrganizationMembers
+                .CountAsync(m =>
+                    m.OrganizationId == organizationId &&
+                    m.OrganizationRole == OrganizationRole.Admin &&
+                    m.User.IsActive,
+                    cancellationToken);
+
+            if (activeAdminCount <= 1)
+            {
+                throw BusinessRuleException.CannotDeactivateLastAdmin();
+            }
+        }
+
+        // 6. Deactivate user
+        var user = membership.User;
+        user.IsActive = false;
+        user.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
+
+        // 7. Revoke all refresh tokens
+        var activeTokens = await _context.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .ToListAsync(cancellationToken);
+
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = now;
+            token.RevokedReason = RevokedReasons.AccountDeactivated;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return Ok(user.ToUserInfo(membership));
     }
 
 #if DEBUG

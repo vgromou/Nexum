@@ -69,4 +69,24 @@ public class BusinessRuleException : ApiException
             "Cannot remove the last administrator from the organization",
             ErrorCodes.CANNOT_REMOVE_LAST_ADMIN);
     }
+
+    /// <summary>
+    /// Creates an exception when a user tries to deactivate their own account.
+    /// </summary>
+    public static BusinessRuleException CannotDeactivateSelf()
+    {
+        return new BusinessRuleException(
+            "You cannot deactivate your own account",
+            ErrorCodes.CANNOT_DEACTIVATE_SELF);
+    }
+
+    /// <summary>
+    /// Creates an exception when trying to deactivate the last active admin.
+    /// </summary>
+    public static BusinessRuleException CannotDeactivateLastAdmin()
+    {
+        return new BusinessRuleException(
+            "Cannot deactivate the last active administrator in the organization",
+            ErrorCodes.CANNOT_DEACTIVATE_LAST_ADMIN);
+    }
 }

@@ -40,4 +40,9 @@ public static class RevokedReasons
     /// Token was revoked because the user changed their password.
     /// </summary>
     public const string PasswordChange = "password_change";
+
+    /// <summary>
+    /// Token was revoked because the user's account was deactivated by an admin.
+    /// </summary>
+    public const string AccountDeactivated = "account_deactivated";
 }

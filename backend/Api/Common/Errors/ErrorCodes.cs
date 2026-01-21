@@ -60,6 +60,8 @@ public static class ErrorCodes
     public const string OPERATION_INVALID_STATE = "OPERATION_INVALID_STATE"; // 422
     public const string OPERATION_DEPENDENCY_EXISTS = "OPERATION_DEPENDENCY_EXISTS"; // 422
     public const string CANNOT_REMOVE_LAST_ADMIN = "CANNOT_REMOVE_LAST_ADMIN"; // 422
+    public const string CANNOT_DEACTIVATE_SELF = "CANNOT_DEACTIVATE_SELF"; // 422
+    public const string CANNOT_DEACTIVATE_LAST_ADMIN = "CANNOT_DEACTIVATE_LAST_ADMIN"; // 422
 
     // Server errors (SERVER_*)
     public const string SERVER_ERROR = "SERVER_ERROR";                     // 500
