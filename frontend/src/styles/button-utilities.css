@@ -1,0 +1,303 @@
+/*
+ * BUTTON UTILITY CLASSES
+ * Utility classes for applying button styles from Figma design tokens
+ * Last updated: 2026-01-21
+ */
+
+/* ===== BASE BUTTON ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  font-family: var(--font-family-sans);
+  font-size: var(--typography-button-default-size);
+  line-height: var(--typography-button-default-line-height);
+  font-weight: var(--typography-button-default-weight);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ===== SIZE VARIANTS ===== */
+.btn-sm {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--typography-button-small-size);
+  line-height: var(--typography-button-small-line-height);
+  font-weight: var(--typography-button-small-weight);
+}
+
+.btn-md {
+  /* Default size - same as .btn */
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--typography-button-default-size);
+  line-height: var(--typography-button-default-line-height);
+  font-weight: var(--typography-button-default-weight);
+}
+
+.btn-lg {
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--typography-button-large-size);
+  line-height: var(--typography-button-large-line-height);
+  font-weight: var(--typography-button-large-weight);
+}
+
+/* ===== STYLE VARIANTS ===== */
+
+/* Primary Button */
+.btn-primary {
+  background: var(--button-primary-bg-default);
+  color: var(--button-primary-text-default);
+  border-color: var(--button-primary-border-default);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--button-primary-bg-hover);
+  color: var(--button-primary-text-hover);
+  border-color: var(--button-primary-border-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--button-primary-bg-active);
+  color: var(--button-primary-text-active);
+  border-color: var(--button-primary-border-active);
+}
+
+.btn-primary:disabled {
+  background: var(--button-primary-bg-disabled);
+  color: var(--button-primary-text-disabled);
+  border-color: var(--button-primary-border-disabled);
+}
+
+/* Ghost Button */
+.btn-ghost {
+  background: var(--button-ghost-bg-default);
+  color: var(--button-ghost-text-default);
+  border-color: var(--button-ghost-border-default);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--button-ghost-bg-hover);
+  color: var(--button-ghost-text-hover);
+  border-color: var(--button-ghost-border-hover);
+}
+
+.btn-ghost:active:not(:disabled) {
+  background: var(--button-ghost-bg-active);
+  color: var(--button-ghost-text-active);
+  border-color: var(--button-ghost-border-active);
+}
+
+.btn-ghost:disabled {
+  background: var(--button-ghost-bg-disabled);
+  color: var(--button-ghost-text-disabled);
+  border-color: var(--button-ghost-border-disabled);
+}
+
+/* Outline Button */
+.btn-outline {
+  background: var(--button-outline-bg-default);
+  color: var(--button-outline-text-default);
+  border-color: var(--button-outline-border-default);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--button-outline-bg-hover);
+  color: var(--button-outline-text-hover);
+  border-color: var(--button-outline-border-hover);
+}
+
+.btn-outline:active:not(:disabled) {
+  background: var(--button-outline-bg-active);
+  color: var(--button-outline-text-active);
+  border-color: var(--button-outline-border-active);
+}
+
+.btn-outline:disabled {
+  background: var(--button-outline-bg-disabled);
+  color: var(--button-outline-text-disabled);
+  border-color: var(--button-outline-border-disabled);
+}
+
+/* Destructive Button */
+.btn-destructive {
+  background: var(--button-destructive-bg-default);
+  color: var(--button-destructive-text-default);
+  border-color: var(--button-destructive-border-default);
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background: var(--button-destructive-bg-hover);
+  color: var(--button-destructive-text-hover);
+  border-color: var(--button-destructive-border-hover);
+}
+
+.btn-destructive:active:not(:disabled) {
+  background: var(--button-destructive-bg-active);
+  color: var(--button-destructive-text-active);
+  border-color: var(--button-destructive-border-active);
+}
+
+.btn-destructive:disabled {
+  background: var(--button-destructive-bg-disabled);
+  color: var(--button-destructive-text-disabled);
+  border-color: var(--button-destructive-border-disabled);
+}
+
+/* Destructive Ghost Button */
+.btn-destructive-ghost {
+  background: var(--button-destructive-ghost-bg-default);
+  color: var(--button-destructive-ghost-text-default);
+  border-color: var(--button-destructive-ghost-border-default);
+}
+
+.btn-destructive-ghost:hover:not(:disabled) {
+  background: var(--button-destructive-ghost-bg-hover);
+  color: var(--button-destructive-ghost-text-hover);
+  border-color: var(--button-destructive-ghost-border-hover);
+}
+
+.btn-destructive-ghost:active:not(:disabled) {
+  background: var(--button-destructive-ghost-bg-active);
+  color: var(--button-destructive-ghost-text-active);
+  border-color: var(--button-destructive-ghost-border-active);
+}
+
+.btn-destructive-ghost:disabled {
+  background: var(--button-destructive-ghost-bg-disabled);
+  color: var(--button-destructive-ghost-text-disabled);
+  border-color: var(--button-destructive-ghost-border-disabled);
+}
+
+/* Destructive Outline Button */
+.btn-destructive-outline {
+  background: var(--button-destructive-outline-bg-default);
+  color: var(--button-destructive-outline-text-default);
+  border-color: var(--button-destructive-outline-border-default);
+}
+
+.btn-destructive-outline:hover:not(:disabled) {
+  background: var(--button-destructive-outline-bg-hover);
+  color: var(--button-destructive-outline-text-hover);
+  border-color: var(--button-destructive-outline-border-hover);
+}
+
+.btn-destructive-outline:active:not(:disabled) {
+  background: var(--button-destructive-outline-bg-active);
+  color: var(--button-destructive-outline-text-active);
+  border-color: var(--button-destructive-outline-border-active);
+}
+
+.btn-destructive-outline:disabled {
+  background: var(--button-destructive-outline-bg-disabled);
+  color: var(--button-destructive-outline-text-disabled);
+  border-color: var(--button-destructive-outline-border-disabled);
+}
+
+/* Success Button */
+.btn-success {
+  background: var(--button-success-bg-default);
+  color: var(--button-success-text-default);
+  border-color: var(--button-success-border-default);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--button-success-bg-hover);
+  color: var(--button-success-text-hover);
+  border-color: var(--button-success-border-hover);
+}
+
+.btn-success:active:not(:disabled) {
+  background: var(--button-success-bg-active);
+  color: var(--button-success-text-active);
+  border-color: var(--button-success-border-active);
+}
+
+.btn-success:disabled {
+  background: var(--button-success-bg-disabled);
+  color: var(--button-success-text-disabled);
+  border-color: var(--button-success-border-disabled);
+}
+
+/* Success Ghost Button */
+.btn-success-ghost {
+  background: var(--button-success-ghost-bg-default);
+  color: var(--button-success-ghost-text-default);
+  border-color: var(--button-success-ghost-border-default);
+}
+
+.btn-success-ghost:hover:not(:disabled) {
+  background: var(--button-success-ghost-bg-hover);
+  color: var(--button-success-ghost-text-hover);
+  border-color: var(--button-success-ghost-border-hover);
+}
+
+.btn-success-ghost:active:not(:disabled) {
+  background: var(--button-success-ghost-bg-active);
+  color: var(--button-success-ghost-text-active);
+  border-color: var(--button-success-ghost-border-active);
+}
+
+.btn-success-ghost:disabled {
+  background: var(--button-success-ghost-bg-disabled);
+  color: var(--button-success-ghost-text-disabled);
+  border-color: var(--button-success-ghost-border-disabled);
+}
+
+/* Success Outline Button */
+.btn-success-outline {
+  background: var(--button-success-outline-bg-default);
+  color: var(--button-success-outline-text-default);
+  border-color: var(--button-success-outline-border-default);
+}
+
+.btn-success-outline:hover:not(:disabled) {
+  background: var(--button-success-outline-bg-hover);
+  color: var(--button-success-outline-text-hover);
+  border-color: var(--button-success-outline-border-hover);
+}
+
+.btn-success-outline:active:not(:disabled) {
+  background: var(--button-success-outline-bg-active);
+  color: var(--button-success-outline-text-active);
+  border-color: var(--button-success-outline-border-active);
+}
+
+.btn-success-outline:disabled {
+  background: var(--button-success-outline-bg-disabled);
+  color: var(--button-success-outline-text-disabled);
+  border-color: var(--button-success-outline-border-disabled);
+}
+
+/* ===== ICON BUTTONS ===== */
+.btn-icon {
+  padding: var(--space-sm);
+  aspect-ratio: 1;
+}
+
+.btn-icon.btn-sm {
+  padding: var(--space-xs);
+}
+
+.btn-icon.btn-lg {
+  padding: var(--space-md);
+}
+
+/* ===== FULL WIDTH ===== */
+.btn-full {
+  width: 100%;
+}
