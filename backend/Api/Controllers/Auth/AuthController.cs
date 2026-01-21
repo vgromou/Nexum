@@ -620,7 +620,14 @@ public class AuthController : ControllerBase
         var membership = user.OrganizationMemberships.FirstOrDefault();
         if (membership == null)
         {
-            throw new UnauthorizedException("User has no organization membership", "UNAUTHORIZED");
+            // This should never happen in normal operation, as users are always created with org membership
+            // If it does occur, it indicates a data integrity issue that needs investigation
+            _logger.LogError(
+                "User {UserId} has MustChangePassword flag but no organization membership. This indicates a data integrity issue.",
+                userId);
+            throw new UnauthorizedException(
+                "Unable to change password: user account is not properly configured. Please contact support.",
+                "INVALID_ACCOUNT_STATE");
         }
 
         // Use transaction to ensure password update and token revocation are atomic

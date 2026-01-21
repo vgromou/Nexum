@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Claims;
+using Api.Common.Constants;
 using Api.Configuration;
 using Api.Controllers.Auth;
 using Api.Data;
@@ -954,6 +955,273 @@ public class AuthControllerTests : IDisposable
         // Verify the newer token is NOT revoked
         var newerTokenFromDb = tokens.First(t => t.TokenHash == "hash2");
         newerTokenFromDb.RevokedAt.Should().BeNull();
+    }
+
+    #endregion
+
+    #region ChangePassword Tests
+
+    [Fact]
+    public async Task ChangePassword_ShouldReturnNewTokensWithMustChangePasswordFalse()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId);
+        _passwordServiceMock.Setup(p => p.VerifyPassword("old-password", It.IsAny<string>()))
+            .Returns(true);
+        _passwordServiceMock.Setup(p => p.HashPassword("new-password"))
+            .Returns("new-hashed-password");
+
+        var user = await _context.Users
+            .Include(u => u.OrganizationMemberships)
+            .FirstAsync(u => u.Id == _userId);
+        user.MustChangePassword = true;
+
+        await _context.SaveChangesAsync();
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "old-password",
+            NewPassword = "new-password"
+        };
+
+        // Act
+        var result = await _controller.ChangePassword(request, CancellationToken.None);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<ChangePasswordResponse>().Subject;
+
+        response.AccessToken.Should().Be("test-access-token");
+        response.RefreshToken.Should().Be("test-refresh-token");
+        response.ExpiresIn.Should().Be(900); // 15 minutes in seconds
+
+        // Verify MustChangePassword is cleared
+        var updatedUser = await _context.Users.FindAsync(_userId);
+        updatedUser!.MustChangePassword.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ChangePassword_ShouldRevokeAllExistingRefreshTokens()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId);
+        _passwordServiceMock.Setup(p => p.VerifyPassword("old-password", It.IsAny<string>()))
+            .Returns(true);
+        _passwordServiceMock.Setup(p => p.HashPassword("new-password"))
+            .Returns("new-hashed-password");
+
+        // Create multiple existing refresh tokens
+        var token1 = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = "hash1",
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Device 1",
+            IpAddress = IPAddress.Loopback
+        };
+        var token2 = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = "hash2",
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Device 2",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.AddRange(token1, token2);
+        await _context.SaveChangesAsync();
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "old-password",
+            NewPassword = "new-password"
+        };
+
+        // Act
+        await _controller.ChangePassword(request, CancellationToken.None);
+
+        // Assert
+        var tokens = await _context.RefreshTokens
+            .Where(t => t.UserId == _userId)
+            .ToListAsync();
+
+        // Should have 2 old revoked tokens + 1 new active token
+        tokens.Should().HaveCount(3);
+        var revokedTokens = tokens.Where(t => t.RevokedAt != null).ToList();
+        revokedTokens.Should().HaveCount(2);
+        revokedTokens.Should().AllSatisfy(t => t.RevokedReason.Should().Be(RevokedReasons.PasswordChange));
+
+        // New token should not be revoked
+        var activeTokens = tokens.Where(t => t.RevokedAt == null).ToList();
+        activeTokens.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task ChangePassword_ShouldUpdatePasswordHash()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId);
+        _passwordServiceMock.Setup(p => p.VerifyPassword("old-password", It.IsAny<string>()))
+            .Returns(true);
+        _passwordServiceMock.Setup(p => p.HashPassword("new-password"))
+            .Returns("new-hashed-password");
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "old-password",
+            NewPassword = "new-password"
+        };
+
+        // Act
+        await _controller.ChangePassword(request, CancellationToken.None);
+
+        // Assert
+        var updatedUser = await _context.Users.FindAsync(_userId);
+        updatedUser!.PasswordHash.Should().Be("new-hashed-password");
+        updatedUser.PasswordChangedAt.Should().BeCloseTo(_timeProvider.GetUtcNow().UtcDateTime, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task ChangePassword_ShouldThrowUnauthorizedWhenCurrentPasswordIsIncorrect()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId);
+        _passwordServiceMock.Setup(p => p.VerifyPassword(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(false);
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "wrong-password",
+            NewPassword = "new-password"
+        };
+
+        // Act
+        var act = async () => await _controller.ChangePassword(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("Current password is incorrect");
+    }
+
+    [Fact]
+    public async Task ChangePassword_ShouldThrowUnauthorizedWhenUserHasNoOrganizationMembership()
+    {
+        // Arrange
+        var userWithoutMembership = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "nomembership@example.com",
+            Username = "nomembership",
+            PasswordHash = "hashed-password",
+            FirstName = "No",
+            LastName = "Membership",
+            IsActive = true,
+            MustChangePassword = true
+        };
+        _context.Users.Add(userWithoutMembership);
+        await _context.SaveChangesAsync();
+
+        SetupAuthenticatedUser(userWithoutMembership.Id);
+        _passwordServiceMock.Setup(p => p.VerifyPassword("old-password", It.IsAny<string>()))
+            .Returns(true);
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "old-password",
+            NewPassword = "new-password"
+        };
+
+        // Act
+        var act = async () => await _controller.ChangePassword(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("Unable to change password: user account is not properly configured. Please contact support.");
+    }
+
+    [Fact]
+    public async Task ChangePassword_ShouldGenerateJwtWithUpdatedMustChangePasswordClaim()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId);
+        _passwordServiceMock.Setup(p => p.VerifyPassword("old-password", It.IsAny<string>()))
+            .Returns(true);
+        _passwordServiceMock.Setup(p => p.HashPassword("new-password"))
+            .Returns("new-hashed-password");
+
+        var user = await _context.Users.FindAsync(_userId);
+        user!.MustChangePassword = true;
+        await _context.SaveChangesAsync();
+
+        User? capturedUser = null;
+        _jwtServiceMock.Setup(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<OrganizationMember>()))
+            .Callback<User, OrganizationMember>((u, m) => capturedUser = u)
+            .Returns("test-access-token");
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "old-password",
+            NewPassword = "new-password"
+        };
+
+        // Act
+        await _controller.ChangePassword(request, CancellationToken.None);
+
+        // Assert
+        capturedUser.Should().NotBeNull();
+        capturedUser!.MustChangePassword.Should().BeFalse();
+        _jwtServiceMock.Verify(
+            j => j.GenerateAccessToken(
+                It.Is<User>(u => u.MustChangePassword == false),
+                It.IsAny<OrganizationMember>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ChangePassword_ShouldUseSerializableTransactionIsolation()
+    {
+        // Arrange
+        SetupAuthenticatedUser(_userId);
+        _passwordServiceMock.Setup(p => p.VerifyPassword("old-password", It.IsAny<string>()))
+            .Returns(true);
+        _passwordServiceMock.Setup(p => p.HashPassword("new-password"))
+            .Returns("new-hashed-password");
+
+        // Create existing refresh token
+        var oldToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = _userId,
+            TokenHash = "old-hash",
+            ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddDays(7),
+            DeviceInfo = "Test",
+            IpAddress = IPAddress.Loopback
+        };
+        _context.RefreshTokens.Add(oldToken);
+        await _context.SaveChangesAsync();
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "old-password",
+            NewPassword = "new-password"
+        };
+
+        // Act
+        await _controller.ChangePassword(request, CancellationToken.None);
+
+        // Assert - Verify both password update and token revocation completed
+        var updatedUser = await _context.Users.FindAsync(_userId);
+        updatedUser!.PasswordHash.Should().Be("new-hashed-password");
+        updatedUser.MustChangePassword.Should().BeFalse();
+
+        var tokens = await _context.RefreshTokens
+            .Where(t => t.UserId == _userId)
+            .ToListAsync();
+
+        var revokedToken = tokens.First(t => t.TokenHash == "old-hash");
+        revokedToken.RevokedAt.Should().NotBeNull();
+        revokedToken.RevokedReason.Should().Be(RevokedReasons.PasswordChange);
     }
 
     #endregion

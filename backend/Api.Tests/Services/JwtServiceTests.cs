@@ -300,6 +300,45 @@ public class JwtServiceTests
         token1.Should().NotBe(token2);
     }
 
+    [Theory]
+    [InlineData(true, "true")]
+    [InlineData(false, "false")]
+    public void GenerateAccessToken_ShouldContainMustChangePasswordClaim(bool mustChangePassword, string expectedValue)
+    {
+        // Arrange
+        var user = CreateTestUser();
+        user.MustChangePassword = mustChangePassword;
+        var membership = CreateTestMembership(user.Id);
+
+        // Act
+        var token = _service.GenerateAccessToken(user, membership);
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+
+        // Assert
+        jwt.Claims.Should().Contain(c => c.Type == "must_change_password" && c.Value == expectedValue);
+    }
+
+    [Fact]
+    public void GenerateAccessToken_ShouldContainLowercaseMustChangePasswordClaim()
+    {
+        // Arrange
+        var user = CreateTestUser();
+        user.MustChangePassword = true;
+        var membership = CreateTestMembership(user.Id);
+
+        // Act
+        var token = _service.GenerateAccessToken(user, membership);
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+
+        // Assert - Verify claim value is lowercase "true", not "True"
+        var claim = jwt.Claims.FirstOrDefault(c => c.Type == "must_change_password");
+        claim.Should().NotBeNull();
+        claim!.Value.Should().Be("true");
+        claim.Value.Should().NotBe("True");
+    }
+
     #endregion
 
     #region GenerateRefreshToken Tests

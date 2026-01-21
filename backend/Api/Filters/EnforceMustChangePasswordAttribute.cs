@@ -67,7 +67,7 @@ public sealed class EnforceMustChangePasswordAttribute : ActionFilterAttribute
 
         // Check MustChangePassword flag from JWT claim (no DB query)
         var mustChangePasswordClaim = context.HttpContext.User.FindFirst("must_change_password")?.Value;
-        if (mustChangePasswordClaim == "true")
+        if (bool.TryParse(mustChangePasswordClaim, out var mustChangePassword) && mustChangePassword)
         {
             throw new ForbiddenException(
                 "You must change your password before continuing",
