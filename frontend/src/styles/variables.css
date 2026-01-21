@@ -33,6 +33,7 @@
   --spacing-block-quote-bottom: 16px;
 
   /* ===== BORDER RADIUS ===== */
+  --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;

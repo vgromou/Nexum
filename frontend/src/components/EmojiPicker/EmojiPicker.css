@@ -245,7 +245,7 @@
 
 .emoji-grid-container::-webkit-scrollbar-thumb {
     background: transparent;
-    border-radius: var(--space-xxs);
+    border-radius: var(--radius-xs);
     transition: background 0.2s ease;
 }
 

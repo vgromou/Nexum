@@ -861,7 +861,7 @@
     right: 0;
     height: 3px;
     background-color: var(--color-selection-blue, #2383e2);
-    border-radius: var(--space-xxs);
+    border-radius: var(--radius-xs);
     pointer-events: none;
     z-index: 100;
     transform: translateY(-50%);
@@ -1080,7 +1080,7 @@
     font-weight: var(--font-weight-code-inline, 400);
     background-color: var(--color-code-bg);
     padding: var(--space-xxs) var(--space-xs);
-    border-radius: var(--space-xxs);
+    border-radius: var(--radius-xs);
     color: var(--color-code-text);
 }
 
@@ -1100,7 +1100,7 @@
 .block-content a.link-active,
 .unified-content-area a.link-active {
     background-color: rgba(37, 99, 235, 0.1);
-    border-radius: var(--space-xxs);
+    border-radius: var(--radius-xs);
 }
 
 /* Normal Highlights (background only) */
@@ -1200,7 +1200,7 @@
 /* Scrollbar thumb - 4px wide */
 .slash-menu-scroll-wrapper::-webkit-scrollbar-thumb {
     background-color: transparent;
-    border-radius: var(--space-xxs);
+    border-radius: var(--radius-xs);
     transition: background-color 0.2s ease;
 }
 
@@ -1508,7 +1508,7 @@
 /* Links in read-only mode - extra visual feedback on hover */
 .block-editor.read-only .unified-content-area a:hover {
     background-color: rgba(37, 99, 235, 0.08);
-    border-radius: var(--space-xxs);
+    border-radius: var(--radius-xs);
 }
 
 /* Hide placeholders in read-only mode */

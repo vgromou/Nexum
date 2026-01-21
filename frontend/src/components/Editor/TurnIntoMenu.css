@@ -176,7 +176,7 @@
 /* Scrollbar thumb - 4px wide */
 .turn-into-menu-scroll-wrapper::-webkit-scrollbar-thumb {
     background-color: transparent;
-    border-radius: var(--space-xxs);
+    border-radius: var(--radius-xs);
     transition: background-color 0.2s ease;
 }
 
