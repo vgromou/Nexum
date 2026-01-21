@@ -408,13 +408,14 @@ public class OrganizationMembersController : ControllerBase
     /// Activate a deactivated member in the organization.
     /// </summary>
     /// <remarks>
-    /// Reactivates a previously deactivated user account, allowing them to log in again
-    /// with their existing credentials.
+    /// Reactivates a previously deactivated user account. The user will need to
+    /// log in again with their existing credentials.
     ///
     /// **Authorization:** Requires Admin role in the organization.
     ///
     /// **Business Rules:**
     /// - Cannot activate if user is already active.
+    /// - Revokes all existing refresh tokens to force fresh login.
     /// - Does NOT generate a new password (user keeps their existing password).
     /// - Does NOT reset the must_change_password flag.
     /// </remarks>
@@ -476,6 +477,18 @@ public class OrganizationMembersController : ControllerBase
         // 5. Activate user
         user.IsActive = true;
         user.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
+
+        // 6. Revoke all refresh tokens to force fresh login
+        var activeTokens = await _context.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .ToListAsync(cancellationToken);
+
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = now;
+            token.RevokedReason = RevokedReasons.AccountReactivated;
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

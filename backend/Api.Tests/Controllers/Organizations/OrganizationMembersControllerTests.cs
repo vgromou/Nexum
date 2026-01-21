@@ -1924,5 +1924,69 @@ public class OrganizationMembersControllerTests : IDisposable
         updatedUser.MustChangePassword.Should().BeTrue(); // Should NOT be reset
     }
 
+    [Fact]
+    public async Task ActivateMember_ShouldRevokeAllRefreshTokens()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "revoketokensadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "revoketokenstarget");
+
+        // Create some refresh tokens for the target user
+        var token1 = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = targetUser.Id,
+            TokenHash = "hash1",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            RevokedAt = null
+        };
+        var token2 = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = targetUser.Id,
+            TokenHash = "hash2",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            RevokedAt = null
+        };
+        _context.RefreshTokens.AddRange(token1, token2);
+
+        targetUser.IsActive = false;
+        await _context.SaveChangesAsync();
+        SetCallerContext(admin.Id);
+
+        // Act
+        await _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        // Assert
+        var tokens = await _context.RefreshTokens
+            .Where(t => t.UserId == targetUser.Id)
+            .ToListAsync();
+
+        tokens.Should().HaveCount(2);
+        tokens.Should().AllSatisfy(t =>
+        {
+            t.RevokedAt.Should().NotBeNull();
+            t.RevokedReason.Should().Be(RevokedReasons.AccountReactivated);
+        });
+    }
+
+    [Fact]
+    public async Task ActivateMember_WithNoTokens_ShouldSucceed()
+    {
+        // Arrange
+        var (admin, _) = await CreateMemberAsync(OrganizationRole.Admin, "notokensadmin");
+        var (targetUser, _) = await CreateMemberAsync(OrganizationRole.User, "notokenstarget");
+        targetUser.IsActive = false;
+        await _context.SaveChangesAsync();
+        SetCallerContext(admin.Id);
+
+        // Act & Assert - should not throw
+        var result = await _controller.ActivateMember(_organizationId, targetUser.Id, CancellationToken.None);
+
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<UserInfo>().Subject;
+        response.IsActive.Should().BeTrue();
+    }
+
     #endregion
 }

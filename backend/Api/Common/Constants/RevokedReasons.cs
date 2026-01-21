@@ -45,4 +45,10 @@ public static class RevokedReasons
     /// Token was revoked because the user's account was deactivated by an admin.
     /// </summary>
     public const string AccountDeactivated = "account_deactivated";
+
+    /// <summary>
+    /// Token was revoked because the user's account was reactivated by an admin.
+    /// Forces fresh login with new credentials.
+    /// </summary>
+    public const string AccountReactivated = "account_reactivated";
 }
