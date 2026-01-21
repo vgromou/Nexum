@@ -5,20 +5,20 @@
     transform: translate(-50%, -100%);
     background: var(--surface-elevated, white);
     border: 1px solid var(--border-default, #E5E7EB);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
-    padding: var(--space-xs, 4px) var(--space-sm, 8px);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 var(--space-xs) var(--space-lg) 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
+    padding: var(--space-xs) var(--space-sm);
     min-height: 42px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-xs);
     animation: formattingMenuAppear 0.15s ease-out;
 }
 
 @keyframes formattingMenuAppear {
     0% {
         opacity: 0;
-        transform: translate(-50%, -100%) translateY(4px);
+        transform: translate(-50%, -100%) translateY(var(--space-xs));
     }
 
     100% {
@@ -30,7 +30,7 @@
 .formatting-menu-main {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--space-xxs);
 }
 
 .formatting-menu-group {
@@ -43,12 +43,12 @@
     display: inline-flex;
     width: auto;
     height: 32px;
-    padding: 0 4px;
-    gap: 4px;
+    padding: 0 var(--space-xs);
+    gap: var(--space-xs);
     align-items: center;
     border: none;
     background: transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: background-color 0.1s ease, color 0.1s ease;
 }
@@ -81,10 +81,10 @@
     display: inline-flex;
     width: auto;
     height: 32px;
-    padding: 2px 4px;
+    padding: var(--space-xxs) var(--space-xs);
     align-items: center;
-    gap: 4px;
-    border-radius: 4px;
+    gap: var(--space-xs);
+    border-radius: var(--radius-sm);
     border: none;
     background: transparent;
     cursor: pointer;
@@ -143,9 +143,9 @@
 
 .formatting-menu-divider {
     width: 1px;
-    height: 24px;
+    height: var(--space-xl);
     background-color: var(--border-default, #E5E7EB);
-    margin: 0 4px;
+    margin: 0 var(--space-xs);
 }
 
 /* Formatting Popup - Separate floating panels */
@@ -154,8 +154,8 @@
     z-index: 1110;
     background: var(--color-bg-white, white);
     border: 1px solid var(--color-gray-100, #f3f4f6);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px var(--color-shadow-menu, rgba(0, 0, 0, 0.16)),
+    border-radius: var(--radius-xl);
+    box-shadow: 0 var(--space-sm) var(--space-2xl) var(--color-shadow-menu, rgba(0, 0, 0, 0.16)),
         0 0 1px rgba(0, 0, 0, 0.08);
     animation: popupAppear 0.15s ease-out;
     overflow: hidden;
@@ -164,7 +164,7 @@
 @keyframes popupAppear {
     0% {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(calc(-1 * var(--space-sm)));
     }
 
     100% {
@@ -176,7 +176,7 @@
 /* Turn Into Popup */
 .turn-into-popup {
     width: 220px;
-    padding: 8px;
+    padding: var(--space-sm);
 }
 
 .popup-header {
@@ -185,13 +185,13 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--color-gray-400, #9ca3af);
-    padding: 8px 12px 6px;
+    padding: var(--space-sm) var(--space-md) 6px;
 }
 
 .popup-content {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xxs);
 }
 
 .popup-item {
@@ -199,10 +199,10 @@
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 10px 12px;
+    padding: 10px var(--space-md);
     border: none;
     background: transparent;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     color: var(--color-text-primary, #000);
     font-size: 14px;
     cursor: pointer;
@@ -237,16 +237,16 @@
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 
 /* Clear Formatting Button */
 .clear-formatting-button {
     width: 100%;
-    padding: 4px 12px;
+    padding: var(--space-xs) var(--space-md);
     background-color: var(--color-bg-white, white);
     border: 1px solid var(--color-gray-300, #d1d5db);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-size: 13px;
     font-weight: 500;
     color: var(--color-gray-500, #6b7280);
@@ -272,13 +272,13 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--color-gray-400, #9ca3af);
-    padding-left: 2px;
+    padding-left: var(--space-xxs);
 }
 
 /* Color Row - swatches in a row */
 .color-row {
     display: flex;
-    gap: 4px;
+    gap: var(--space-xs);
 }
 
 /* Color Swatch - Large square with letter A */
@@ -286,7 +286,7 @@
     position: relative;
     width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--color-gray-200, #e5e7eb);
     cursor: pointer;
     display: flex;

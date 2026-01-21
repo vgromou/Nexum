@@ -2,8 +2,8 @@
     width: var(--space-hierarchy-width);
     height: calc(100% - 16px);
     /* Match PageContent height */
-    margin-top: 8px;
-    margin-bottom: 8px;
+    margin-top: var(--space-sm);
+    margin-bottom: var(--space-sm);
     margin-right: 0;
     /* Adjoin to PageContent */
     display: flex;
@@ -38,16 +38,16 @@
 .hierarchy-content {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xxs);
 }
 
 .hierarchy-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-sm);
     padding: 6px 8px;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     color: rgba(0, 0, 0, 0.8);
     font-size: 14px;
     transition: background-color 0.2s;
