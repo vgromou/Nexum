@@ -4,7 +4,11 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const TOKENS_DIR = '/Volumes/T9/Variables';
+// TOKENS_DIR: Path to Figma design tokens directory
+// Can be customized via FIGMA_TOKENS_DIR environment variable
+// Default: ../figma-tokens (relative to project root)
+// Example: FIGMA_TOKENS_DIR=/path/to/tokens node scripts/convert-tokens.cjs
+const TOKENS_DIR = process.env.FIGMA_TOKENS_DIR || path.join(__dirname, '../../figma-tokens');
 const OUTPUT_FILE = path.join(__dirname, '../src/styles/generated-tokens.css');
 
 // Helper: Convert sRGB components to HEX

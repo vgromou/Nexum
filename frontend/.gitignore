@@ -26,3 +26,7 @@ dist-ssr
 
 *storybook.log
 storybook-static
+
+# Design system generated files
+src/styles/generated-tokens.css
+src/styles/*.backup

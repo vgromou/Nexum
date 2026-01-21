@@ -222,16 +222,23 @@ npm run storybook
 
 Когда дизайн-токены обновятся в Figma:
 
-1. Экспортируйте новые токены в `/Volumes/T9/Variables/`
+1. Экспортируйте новые токены в директорию `figma-tokens/` в корне проекта (или установите переменную окружения `FIGMA_TOKENS_DIR`)
 2. Запустите скрипт конвертации:
 
 ```bash
 cd frontend
+
+# Вариант 1: Использовать дефолтный путь (../figma-tokens)
 node scripts/convert-tokens.cjs
+
+# Вариант 2: Указать кастомный путь через переменную окружения
+FIGMA_TOKENS_DIR=/path/to/your/tokens node scripts/convert-tokens.cjs
 ```
 
 3. Скрипт автоматически обновит `src/styles/generated-tokens.css`
 4. Проверьте изменения и обновите `src/styles/variables.css` если нужно
+
+**Примечание:** Файл `generated-tokens.css` используется как справочный и не коммитится в репозиторий (см. `.gitignore`).
 
 ## 📁 Структура файлов
 
