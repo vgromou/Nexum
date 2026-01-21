@@ -93,7 +93,17 @@ public sealed class AvatarService : IAvatarService
             throw new BadHttpRequestException("File does not appear to be a valid image");
         }
 
-        // Check if magic bytes match the declared MIME type
+        // Special validation for WebP format
+        if (file.ContentType.Equals("image/webp", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsValidWebP(buffer, bytesRead))
+            {
+                throw new BadHttpRequestException("File does not appear to be a valid image");
+            }
+            return;
+        }
+
+        // Check if magic bytes match the declared MIME type for other formats
         if (MagicBytes.TryGetValue(file.ContentType.ToLowerInvariant(), out var signatures))
         {
             var isValid = signatures.Any(signature =>
@@ -104,6 +114,24 @@ public sealed class AvatarService : IAvatarService
                 throw new BadHttpRequestException("File does not appear to be a valid image");
             }
         }
+    }
+
+    /// <summary>
+    /// Validates WebP file signature by checking both RIFF header and WEBP marker.
+    /// WebP files start with "RIFF" (bytes 0-3) and have "WEBP" at offset 8.
+    /// </summary>
+    private static bool IsValidWebP(byte[] buffer, int bytesRead)
+    {
+        // Need at least 12 bytes for full WebP signature
+        if (bytesRead < 12)
+            return false;
+
+        // Check RIFF header at offset 0
+        if (buffer[0] != 0x52 || buffer[1] != 0x49 || buffer[2] != 0x46 || buffer[3] != 0x46)
+            return false;
+
+        // Check WEBP signature at offset 8
+        return buffer[8] == 0x57 && buffer[9] == 0x45 && buffer[10] == 0x42 && buffer[11] == 0x50;
     }
 
     /// <inheritdoc />
@@ -180,7 +208,7 @@ public sealed class AvatarService : IAvatarService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process avatar for user {UserId}", userId);
-            throw new Exception("Failed to process image", ex);
+            throw new BadHttpRequestException("Failed to process image. Please ensure the file is a valid image.", ex);
         }
     }
 

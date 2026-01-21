@@ -22,12 +22,13 @@ public sealed class MinIOFileStorageService : IFileStorageService
         _settings = settings.Value;
         _logger = logger;
 
-        // Initialize MinIO client
+        // Initialize MinIO client with timeout
         _minioClient = new MinioClient()
             .WithEndpoint(_settings.Endpoint)
             .WithCredentials(_settings.AccessKey, _settings.SecretKey)
             .WithSSL(_settings.UseSSL)
             .WithRegion(_settings.Region)
+            .WithTimeout(_settings.TimeoutSeconds * 1000) // Convert seconds to milliseconds
             .Build();
     }
 

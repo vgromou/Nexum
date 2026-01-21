@@ -51,4 +51,10 @@ public sealed class MinIOSettings
     /// If not set, will use the endpoint for public URLs.
     /// </summary>
     public string? PublicUrl { get; init; }
+
+    /// <summary>
+    /// Timeout in seconds for MinIO operations.
+    /// Default: 300 seconds (5 minutes).
+    /// </summary>
+    public int TimeoutSeconds { get; init; } = 300;
 }
