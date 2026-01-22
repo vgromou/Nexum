@@ -1,0 +1,68 @@
+.user-button-container {
+    margin: var(--space-xs) var(--space-md);
+}
+
+.user-button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    width: 100%;
+    padding: var(--space-sm);
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.user-button:hover {
+    background-color: var(--background-hover);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid var(--background-primary);
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xxs);
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-size: var(--typography-body-small-size);
+    font-weight: var(--typography-body-small-medium-weight);
+    line-height: var(--typography-body-small-line-height);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-role {
+    font-size: var(--typography-caption-small-size);
+    font-weight: var(--typography-caption-small-weight);
+    line-height: var(--typography-caption-small-line-height);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-notification-btn {
+    flex-shrink: 0;
+}

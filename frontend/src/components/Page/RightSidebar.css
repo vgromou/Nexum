@@ -36,19 +36,12 @@
 }
 
 .tab-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border-radius: var(--radius-md);
     color: var(--icons-default);
     cursor: pointer;
     transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.tab-button:hover {
+.tab-button:hover:not(.active) {
     background-color: var(--background-hover);
     color: var(--icons-hover);
 }

@@ -216,39 +216,39 @@ const FormattingMenu = ({
                     {/* Text Formatting */}
                     <div className="formatting-menu-group">
                         <button
-                            className={`icon-btn ${activeFormats.bold ? 'active' : ''}`}
+                            className={`icon-btn icon-btn-md ${activeFormats.bold ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'bold')}
                             title="Bold (⌘B)"
                         >
-                            <Bold size={18} />
+                            <Bold />
                         </button>
                         <button
-                            className={`icon-btn ${activeFormats.italic ? 'active' : ''}`}
+                            className={`icon-btn icon-btn-md ${activeFormats.italic ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'italic')}
                             title="Italic (⌘I)"
                         >
-                            <Italic size={18} />
+                            <Italic />
                         </button>
                         <button
-                            className={`icon-btn ${activeFormats.underline ? 'active' : ''}`}
+                            className={`icon-btn icon-btn-md ${activeFormats.underline ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'underline')}
                             title="Underline (⌘U)"
                         >
-                            <Underline size={18} />
+                            <Underline />
                         </button>
                         <button
-                            className={`icon-btn ${activeFormats.strikeThrough ? 'active' : ''}`}
+                            className={`icon-btn icon-btn-md ${activeFormats.strikeThrough ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'strikeThrough')}
                             title="Strikethrough"
                         >
-                            <Strikethrough size={18} />
+                            <Strikethrough />
                         </button>
                         <button
-                            className={`icon-btn ${activeFormats.inlineCode ? 'active' : ''}`}
+                            className={`icon-btn icon-btn-md ${activeFormats.inlineCode ? 'active' : ''}`}
                             onClick={(e) => handleFormatClick(e, 'inlineCode')}
                             title="Inline Code"
                         >
-                            <Code size={18} />
+                            <Code />
                         </button>
                     </div>
 
@@ -257,19 +257,19 @@ const FormattingMenu = ({
                     {/* Links */}
                     <div className="formatting-menu-group">
                         <button
-                            className={`icon-btn ${activeFormats.link ? 'active' : ''}`}
+                            className={`icon-btn icon-btn-md ${activeFormats.link ? 'active' : ''}`}
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenLinkPopover(); }}
                             title="Insert link (⌘K)"
                         >
-                            <Link size={18} />
+                            <Link />
                         </button>
                         <button
-                            className={`icon-btn ${!activeFormats.link ? 'disabled' : ''}`}
+                            className={`icon-btn icon-btn-md ${!activeFormats.link ? 'disabled' : ''}`}
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (activeFormats.link) onRemoveLink(); }}
                             title="Remove link"
                             disabled={!activeFormats.link}
                         >
-                            <Unlink size={18} />
+                            <Unlink />
                         </button>
                     </div>
 

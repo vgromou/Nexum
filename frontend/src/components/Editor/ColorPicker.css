@@ -12,7 +12,7 @@
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-default, #E5E7EB);
     background: var(--surface-elevated, #FFF);
-    box-shadow: 0 4px 16px 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
+    box-shadow: var(--shadow-md);
     animation: colorPickerAppear 0.15s ease-out;
 }
 
@@ -62,7 +62,7 @@
 /* Row of color swatches */
 .color-picker-row {
     display: flex;
-    gap: 6px !important;
+    gap: var(--space-xs);
     width: 100%;
     justify-content: flex-start;
 }

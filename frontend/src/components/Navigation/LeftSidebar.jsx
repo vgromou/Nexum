@@ -1,7 +1,5 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import {
-    Search,
-    Bell,
     ChevronRight,
     ChevronDown,
     FileText,
@@ -11,6 +9,8 @@ import {
     Plus,
     Settings
 } from 'lucide-react';
+import SpaceButton from './SpaceButton';
+import UserButton from './UserButton';
 import './LeftSidebar.css';
 
 // Page item component for navigation - memoized to prevent unnecessary re-renders
@@ -262,19 +262,13 @@ const LeftSidebar = () => {
         <aside className="left-sidebar">
             {/* Header */}
             <header className="sidebar-header">
-                <button className="space-button">
-                    <div className="space-icon">
-                        <span>🚀</span>
-                    </div>
-                    <span className="space-name">Space Name</span>
-                </button>
-                <button className="search-button" aria-label="Search">
-                    <Search size={18} />
-                </button>
+                <SpaceButton
+                    icon={<span>🚀</span>}
+                    name="Space Name"
+                    onSpaceClick={() => console.log('Space clicked')}
+                    onSearchClick={() => console.log('Search clicked')}
+                />
             </header>
-
-            {/* Divider after header */}
-            <div className="header-divider" />
 
             {/* Content */}
             <nav className="sidebar-content">
@@ -357,21 +351,13 @@ const LeftSidebar = () => {
 
             {/* Footer */}
             <footer className="sidebar-footer">
-                <div className="user-info">
-                    <div className="user-avatar">
-                        <img
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Viktor"
-                            alt="Viktor Gromov"
-                        />
-                    </div>
-                    <div className="user-details">
-                        <span className="user-name">Viktor Gromov</span>
-                        <span className="user-role">Business Analyst</span>
-                    </div>
-                </div>
-                <button className="notification-button" aria-label="Notifications">
-                    <Bell size={18} />
-                </button>
+                <UserButton
+                    avatarUrl="https://api.dicebear.com/7.x/avataaars/svg?seed=Viktor"
+                    name="Viktor Gromov"
+                    role="Business Analyst"
+                    onUserClick={() => console.log('User clicked')}
+                    onNotificationClick={() => console.log('Notification clicked')}
+                />
             </footer>
         </aside>
     );

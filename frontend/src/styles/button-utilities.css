@@ -438,7 +438,8 @@
   color: var(--text-secondary);
 }
 
-.icon-btn:active:not(:disabled) {
+.icon-btn:active:not(:disabled),
+.icon-btn.active {
   background: var(--accent-primary-light);
   color: var(--accent-primary);
 }
@@ -488,9 +489,14 @@
   height: 20px;
 }
 
-/* Medium is default, so also apply to base .icon-btn */
-.icon-btn > svg,
-.icon-btn > img {
+/* Medium is default for base .icon-btn without size modifier */
+.icon-btn:not(.icon-btn-xs):not(.icon-btn-sm):not(.icon-btn-md):not(.icon-btn-lg) {
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+}
+
+.icon-btn:not(.icon-btn-xs):not(.icon-btn-sm):not(.icon-btn-md):not(.icon-btn-lg) > svg,
+.icon-btn:not(.icon-btn-xs):not(.icon-btn-sm):not(.icon-btn-md):not(.icon-btn-lg) > img {
   width: 20px;
   height: 20px;
 }

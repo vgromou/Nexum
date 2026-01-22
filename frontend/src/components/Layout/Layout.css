@@ -15,8 +15,8 @@
     display: flex;
     flex: 1;
     background-color: var(--background-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 0 10px var(--shadow-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
     margin: 0;
     overflow: hidden;
 }
