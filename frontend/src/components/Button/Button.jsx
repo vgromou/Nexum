@@ -16,6 +16,10 @@ import PropTypes from 'prop-types';
  * <Button variant="primary" icon={<Search />} iconPosition="left">Search</Button>
  *
  * @example
+ * // Button with icons on both sides (same icon duplicated)
+ * <Button variant="primary" icon={<ChevronRight />} iconPosition="both">Next</Button>
+ *
+ * @example
  * // Icon-only button
  * <Button variant="primary" icon={<Search />} iconPosition="icon" aria-label="Search" />
  */
@@ -33,6 +37,7 @@ const Button = ({
 }) => {
     // Build class names
     const variantClass = `btn-${variant}`;
+    // 'md' is the base size defined in .btn, so no additional class needed
     const sizeClass = size !== 'md' ? `btn-${size}` : '';
     const iconClass = iconPosition !== 'none' ? `btn-icon-${iconPosition}` : '';
 
@@ -94,7 +99,7 @@ Button.propTypes = {
     size: PropTypes.oneOf(['sm', 'md', 'lg']),
     /** Icon element to display */
     icon: PropTypes.element,
-    /** Icon position relative to text */
+    /** Icon position relative to text. Note: 'both' renders the same icon on both sides. */
     iconPosition: PropTypes.oneOf(['none', 'left', 'right', 'both', 'icon']),
     /** Disable the button */
     disabled: PropTypes.bool,

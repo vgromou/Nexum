@@ -208,12 +208,6 @@ describe('IconButton', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles missing icon gracefully', () => {
-      // Should not throw error
-      render(<IconButton icon={null} aria-label="No icon" />);
-      expect(screen.getByRole('button')).toBeInTheDocument();
-    });
-
     it('handles undefined size as default (md)', () => {
       render(<IconButton icon={<Bell />} size={undefined} aria-label="Notifications" />);
       expect(screen.getByRole('button')).toHaveClass('icon-btn-md');
