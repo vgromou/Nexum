@@ -94,17 +94,17 @@
     border-radius: 8px !important;
     cursor: pointer;
     padding: 0;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, border-width 0.1s ease;
 }
 
 .color-picker-swatch:hover {
-    transform: scale(1.05);
+    border-width: 2px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .color-picker-swatch.active {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 2px var(--accent-primary, #5E6AD2);
+    border-width: 2px !important;
+    box-shadow: none;
 }
 
 /* Letter A in swatch */
