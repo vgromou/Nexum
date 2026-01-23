@@ -43,8 +43,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      * @param {Element|null} blockEl - The block element to sync, or null to detect from selection.
      */
     const syncBlockToState = useCallback((blockEl = null) => {
-        console.log('[syncBlockToState] called with blockEl:', blockEl);
-
         const element = blockEl || (() => {
             const sel = window.getSelection();
             if (!sel?.anchorNode) return null;
@@ -53,15 +51,10 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 : sel.anchorNode?.closest?.('[data-block-id]');
         })();
 
-        console.log('[syncBlockToState] element:', element);
-
         if (element) {
             const blockId = element.getAttribute('data-block-id');
-            console.log('[syncBlockToState] blockId:', blockId);
-            console.log('[syncBlockToState] innerHTML:', element.innerHTML);
             if (blockId) {
                 actions.updateBlock(blockId, element.innerHTML);
-                console.log('[syncBlockToState] updateBlock called');
             }
         }
     }, [actions]);
@@ -211,12 +204,10 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     const closeMenu = useCallback(() => {
         // Sync all modified blocks to state for undo/redo history
         if (modifiedBlocksRef.current.size > 0) {
-            console.log('[closeMenu] syncing', modifiedBlocksRef.current.size, 'modified blocks');
             modifiedBlocksRef.current.forEach((savedHTML, blockEl) => {
                 if (blockEl && blockEl.isConnected) {
                     const blockId = blockEl.getAttribute('data-block-id');
                     if (blockId && savedHTML) {
-                        console.log('[closeMenu] syncing block', blockId, 'with saved HTML:', savedHTML.substring(0, 100));
                         actions.updateBlock(blockId, savedHTML);
                     }
                 }
@@ -259,7 +250,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     const markBlockModified = useCallback((blockEl) => {
         if (blockEl && blockEl.isConnected) {
             const innerHTML = blockEl.innerHTML;
-            console.log('[markBlockModified] saving block', blockEl.getAttribute('data-block-id'), 'innerHTML:', innerHTML.substring(0, 100));
             modifiedBlocksRef.current.set(blockEl, innerHTML);
         }
     }, []);
@@ -323,9 +313,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      * For 'inlineCode', uses custom wrapping since execCommand doesn't support it.
      */
     const applyFormat = useCallback((command) => {
-        console.log('[applyFormat] called with command:', command);
         const sel = window.getSelection();
-        console.log('[applyFormat] BEFORE restoreSelection - sel.rangeCount:', sel.rangeCount, 'isCollapsed:', sel.isCollapsed);
 
         // For inline code, try to use current selection if it's valid
         // because after multiple execCommands the saved range may become invalid
@@ -335,22 +323,17 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                                    sel.toString().trim() !== '';
 
         if (!useCurrentSelection && !restoreSelection()) {
-            console.log('[applyFormat] restoreSelection failed, exiting');
             return;
         }
 
-        console.log('[applyFormat] AFTER restoreSelection - sel.rangeCount:', sel.rangeCount, 'isCollapsed:', sel.isCollapsed);
-
         // Set flag to prevent menu from closing during format application
         isApplyingFormatRef.current = true;
-        console.log('[applyFormat] set isApplyingFormatRef to true');
 
         try {
             // Handle inline code specially since execCommand doesn't support it
             if (command === 'inlineCode') {
                 // Use current selection (already validated above)
                 if (!sel.rangeCount || sel.isCollapsed) {
-                    console.log('[applyFormat] inlineCode: no valid selection, returning');
                     return;
                 }
 
@@ -407,7 +390,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                                     sel.removeAllRanges();
                                     sel.addRange(newRange);
                                     selectionRef.current = newRange.cloneRange();
-                                    console.log('[applyFormat] recreated selection after removing code');
                                 }
                                 break;
                             }
@@ -450,7 +432,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             const updatedSel = window.getSelection();
             if (updatedSel.rangeCount > 0 && !updatedSel.isCollapsed) {
                 selectionRef.current = updatedSel.getRangeAt(0).cloneRange();
-                console.log('[applyFormat] saved updated selection after execCommand');
 
                 // Mark block as modified for undo history
                 const blockEl = getBlockFromNode(updatedSel.anchorNode);
@@ -463,27 +444,19 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         } finally {
             // Reset flag and update active formats after a delay
             setTimeout(() => {
-                console.log('[applyFormat] resetting flag and updating formats');
                 isApplyingFormatRef.current = false;
                 updateActiveFormats();
-
-                // Check selection immediately after updateActiveFormats
-                const sel = window.getSelection();
-                console.log('[applyFormat] after updateActiveFormats - sel.rangeCount:', sel.rangeCount, 'isCollapsed:', sel.isCollapsed);
 
                 // Schedule selection restoration in next event loop tick
                 setTimeout(() => {
                     const sel2 = window.getSelection();
-                    console.log('[applyFormat] in next tick - sel.rangeCount:', sel2.rangeCount, 'isCollapsed:', sel2.isCollapsed);
 
                     if ((!sel2.rangeCount || sel2.isCollapsed) && selectionRef.current) {
-                        console.log('[applyFormat] selection lost in next tick, restoring from selectionRef');
                         try {
                             sel2.removeAllRanges();
                             sel2.addRange(selectionRef.current.cloneRange());
-                            console.log('[applyFormat] restored selection in next tick');
                         } catch (e) {
-                            console.log('[applyFormat] failed to restore selection:', e);
+                            // Selection restoration failed
                         }
                     }
                 }, 0);
@@ -497,10 +470,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      * When colorName is 'default', removes existing highlights without adding new span.
      */
     const applyHighlight = useCallback((colorName) => {
-        console.log('[applyHighlight] called with colorName:', colorName);
-
         if (!restoreSelection()) {
-            console.log('[applyHighlight] restoreSelection failed');
             return;
         }
 
@@ -510,16 +480,13 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         try {
             const sel = window.getSelection();
             if (!sel.rangeCount || sel.isCollapsed) {
-                console.log('[applyHighlight] no selection or collapsed');
                 return;
             }
 
             const range = sel.getRangeAt(0);
             const selectedText = range.toString();
-            console.log('[applyHighlight] selectedText:', selectedText);
 
             if (!selectedText) {
-                console.log('[applyHighlight] no selected text');
                 return;
             }
 
@@ -553,8 +520,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     return hasHighlightClass && range.intersectsNode(span);
                 });
 
-                console.log('[applyHighlight] found intersecting highlight spans:', intersectingSpans.length);
-
                 intersectingSpans.forEach(span => {
                     const parent = span.parentNode;
                     while (span.firstChild) {
@@ -567,17 +532,12 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
                 // If colorName is 'default', we're done - just removing existing highlights
                 if (colorName === 'default') {
-                    console.log('[applyHighlight] colorName is default, only removing spans');
-
                     // Mark block as modified for undo history
                     markBlockModified(blockEl);
 
                     // Need to recreate selection after removing spans
                     const textContent = blockEl.textContent || '';
                     const textIndex = textContent.indexOf(selectedText);
-                    console.log('[applyHighlight] selectedText:', selectedText);
-                    console.log('[applyHighlight] textContent:', textContent);
-                    console.log('[applyHighlight] textIndex:', textIndex);
 
                     let selectionRecreated = false;
 
@@ -592,8 +552,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                                 const startOffset = textIndex - currentPos;
                                 const endOffset = startOffset + selectedText.length;
 
-                                console.log('[applyHighlight] found node, startOffset:', startOffset, 'endOffset:', endOffset, 'nodeLen:', nodeLen);
-
                                 if (endOffset <= nodeLen) {
                                     // Selection is within this single text node
                                     const newRange = document.createRange();
@@ -604,23 +562,16 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                                     sel.addRange(newRange);
                                     selectionRef.current = newRange.cloneRange();
                                     selectionRecreated = true;
-                                    console.log('[applyHighlight] recreated selection after removing highlight');
-                                } else {
-                                    console.log('[applyHighlight] WARNING: endOffset > nodeLen, cannot recreate selection in this node');
                                 }
                                 break;
                             }
                             currentPos += nodeLen;
                         }
-                    } else {
-                        console.log('[applyHighlight] WARNING: selectedText not found in blockEl.textContent');
                     }
 
                     // If we couldn't recreate selection, try to restore the saved one
                     if (!selectionRecreated) {
-                        console.log('[applyHighlight] trying to restore saved selection as fallback');
-                        const restored = restoreSelection();
-                        console.log('[applyHighlight] restoreSelection result:', restored);
+                        restoreSelection();
                     }
 
                     // DON'T sync or update state immediately - it causes re-render which loses selection
@@ -679,10 +630,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                         }
                     }
 
-                    // DON'T sync or update state immediately - it causes re-render which loses selection
-                    // syncBlockToState(blockEl);
-                    // const newFormats = getActiveFormats();
-                    // setMenu(prev => ({ ...prev, activeFormats: newFormats }));
                     return;
                 }
 
@@ -709,10 +656,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     // Mark block as modified for undo history
                     markBlockModified(blockEl);
 
-                    // DON'T sync or update state immediately - it causes re-render which loses selection
-                    // syncBlockToState(blockEl);
-                    // const newFormats = getActiveFormats();
-                    // setMenu(prev => ({ ...prev, activeFormats: newFormats }));
                     return;
                 }
 
@@ -720,7 +663,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 span.className = className;
                 span.appendChild(contents);
                 newRange.insertNode(span);
-                console.log('[applyHighlight] span inserted:', span.outerHTML);
 
                 const finalRange = document.createRange();
                 finalRange.selectNodeContents(span);
@@ -731,8 +673,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 // Mark block as modified for undo history
                 markBlockModified(blockEl);
 
-                // DON'T sync or update state immediately - it causes re-render which loses selection
-                console.log('[applyHighlight] completed successfully');
                 return;
             }
 
@@ -803,35 +743,25 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 }
             });
 
-            // DON'T sync or update state immediately - it causes re-render which loses selection
-
             // Clear selection after multi-block operation
             sel.removeAllRanges();
             selectionRef.current = null;
         } finally {
             // Reset flag and update active formats after a delay
             setTimeout(() => {
-                console.log('[applyHighlight] resetting flag and updating formats');
                 isApplyingFormatRef.current = false;
                 updateActiveFormats();
-
-                // Check selection immediately after updateActiveFormats
-                const sel = window.getSelection();
-                console.log('[applyHighlight] after updateActiveFormats - sel.rangeCount:', sel.rangeCount, 'isCollapsed:', sel.isCollapsed);
 
                 // Schedule selection restoration in next event loop tick
                 setTimeout(() => {
                     const sel2 = window.getSelection();
-                    console.log('[applyHighlight] in next tick - sel.rangeCount:', sel2.rangeCount, 'isCollapsed:', sel2.isCollapsed);
 
                     if ((!sel2.rangeCount || sel2.isCollapsed) && selectionRef.current) {
-                        console.log('[applyHighlight] selection lost in next tick, restoring from selectionRef');
                         try {
                             sel2.removeAllRanges();
                             sel2.addRange(selectionRef.current.cloneRange());
-                            console.log('[applyHighlight] restored selection in next tick');
                         } catch (e) {
-                            console.log('[applyHighlight] failed to restore selection:', e);
+                            // Selection restoration failed
                         }
                     }
                 }, 0);
@@ -901,11 +831,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      * Handles removal of existing text-color spans and 'default' case.
      */
     const applyTextColor = useCallback((colorName) => {
-        console.log('[applyTextColor] called with colorName:', colorName);
-        console.log('[applyTextColor] selectionRef.current before restore:', selectionRef.current);
-
         if (!restoreSelection()) {
-            console.log('[applyTextColor] restoreSelection returned false, exiting');
             return;
         }
 
@@ -914,19 +840,15 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
         try {
             const sel = window.getSelection();
-            console.log('[applyTextColor] after restore - sel.rangeCount:', sel.rangeCount, 'sel.isCollapsed:', sel.isCollapsed);
 
             if (!sel.rangeCount || sel.isCollapsed) {
-                console.log('[applyTextColor] no selection or collapsed, exiting');
                 return;
             }
 
             const range = sel.getRangeAt(0);
             const selectedText = range.toString();
-            console.log('[applyTextColor] selectedText:', selectedText);
 
             if (!selectedText) {
-                console.log('[applyTextColor] no selected text, exiting');
                 return;
             }
 
@@ -936,9 +858,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 ? container.parentElement?.closest('[data-block-id]')
                 : container.closest?.('[data-block-id]');
 
-            console.log('[applyTextColor] blockEl:', blockEl);
             if (!blockEl) {
-                console.log('[applyTextColor] no blockEl found, exiting');
                 return;
             }
 
@@ -955,8 +875,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 return hasTextColorClass && range.intersectsNode(span);
             });
 
-            console.log('[applyTextColor] found intersecting text-color spans:', intersectingSpans.length);
-
             intersectingSpans.forEach(span => {
                 const parent = span.parentNode;
                 while (span.firstChild) {
@@ -969,17 +887,12 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
             // If colorName is 'default', we're done - just removing existing colors
             if (colorName === 'default') {
-                console.log('[applyTextColor] colorName is default, only removing spans');
-
                 // Mark block as modified for undo history
                 markBlockModified(blockEl);
 
                 // Need to recreate selection after removing spans
                 const textContent = blockEl.textContent || '';
                 const textIndex = textContent.indexOf(selectedText);
-                console.log('[applyTextColor] selectedText:', selectedText);
-                console.log('[applyTextColor] textContent:', textContent);
-                console.log('[applyTextColor] textIndex:', textIndex);
 
                 let selectionRecreated = false;
 
@@ -994,8 +907,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                             const startOffset = textIndex - currentPos;
                             const endOffset = startOffset + selectedText.length;
 
-                            console.log('[applyTextColor] found node, startOffset:', startOffset, 'endOffset:', endOffset, 'nodeLen:', nodeLen);
-
                             if (endOffset <= nodeLen) {
                                 // Selection is within this single text node
                                 const newRange = document.createRange();
@@ -1007,23 +918,16 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                                 sel.addRange(newRange);
                                 selectionRef.current = newRange.cloneRange();
                                 selectionRecreated = true;
-                                console.log('[applyTextColor] recreated selection after removing color');
-                            } else {
-                                console.log('[applyTextColor] WARNING: endOffset > nodeLen, cannot recreate selection in this node');
                             }
                             break;
                         }
                         currentPos += nodeLen;
                     }
-                } else {
-                    console.log('[applyTextColor] WARNING: selectedText not found in blockEl.textContent');
                 }
 
                 // If we couldn't recreate selection, try to restore the saved one
                 if (!selectionRecreated) {
-                    console.log('[applyTextColor] trying to restore saved selection as fallback');
-                    const restored = restoreSelection();
-                    console.log('[applyTextColor] restoreSelection result:', restored);
+                    restoreSelection();
                 }
 
                 // DON'T sync or update state immediately - it causes re-render which loses selection
@@ -1076,7 +980,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     }
                 }
 
-                // DON'T sync or update state immediately - it causes re-render which loses selection
                 return;
             }
 
@@ -1084,7 +987,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             const className = `text-color-${colorName}`;
 
             // Wrap the selection in a span with the text color class
-            console.log('[applyTextColor] about to extractContents and wrap');
             let contents;
             try {
                 contents = newRange.extractContents();
@@ -1105,7 +1007,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 // Mark block as modified for undo history
                 markBlockModified(blockEl);
 
-                // DON'T sync or update state immediately - it causes re-render which loses selection
                 return;
             }
 
@@ -1113,7 +1014,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             span.className = className;
             span.appendChild(contents);
             newRange.insertNode(span);
-            console.log('[applyTextColor] span inserted:', span.outerHTML);
 
             // Update selection to include the new span
             const finalRange = document.createRange();
@@ -1124,33 +1024,22 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
             // Mark block as modified for undo history
             markBlockModified(blockEl);
-
-            // DON'T sync or update state immediately - it causes re-render which loses selection
-            console.log('[applyTextColor] completed successfully');
         } finally {
             // Reset flag and update active formats after a delay
             setTimeout(() => {
-                console.log('[applyTextColor] resetting flag and updating formats');
                 isApplyingFormatRef.current = false;
                 updateActiveFormats();
-
-                // Check selection immediately after updateActiveFormats
-                const sel = window.getSelection();
-                console.log('[applyTextColor] after updateActiveFormats - sel.rangeCount:', sel.rangeCount, 'isCollapsed:', sel.isCollapsed);
 
                 // Schedule selection restoration in next event loop tick
                 setTimeout(() => {
                     const sel2 = window.getSelection();
-                    console.log('[applyTextColor] in next tick - sel.rangeCount:', sel2.rangeCount, 'isCollapsed:', sel2.isCollapsed);
 
                     if ((!sel2.rangeCount || sel2.isCollapsed) && selectionRef.current) {
-                        console.log('[applyTextColor] selection lost in next tick, restoring from selectionRef');
                         try {
                             sel2.removeAllRanges();
                             sel2.addRange(selectionRef.current.cloneRange());
-                            console.log('[applyTextColor] restored selection in next tick');
                         } catch (e) {
-                            console.log('[applyTextColor] failed to restore selection:', e);
+                            // Selection restoration failed
                         }
                     }
                 }, 0);
@@ -1406,11 +1295,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         if (!menu.isOpen) return;
 
         const handleSelectionChange = () => {
-            console.log('[handleSelectionChange] called, isApplyingFormat:', isApplyingFormatRef.current);
-
             // Don't close the menu if we're currently applying formatting
             if (isApplyingFormatRef.current) {
-                console.log('[handleSelectionChange] ignoring - formatting in progress');
                 return;
             }
 
@@ -1421,11 +1307,9 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             }
 
             const sel = window.getSelection();
-            console.log('[handleSelectionChange] sel.rangeCount:', sel.rangeCount, 'isCollapsed:', sel.isCollapsed);
 
             // If selection is collapsed (no text selected) or empty, close the menu
             if (!sel.rangeCount || sel.isCollapsed || sel.toString().trim() === '') {
-                console.log('[handleSelectionChange] closing menu - no selection');
                 closeMenu();
             }
         };

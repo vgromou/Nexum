@@ -75,7 +75,7 @@ const Button = ({
         >
             {(iconPosition === 'left' || iconPosition === 'both') && icon}
             {children}
-            {(iconPosition === 'right' || iconPosition === 'both') && icon}
+            {(iconPosition === 'right' || iconPosition === 'both') && React.cloneElement(icon, { key: 'icon-right' })}
         </button>
     );
 };
