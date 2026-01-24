@@ -480,4 +480,5 @@
   --z-index-menu: 1100;
   --z-index-popover: 1110;
   --z-index-modal: 1200;
+  --z-index-toast: 1300;
 }
