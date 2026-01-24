@@ -33,10 +33,20 @@ describe('Overlay', () => {
             expect(overlay).toHaveClass('overlay', 'custom-class');
         });
 
-        it('has aria-hidden attribute', () => {
+        it('has aria-hidden attribute when no children', () => {
             render(<Overlay data-testid="overlay" />);
             const overlay = screen.getByTestId('overlay');
             expect(overlay).toHaveAttribute('aria-hidden', 'true');
+        });
+
+        it('does not have aria-hidden when has children', () => {
+            render(
+                <Overlay data-testid="overlay">
+                    <div>Content</div>
+                </Overlay>
+            );
+            const overlay = screen.getByTestId('overlay');
+            expect(overlay).not.toHaveAttribute('aria-hidden');
         });
     });
 

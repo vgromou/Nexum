@@ -30,11 +30,14 @@ const Overlay = ({
         className
     ].filter(Boolean).join(' ');
 
+    // Only set aria-hidden when overlay has no interactive children
+    const ariaHidden = !children ? true : undefined;
+
     return (
         <div
             className={classes}
             onClick={onClick}
-            aria-hidden="true"
+            aria-hidden={ariaHidden}
             {...rest}
         >
             {children}
