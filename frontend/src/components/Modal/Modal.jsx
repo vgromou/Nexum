@@ -111,7 +111,7 @@ const Modal = ({
             return () => clearTimeout(timer);
         } else {
             // Restore focus when modal closes
-            if (previousActiveElement.current) {
+            if (previousActiveElement.current?.isConnected) {
                 previousActiveElement.current.focus();
             }
         }
