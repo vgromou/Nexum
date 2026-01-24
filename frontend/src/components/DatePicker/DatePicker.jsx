@@ -110,6 +110,7 @@ const DatePicker = forwardRef(({
     const [inputValue, setInputValue] = useState('');
     const [rangeInputStart, setRangeInputStart] = useState('');
     const [rangeInputEnd, setRangeInputEnd] = useState('');
+    const [focusedDate, setFocusedDate] = useState(null);
 
     const containerRef = useRef(null);
     const inputRef = useRef(null);
@@ -123,6 +124,13 @@ const DatePicker = forwardRef(({
             setInputValue(formatDate(value, format));
         }
     }, [value, format, isRange]);
+
+    // Sync viewDate when value prop changes
+    useEffect(() => {
+        if (value) {
+            setViewDate(value);
+        }
+    }, [value]);
 
     // Update range inputs when range props change
     useEffect(() => {
@@ -138,6 +146,7 @@ const DatePicker = forwardRef(({
             if (containerRef.current && !containerRef.current.contains(e.target)) {
                 setIsOpen(false);
                 setView('days');
+                setFocusedDate(null);
             }
         };
 
@@ -146,6 +155,95 @@ const DatePicker = forwardRef(({
             return () => document.removeEventListener('mousedown', handleClickOutside);
         }
     }, [isOpen]);
+
+    // Initialize focusedDate when dropdown opens
+    useEffect(() => {
+        if (isOpen && view === 'days') {
+            setFocusedDate(value || new Date());
+        } else if (!isOpen) {
+            setFocusedDate(null);
+        }
+    }, [isOpen, view, value]);
+
+    // Keyboard navigation handler
+    const handleKeyDown = useCallback((e) => {
+        if (!isOpen) {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                setIsOpen(true);
+            }
+            return;
+        }
+
+        if (view !== 'days') {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setIsOpen(false);
+                setView('days');
+            }
+            return;
+        }
+
+        switch (e.key) {
+            case 'Escape':
+                e.preventDefault();
+                setIsOpen(false);
+                setView('days');
+                setFocusedDate(null);
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                if (focusedDate && !isDateDisabled(focusedDate)) {
+                    handleDayClick(focusedDate.getDate());
+                }
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                setFocusedDate(prev => {
+                    const newDate = new Date(prev || new Date());
+                    newDate.setDate(newDate.getDate() - 1);
+                    if (newDate.getMonth() !== viewDate.getMonth()) {
+                        setViewDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
+                    }
+                    return newDate;
+                });
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                setFocusedDate(prev => {
+                    const newDate = new Date(prev || new Date());
+                    newDate.setDate(newDate.getDate() + 1);
+                    if (newDate.getMonth() !== viewDate.getMonth()) {
+                        setViewDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
+                    }
+                    return newDate;
+                });
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setFocusedDate(prev => {
+                    const newDate = new Date(prev || new Date());
+                    newDate.setDate(newDate.getDate() - 7);
+                    if (newDate.getMonth() !== viewDate.getMonth()) {
+                        setViewDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
+                    }
+                    return newDate;
+                });
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                setFocusedDate(prev => {
+                    const newDate = new Date(prev || new Date());
+                    newDate.setDate(newDate.getDate() + 7);
+                    if (newDate.getMonth() !== viewDate.getMonth()) {
+                        setViewDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
+                    }
+                    return newDate;
+                });
+                break;
+        }
+    }, [isOpen, view, focusedDate, viewDate]);
 
     // Navigation handlers
     const goToPrevMonth = () => {
@@ -313,6 +411,7 @@ const DatePicker = forwardRef(({
             const date = new Date(year, month, day);
             const isToday = isSameDay(date, today);
             const isSelected = !isRange && isSameDay(date, value);
+            const isFocused = isSameDay(date, focusedDate);
             const isRangeStart = isRange && isSameDay(date, rangeStart);
             const isRangeEnd = isRange && isSameDay(date, rangeEnd);
             const isInRangeDay = isRange && isInRange(date, rangeStart, rangeEnd);
@@ -324,6 +423,7 @@ const DatePicker = forwardRef(({
                 'datepicker__day',
                 isToday && 'datepicker__day--today',
                 isSelected && 'datepicker__day--selected',
+                isFocused && 'datepicker__day--focused',
                 isRangeStart && 'datepicker__day--range-start',
                 isRangeEnd && 'datepicker__day--range-end',
                 isRangeSingle && 'datepicker__day--range-single',
@@ -480,6 +580,11 @@ const DatePicker = forwardRef(({
                 ref={ref}
                 className="datepicker__trigger"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
+                onKeyDown={handleKeyDown}
+                tabIndex={disabled ? -1 : 0}
+                role="combobox"
+                aria-expanded={isOpen}
+                aria-haspopup="dialog"
             >
                 {isRange ? (
                     <div className="datepicker__range-display">
@@ -500,6 +605,7 @@ const DatePicker = forwardRef(({
                         className="datepicker__input"
                         value={inputValue}
                         onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
                         placeholder={placeholder}
                         disabled={disabled}
                         onClick={(e) => e.stopPropagation()}

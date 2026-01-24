@@ -6,7 +6,7 @@ import './Select.css';
 /**
  * SelectOption component - individual item in the dropdown
  */
-const SelectOption = ({ option, isSelected, isDisabled, onSelect, multiple }) => {
+const SelectOption = ({ option, isSelected, isDisabled, onSelect }) => {
     const handleClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -60,7 +60,6 @@ SelectOption.propTypes = {
     isSelected: PropTypes.bool,
     isDisabled: PropTypes.bool,
     onSelect: PropTypes.func.isRequired,
-    multiple: PropTypes.bool,
 };
 
 /**
@@ -269,34 +268,6 @@ const Select = forwardRef(({
         }
     }, [isOpen, searchable]);
 
-    // Determine display value
-    const renderDisplayValue = () => {
-        if (multiple && selectedOptions.length > 0) {
-            return (
-                <div className="select__tags">
-                    {selectedOptions.map(opt => (
-                        <SelectTag
-                            key={opt.value}
-                            label={opt.label}
-                            onRemove={() => handleRemoveTag(opt.value)}
-                            disabled={disabled}
-                        />
-                    ))}
-                </div>
-            );
-        }
-
-        if (!multiple && selectedOptions.length > 0) {
-            return (
-                <span className="select__value">{selectedOptions[0].label}</span>
-            );
-        }
-
-        return (
-            <span className="select__placeholder">{placeholder}</span>
-        );
-    };
-
     // Determine if we should show error or helper
     const showError = !!error;
     const showHelper = !showError && !!helper;
@@ -375,8 +346,10 @@ const Select = forwardRef(({
                             }
                             onClick={(e) => e.stopPropagation()}
                         />
+                    ) : selectedOptions.length > 0 ? (
+                        <span className="select__value">{selectedOptions[0].label}</span>
                     ) : (
-                        renderDisplayValue()
+                        <span className="select__placeholder">{placeholder}</span>
                     )}
                 </div>
 
@@ -415,7 +388,6 @@ const Select = forwardRef(({
                                 isSelected={selectedValues.includes(option.value)}
                                 isDisabled={option.disabled}
                                 onSelect={handleSelect}
-                                multiple={multiple}
                             />
                         ))
                     )}

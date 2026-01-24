@@ -388,4 +388,140 @@ describe('DatePicker', () => {
             expect(otherMonthDec30).toHaveClass('datepicker__day--in-range');
         });
     });
+
+    describe('Keyboard navigation', () => {
+        it('opens dropdown on Enter key', () => {
+            render(<DatePicker />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+
+            expect(screen.getByText(/January, 2026/)).toBeInTheDocument();
+        });
+
+        it('opens dropdown on Space key', () => {
+            render(<DatePicker />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: ' ' });
+
+            expect(screen.getByText(/January, 2026/)).toBeInTheDocument();
+        });
+
+        it('opens dropdown on ArrowDown key', () => {
+            render(<DatePicker />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+            expect(screen.getByText(/January, 2026/)).toBeInTheDocument();
+        });
+
+        it('closes dropdown on Escape key', () => {
+            render(<DatePicker />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            expect(screen.getByText(/January, 2026/)).toBeInTheDocument();
+
+            fireEvent.keyDown(trigger, { key: 'Escape' });
+            expect(screen.queryByText(/January, 2026/)).not.toBeInTheDocument();
+        });
+
+        it('shows focused day on dropdown open', () => {
+            const value = new Date(2026, 0, 15);
+            render(<DatePicker value={value} />);
+
+            fireEvent.click(screen.getByRole('button'));
+
+            expect(screen.getByText('15')).toHaveClass('datepicker__day--focused');
+        });
+
+        it('navigates left with ArrowLeft', () => {
+            const value = new Date(2026, 0, 15);
+            render(<DatePicker value={value} />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            fireEvent.keyDown(trigger, { key: 'ArrowLeft' });
+
+            expect(screen.getByText('14')).toHaveClass('datepicker__day--focused');
+        });
+
+        it('navigates right with ArrowRight', () => {
+            const value = new Date(2026, 0, 15);
+            render(<DatePicker value={value} />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            fireEvent.keyDown(trigger, { key: 'ArrowRight' });
+
+            expect(screen.getByText('16')).toHaveClass('datepicker__day--focused');
+        });
+
+        it('navigates up one week with ArrowUp', () => {
+            const value = new Date(2026, 0, 15);
+            render(<DatePicker value={value} />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+
+            // Get the button element (not the other-month div)
+            const day8Button = screen.getAllByText('8').find(el => el.tagName === 'BUTTON');
+            expect(day8Button).toHaveClass('datepicker__day--focused');
+        });
+
+        it('navigates down one week with ArrowDown', () => {
+            const value = new Date(2026, 0, 15);
+            render(<DatePicker value={value} />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+            expect(screen.getByText('22')).toHaveClass('datepicker__day--focused');
+        });
+
+        it('selects focused day on Enter', () => {
+            const onChange = vi.fn();
+            const value = new Date(2026, 0, 15);
+            render(<DatePicker value={value} onChange={onChange} />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            fireEvent.keyDown(trigger, { key: 'ArrowRight' });
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+
+            expect(onChange).toHaveBeenCalled();
+            const selectedDate = onChange.mock.calls[0][0];
+            expect(selectedDate.getDate()).toBe(16);
+        });
+
+        it('selects focused day on Space', () => {
+            const onChange = vi.fn();
+            const value = new Date(2026, 0, 15);
+            render(<DatePicker value={value} onChange={onChange} />);
+
+            const trigger = screen.getByRole('combobox');
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            fireEvent.keyDown(trigger, { key: 'ArrowLeft' });
+            fireEvent.keyDown(trigger, { key: ' ' });
+
+            expect(onChange).toHaveBeenCalled();
+            const selectedDate = onChange.mock.calls[0][0];
+            expect(selectedDate.getDate()).toBe(14);
+        });
+
+        it('has correct ARIA attributes', () => {
+            render(<DatePicker />);
+
+            const trigger = screen.getByRole('combobox');
+            expect(trigger).toHaveAttribute('aria-expanded', 'false');
+            expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+
+            fireEvent.keyDown(trigger, { key: 'Enter' });
+            expect(trigger).toHaveAttribute('aria-expanded', 'true');
+        });
+    });
 });
