@@ -125,9 +125,65 @@
     }
 }
 
+/* ===== EXIT ANIMATIONS ===== */
+
+/* Default exit - slide right */
+.toast-container .toast.toast--exiting {
+    animation: toast-exit 0.2s ease-in forwards;
+}
+
+@keyframes toast-exit {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* Left positions - slide left */
+.toast-container--top-left .toast.toast--exiting,
+.toast-container--bottom-left .toast.toast--exiting {
+    animation-name: toast-exit-left;
+}
+
+@keyframes toast-exit-left {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+}
+
+/* Center positions - fade out */
+.toast-container--top-center .toast.toast--exiting,
+.toast-container--bottom-center .toast.toast--exiting {
+    animation-name: toast-exit-center;
+}
+
+@keyframes toast-exit-center {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
     .toast-container .toast {
         animation: none;
+    }
+    .toast-container .toast.toast--exiting {
+        animation: none;
+        opacity: 0;
     }
 }

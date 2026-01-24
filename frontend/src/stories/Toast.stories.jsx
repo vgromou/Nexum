@@ -95,9 +95,9 @@ export const IconSizes = {
 // Progress animation states
 export const ProgressStates = {
   args: {
-    message: 'ува',
+    message: 'Progress states demo',
     variant: 'success',
-    duration: 13123,
+    duration: 10000,
   },
   render: () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

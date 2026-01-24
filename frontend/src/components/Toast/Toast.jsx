@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Check, X, AlertTriangle, Info } from 'lucide-react';
 import './Toast.css';
@@ -27,11 +27,18 @@ const Toast = ({
     ...rest
 }) => {
     const [isVisible, setIsVisible] = useState(true);
+    const [isExiting, setIsExiting] = useState(false);
     const [isPaused, setIsPaused] = useState(paused);
     const timerRef = useRef(null);
+    const exitTimerRef = useRef(null);
     const startTimeRef = useRef(null);
     const remainingTimeRef = useRef(duration);
+    const isExitingRef = useRef(false);
+    const onCloseRef = useRef(onClose);
     const maskId = useId();
+
+    // Keep onClose ref updated
+    onCloseRef.current = onClose;
 
     // Icon mapping
     const iconMap = {
@@ -42,6 +49,17 @@ const Toast = ({
     };
 
     const IconComponent = iconMap[variant];
+
+    // Handle close with exit animation
+    const handleClose = useCallback(() => {
+        if (isExitingRef.current) return;
+        isExitingRef.current = true;
+        setIsExiting(true);
+        exitTimerRef.current = setTimeout(() => {
+            setIsVisible(false);
+            onCloseRef.current?.();
+        }, 200); // Match CSS animation duration
+    }, []);
 
     // Handle auto-dismiss timer
     useEffect(() => {
@@ -58,19 +76,21 @@ const Toast = ({
                 clearTimeout(timerRef.current);
             }
         };
-    }, [isPaused, showProgress]);
+    }, [isPaused, showProgress, handleClose]);
 
     // Sync paused prop
     useEffect(() => {
         setIsPaused(paused);
     }, [paused]);
 
-    const handleClose = () => {
-        setIsVisible(false);
-        if (onClose) {
-            onClose();
-        }
-    };
+    // Cleanup exit timer
+    useEffect(() => {
+        return () => {
+            if (exitTimerRef.current) {
+                clearTimeout(exitTimerRef.current);
+            }
+        };
+    }, []);
 
     const handleMouseEnter = () => {
         if (!showProgress) return;
@@ -99,6 +119,7 @@ const Toast = ({
         'toast',
         `toast--${variant}`,
         isPaused && 'toast--paused',
+        isExiting && 'toast--exiting',
         className
     ].filter(Boolean).join(' ');
 

@@ -4,6 +4,7 @@
 .toast {
     position: relative;
     width: 440px;
+    max-width: calc(100vw - 2 * var(--space-lg));
     height: 72px;
     background: transparent;
     box-shadow: var(--shadow-md);
@@ -71,7 +72,7 @@
 }
 
 /* ===== LAYER 2: WHITE CONTENT ===== */
-/* Larger block on top, covers most of подложка */
+/* Larger block on top, covers most of the frame */
 
 .toast__content {
     position: absolute;
@@ -198,7 +199,7 @@
 /* ===== ACCESSIBILITY ===== */
 
 @media (prefers-reduced-motion: reduce) {
-    .toast__frame-path {
+    .toast__mask-path {
         animation: none;
     }
 }

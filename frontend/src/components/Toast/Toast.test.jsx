@@ -94,11 +94,23 @@ describe('Toast', () => {
     });
 
     describe('Close Button', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
         it('calls onClose when close button is clicked', () => {
             const handleClose = vi.fn();
             render(<Toast message="Test" onClose={handleClose} showProgress={false} />);
 
             fireEvent.click(screen.getByRole('button', { name: /close/i }));
+            // Wait for exit animation
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
             expect(handleClose).toHaveBeenCalledTimes(1);
         });
 
@@ -107,6 +119,10 @@ describe('Toast', () => {
 
             expect(screen.getByRole('alert')).toBeInTheDocument();
             fireEvent.click(screen.getByRole('button', { name: /close/i }));
+            // Wait for exit animation
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
             expect(screen.queryByRole('alert')).not.toBeInTheDocument();
         });
     });
@@ -129,6 +145,10 @@ describe('Toast', () => {
             act(() => {
                 vi.advanceTimersByTime(5000);
             });
+            // Wait for exit animation
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
 
             expect(handleClose).toHaveBeenCalledTimes(1);
         });
@@ -144,6 +164,10 @@ describe('Toast', () => {
 
             act(() => {
                 vi.advanceTimersByTime(1);
+            });
+            // Wait for exit animation
+            act(() => {
+                vi.advanceTimersByTime(200);
             });
             expect(handleClose).toHaveBeenCalledTimes(1);
         });
@@ -307,6 +331,7 @@ describe('ToastProvider', () => {
         });
 
         it('removes toast when closed', () => {
+            vi.useFakeTimers();
             render(
                 <ToastProvider>
                     <ToastTrigger options={{ message: 'Test toast', showProgress: false }} />
@@ -317,7 +342,12 @@ describe('ToastProvider', () => {
             expect(screen.getByText('Test toast')).toBeInTheDocument();
 
             fireEvent.click(screen.getByRole('button', { name: /close/i }));
+            // Wait for exit animation
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
             expect(screen.queryByText('Test toast')).not.toBeInTheDocument();
+            vi.useRealTimers();
         });
     });
 
