@@ -1,0 +1,145 @@
+/**
+ * SidePanel Styles
+ *
+ * Slide-in panel component with optional tabs
+ */
+
+/* Container for panel and tabs */
+.side-panel-container {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    z-index: var(--z-index-modal);
+}
+
+/* Position: Right */
+.side-panel-container--right {
+    right: 0;
+    flex-direction: row;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+}
+
+.side-panel-container--right.side-panel-container--active {
+    transform: translateX(0);
+}
+
+/* Position: Left */
+.side-panel-container--left {
+    left: 0;
+    flex-direction: row-reverse;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-out;
+}
+
+.side-panel-container--left.side-panel-container--active {
+    transform: translateX(0);
+}
+
+/* Tabs container */
+.side-panel__tabs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding-top: var(--space-3xl);
+    flex-shrink: 0;
+}
+
+/* Tab button */
+.side-panel__tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 10px;
+    background: var(--background-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    color: var(--icons-default);
+}
+
+.side-panel__tab:hover:not(:disabled):not(.side-panel__tab--active) {
+    background: var(--background-hover);
+    color: var(--icons-hover);
+}
+
+.side-panel__tab--active {
+    background: var(--accent-primary-light);
+    border-color: transparent;
+    color: var(--accent-primary);
+}
+
+.side-panel__tab--disabled {
+    cursor: not-allowed;
+    color: var(--icons-disabled);
+}
+
+.side-panel__tab svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Panel */
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Header */
+.side-panel__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    height: 56px;
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--border-default);
+    flex-shrink: 0;
+}
+
+.side-panel__title {
+    flex: 1;
+    font-size: var(--typography-h4-size);
+    line-height: var(--typography-h4-line-height);
+    font-weight: var(--typography-h4-weight);
+    color: var(--text-primary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.side-panel__close {
+    flex-shrink: 0;
+}
+
+/* Content */
+.side-panel__content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Footer */
+.side-panel__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-lg) var(--space-xl);
+    border-top: 1px solid var(--border-default);
+    flex-shrink: 0;
+}
