@@ -1,9 +1,19 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef, useId } from 'react';
 import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import IconButton from '../Button/IconButton';
 import Overlay from '../Overlay';
 import './Modal.css';
+
+// Selectors for focusable elements
+const FOCUSABLE_SELECTORS = [
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    'a[href]',
+    '[tabindex]:not([tabindex="-1"])',
+].join(', ');
 
 /**
  * Modal Component
@@ -36,23 +46,76 @@ const Modal = ({
     ...rest
 }) => {
     const [isActive, setIsActive] = useState(false);
+    const modalRef = useRef(null);
+    const previousActiveElement = useRef(null);
+    const titleId = useId();
 
     // Handle animation on open/close
     useEffect(() => {
         if (isOpen) {
             // Trigger enter animation
-            requestAnimationFrame(() => setIsActive(true));
+            const timer = setTimeout(() => setIsActive(true), 0);
+            return () => clearTimeout(timer);
         } else {
             setIsActive(false);
         }
     }, [isOpen]);
 
-    // Handle escape key
+    // Handle keyboard events (Escape and Tab for focus trap)
     const handleKeyDown = useCallback((event) => {
         if (closeOnEscape && event.key === 'Escape') {
             onClose?.();
+            return;
+        }
+
+        // Focus trap
+        if (event.key === 'Tab' && modalRef.current) {
+            const focusableElements = modalRef.current.querySelectorAll(FOCUSABLE_SELECTORS);
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (event.shiftKey) {
+                // Shift + Tab: if on first element, go to last
+                if (document.activeElement === firstElement) {
+                    event.preventDefault();
+                    lastElement?.focus();
+                }
+            } else {
+                // Tab: if on last element, go to first
+                if (document.activeElement === lastElement) {
+                    event.preventDefault();
+                    firstElement?.focus();
+                }
+            }
         }
     }, [closeOnEscape, onClose]);
+
+    // Focus management
+    useEffect(() => {
+        if (isOpen) {
+            // Store previous active element
+            previousActiveElement.current = document.activeElement;
+
+            // Focus first focusable element or the modal itself
+            const timer = setTimeout(() => {
+                if (modalRef.current) {
+                    const focusableElements = modalRef.current.querySelectorAll(FOCUSABLE_SELECTORS);
+                    if (focusableElements.length > 0) {
+                        focusableElements[0].focus();
+                    } else {
+                        modalRef.current.focus();
+                    }
+                }
+            }, 0);
+
+            return () => clearTimeout(timer);
+        } else {
+            // Restore focus when modal closes
+            if (previousActiveElement.current) {
+                previousActiveElement.current.focus();
+            }
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (isOpen) {
@@ -95,17 +158,19 @@ const Modal = ({
             onClick={handleOverlayClick}
         >
             <div
+                ref={modalRef}
                 className={modalClasses}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby={title ? 'modal-title' : undefined}
+                aria-labelledby={title ? titleId : undefined}
+                tabIndex={-1}
                 onClick={handleModalClick}
                 {...rest}
             >
                 {/* Header */}
                 <header className="modal__header">
                     {title && (
-                        <h2 id="modal-title" className="modal__title">
+                        <h2 id={titleId} className="modal__title">
                             {title}
                         </h2>
                     )}

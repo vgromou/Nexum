@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Modal from './Modal';
 
@@ -138,7 +138,113 @@ describe('Modal', () => {
         it('has aria-labelledby when title is provided', () => {
             render(<Modal isOpen={true} title="Test Title" />);
             const dialog = screen.getByRole('dialog');
-            expect(dialog).toHaveAttribute('aria-labelledby', 'modal-title');
+            expect(dialog).toHaveAttribute('aria-labelledby');
+            // Verify the title element has the matching id
+            const titleElement = screen.getByText('Test Title');
+            expect(titleElement).toHaveAttribute('id', dialog.getAttribute('aria-labelledby'));
+        });
+
+        it('uses unique IDs for multiple modals', () => {
+            render(
+                <>
+                    <Modal isOpen={true} title="Modal 1" data-testid="modal-1" />
+                    <Modal isOpen={true} title="Modal 2" data-testid="modal-2" />
+                </>
+            );
+            const modal1 = screen.getByTestId('modal-1');
+            const modal2 = screen.getByTestId('modal-2');
+            expect(modal1.getAttribute('aria-labelledby')).not.toBe(modal2.getAttribute('aria-labelledby'));
+        });
+    });
+
+    describe('focus management', () => {
+        it('focuses first focusable element when opened', async () => {
+            render(
+                <Modal isOpen={true} title="Test" />
+            );
+
+            await waitFor(() => {
+                // Close button should be focused (first focusable element)
+                expect(screen.getByLabelText('Close modal')).toHaveFocus();
+            });
+        });
+
+        it('focuses modal when no focusable elements exist', async () => {
+            render(
+                <Modal isOpen={true} title="Test" showCloseButton={false} />
+            );
+
+            await waitFor(() => {
+                expect(screen.getByRole('dialog')).toHaveFocus();
+            });
+        });
+
+        it('traps focus within modal on Tab', async () => {
+            render(
+                <Modal
+                    isOpen={true}
+                    title="Test"
+                    footer={<button>Submit</button>}
+                />
+            );
+
+            await waitFor(() => {
+                expect(screen.getByLabelText('Close modal')).toHaveFocus();
+            });
+
+            // Tab to Submit button
+            fireEvent.keyDown(document, { key: 'Tab' });
+            // Focus should move to Submit button
+            // Tab again should wrap to close button
+            const submitButton = screen.getByRole('button', { name: 'Submit' });
+            submitButton.focus();
+            fireEvent.keyDown(document, { key: 'Tab' });
+
+            await waitFor(() => {
+                expect(screen.getByLabelText('Close modal')).toHaveFocus();
+            });
+        });
+
+        it('traps focus within modal on Shift+Tab', async () => {
+            render(
+                <Modal
+                    isOpen={true}
+                    title="Test"
+                    footer={<button>Submit</button>}
+                />
+            );
+
+            await waitFor(() => {
+                expect(screen.getByLabelText('Close modal')).toHaveFocus();
+            });
+
+            // Shift+Tab from first element should go to last
+            fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: 'Submit' })).toHaveFocus();
+            });
+        });
+
+        it('restores focus to trigger element when closed', async () => {
+            const triggerButton = document.createElement('button');
+            triggerButton.textContent = 'Open Modal';
+            document.body.appendChild(triggerButton);
+            triggerButton.focus();
+
+            const { rerender } = render(<Modal isOpen={true} title="Test" />);
+
+            await waitFor(() => {
+                expect(screen.getByLabelText('Close modal')).toHaveFocus();
+            });
+
+            rerender(<Modal isOpen={false} title="Test" />);
+
+            await waitFor(() => {
+                expect(triggerButton).toHaveFocus();
+            });
+
+            document.body.removeChild(triggerButton);
         });
     });
 

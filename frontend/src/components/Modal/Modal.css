@@ -11,12 +11,17 @@
     transform: translate(-50%, -50%) scale(0.95);
     display: flex;
     flex-direction: column;
+    max-width: calc(100vw - 32px);
     background: var(--background-tertiary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
     overflow: hidden;
     opacity: 0;
     transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.modal:focus {
+    outline: none;
 }
 
 .modal--active {
@@ -27,21 +32,18 @@
 /* Sizes */
 .modal--sm {
     width: 400px;
-    max-width: calc(100vw - 32px);
     padding: 0 var(--space-sm);
     box-shadow: var(--shadow-md);
 }
 
 .modal--md {
     width: 480px;
-    max-width: calc(100vw - 32px);
     padding: 0 var(--space-sm);
     box-shadow: var(--shadow-md);
 }
 
 .modal--lg {
     width: 560px;
-    max-width: calc(100vw - 32px);
     padding: 0 var(--space-md);
     box-shadow: var(--shadow-lg);
 }
