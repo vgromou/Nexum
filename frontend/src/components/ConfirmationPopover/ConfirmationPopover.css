@@ -1,0 +1,97 @@
+/**
+ * ConfirmationPopover Styles
+ *
+ * Popover component for confirmation dialogs with arrow pointer
+ */
+
+/* Container */
+.confirmation-popover {
+    position: fixed;
+    z-index: var(--z-index-popover);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.confirmation-popover--active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Placement variations */
+.confirmation-popover--top {
+    transform: translateY(4px);
+}
+
+.confirmation-popover--top.confirmation-popover--active {
+    transform: translateY(0);
+}
+
+/* Arrow */
+.confirmation-popover__arrow {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    transform: rotate(45deg);
+}
+
+/* Arrow position for bottom placement (arrow on top) */
+.confirmation-popover--bottom .confirmation-popover__arrow {
+    top: -5px;
+    /* left is set via inline style to center on anchor */
+    border-right: none;
+    border-bottom: none;
+}
+
+/* Arrow position for top placement (arrow on bottom) */
+.confirmation-popover--top .confirmation-popover__arrow {
+    bottom: -5px;
+    /* left is set via inline style to center on anchor */
+    border-left: none;
+    border-top: none;
+}
+
+/* Content */
+.confirmation-popover__content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-md);
+}
+
+/* Title */
+.confirmation-popover__title {
+    font-size: var(--typography-body-small-size);
+    line-height: var(--typography-body-small-line-height);
+    font-weight: var(--typography-body-small-medium-weight);
+    color: var(--text-primary);
+    padding-bottom: var(--space-lg);
+}
+
+/* When description is present, reduce title bottom padding */
+.confirmation-popover__content:has(.confirmation-popover__description) .confirmation-popover__title {
+    padding-bottom: var(--space-sm);
+}
+
+/* Description */
+.confirmation-popover__description {
+    font-size: var(--typography-body-small-size);
+    line-height: var(--typography-body-small-line-height);
+    font-weight: var(--typography-body-small-weight);
+    color: var(--text-secondary);
+    padding-bottom: var(--space-lg);
+}
+
+/* Actions container */
+.confirmation-popover__actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+    align-items: center;
+}
