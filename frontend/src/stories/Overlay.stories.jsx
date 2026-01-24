@@ -125,7 +125,7 @@ export const Blur = {
     docs: {
       description: {
         story:
-          'White overlay with backdrop blur effect (rgba(255, 255, 255, 0.7) + backdrop-filter: blur(8px)).',
+          'White overlay with backdrop blur effect (rgba(255, 255, 255, 0.7) + backdrop-filter: blur(16px)).',
       },
     },
   },
