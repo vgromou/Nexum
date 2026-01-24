@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useId } from 'react';
 import PropTypes from 'prop-types';
 import Button from '../Button';
 import './ConfirmationPopover.css';
@@ -32,23 +32,57 @@ const ConfirmationPopover = ({
     ...rest
 }) => {
     const popoverRef = useRef(null);
+    const previousActiveElementRef = useRef(null);
+    const titleId = useId();
     const [isActive, setIsActive] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
     const [position, setPosition] = useState({ top: 0, left: 0 });
     const [arrowLeft, setArrowLeft] = useState(0);
 
-    // Handle animation on open/close
+    const ANIMATION_DURATION = 200; // Match CSS transition duration
+
+    // Handle animation and focus management on open/close
     useEffect(() => {
         if (isOpen) {
-            const timer = setTimeout(() => setIsActive(true), 0);
+            // Save currently focused element for restoration
+            previousActiveElementRef.current = document.activeElement;
+
+            // Show immediately, then activate for animation
+            setIsVisible(true);
+            const timer = setTimeout(() => {
+                setIsActive(true);
+                // Focus first button or popover container
+                if (popoverRef.current) {
+                    const firstButton = popoverRef.current.querySelector('button');
+                    if (firstButton) {
+                        firstButton.focus();
+                    } else {
+                        popoverRef.current.focus();
+                    }
+                }
+            }, 0);
             return () => clearTimeout(timer);
         } else {
+            // Start closing animation
             setIsActive(false);
+
+            // Restore focus to previously focused element
+            if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
+                previousActiveElementRef.current.focus();
+                previousActiveElementRef.current = null;
+            }
+
+            // Wait for animation to complete before hiding
+            const timer = setTimeout(() => {
+                setIsVisible(false);
+            }, ANIMATION_DURATION);
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
     // Calculate position relative to anchor element
-    useEffect(() => {
-        if (isOpen && anchorRef?.current && popoverRef.current) {
+    const updatePosition = useCallback(() => {
+        if (anchorRef?.current && popoverRef.current) {
             const anchorRect = anchorRef.current.getBoundingClientRect();
             const popoverRect = popoverRef.current.getBoundingClientRect();
 
@@ -83,7 +117,26 @@ const ConfirmationPopover = ({
 
             setPosition({ top, left: adjustedLeft });
         }
-    }, [isOpen, anchorRef, placement]);
+    }, [anchorRef, placement]);
+
+    useEffect(() => {
+        if (isVisible) {
+            updatePosition();
+        }
+    }, [isVisible, updatePosition]);
+
+    // Recalculate position on resize/scroll
+    useEffect(() => {
+        if (isVisible) {
+            window.addEventListener('resize', updatePosition);
+            window.addEventListener('scroll', updatePosition, true);
+
+            return () => {
+                window.removeEventListener('resize', updatePosition);
+                window.removeEventListener('scroll', updatePosition, true);
+            };
+        }
+    }, [isVisible, updatePosition]);
 
     // Close on Escape key
     const handleKeyDown = useCallback((event) => {
@@ -113,7 +166,7 @@ const ConfirmationPopover = ({
         };
     }, [isOpen, handleKeyDown, handleClickOutside]);
 
-    if (!isOpen) return null;
+    if (!isVisible) return null;
 
     const popoverClasses = [
         'confirmation-popover',
@@ -128,7 +181,8 @@ const ConfirmationPopover = ({
             className={popoverClasses}
             role="dialog"
             aria-modal="true"
-            aria-labelledby={title ? 'confirmation-popover-title' : undefined}
+            aria-labelledby={title ? titleId : undefined}
+            tabIndex={-1}
             style={{
                 top: position.top,
                 left: position.left
@@ -141,7 +195,7 @@ const ConfirmationPopover = ({
             />
             <div className="confirmation-popover__content">
                 {title && (
-                    <p id="confirmation-popover-title" className="confirmation-popover__title">
+                    <p id={titleId} className="confirmation-popover__title">
                         {title}
                     </p>
                 )}
@@ -152,9 +206,9 @@ const ConfirmationPopover = ({
                 )}
                 {actions.length > 0 && (
                     <div className="confirmation-popover__actions">
-                        {actions.map((action, index) => (
+                        {actions.map((action) => (
                             <Button
-                                key={index}
+                                key={action.label}
                                 size="sm"
                                 variant={action.variant || 'primary'}
                                 onClick={action.onClick}

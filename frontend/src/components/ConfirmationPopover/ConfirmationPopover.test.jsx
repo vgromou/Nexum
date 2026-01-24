@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import ConfirmationPopover from './ConfirmationPopover';
 
 describe('ConfirmationPopover', () => {
@@ -156,8 +156,9 @@ describe('ConfirmationPopover', () => {
         render(<ConfirmationPopover {...defaultProps} />);
 
         const dialog = screen.getByRole('dialog');
+        const title = screen.getByText('Log out of Nexum?');
         expect(dialog).toHaveAttribute('aria-modal', 'true');
-        expect(dialog).toHaveAttribute('aria-labelledby', 'confirmation-popover-title');
+        expect(dialog).toHaveAttribute('aria-labelledby', title.id);
     });
 
     it('applies active class after animation delay', async () => {
@@ -277,7 +278,7 @@ describe('ConfirmationPopover', () => {
         removeEventListenerSpy.mockRestore();
     });
 
-    it('removes active class when closed', async () => {
+    it('removes active class when closed and unmounts after animation', async () => {
         const { rerender } = render(<ConfirmationPopover {...defaultProps} isOpen={true} />);
 
         await waitFor(() => {
@@ -286,21 +287,146 @@ describe('ConfirmationPopover', () => {
 
         rerender(<ConfirmationPopover {...defaultProps} isOpen={false} />);
 
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        // Active class should be removed immediately for closing animation
+        expect(screen.getByRole('dialog')).not.toHaveClass('confirmation-popover--active');
+
+        // Element should unmount after animation completes (200ms)
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        }, { timeout: 300 });
     });
 
-    it('renders title with correct id for accessibility', () => {
+    it('renders title with unique id for accessibility', () => {
         render(<ConfirmationPopover {...defaultProps} />);
 
         const title = screen.getByText('Log out of Nexum?');
-        expect(title).toHaveAttribute('id', 'confirmation-popover-title');
+        expect(title).toHaveAttribute('id');
+        expect(title.id).toBeTruthy();
     });
 
-    it('does not set aria-labelledby when no title', () => {
-        // Title is required, but test the structure
-        render(<ConfirmationPopover {...defaultProps} title="Test" />);
+    it('generates unique ids for multiple instances', () => {
+        render(
+            <>
+                <ConfirmationPopover {...defaultProps} title="First Title" />
+                <ConfirmationPopover {...defaultProps} title="Second Title" />
+            </>
+        );
 
-        const dialog = screen.getByRole('dialog');
-        expect(dialog).toHaveAttribute('aria-labelledby', 'confirmation-popover-title');
+        const firstTitle = screen.getByText('First Title');
+        const secondTitle = screen.getByText('Second Title');
+        expect(firstTitle.id).not.toBe(secondTitle.id);
+    });
+
+    it('focuses first button when opened', async () => {
+        const actions = [
+            { label: 'Cancel', variant: 'outline', onClick: vi.fn() },
+            { label: 'Confirm', variant: 'primary', onClick: vi.fn() },
+        ];
+
+        render(<ConfirmationPopover {...defaultProps} actions={actions} />);
+
+        await waitFor(() => {
+            expect(document.activeElement).toBe(screen.getByText('Cancel').closest('button'));
+        });
+    });
+
+    it('focuses popover container when no buttons', async () => {
+        render(<ConfirmationPopover {...defaultProps} actions={[]} />);
+
+        await waitFor(() => {
+            expect(document.activeElement).toBe(screen.getByRole('dialog'));
+        });
+    });
+
+    it('restores focus to previously focused element on close', async () => {
+        const triggerButton = document.createElement('button');
+        triggerButton.textContent = 'Trigger';
+        document.body.appendChild(triggerButton);
+        triggerButton.focus();
+
+        const { rerender } = render(<ConfirmationPopover {...defaultProps} isOpen={true} />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+        });
+
+        rerender(<ConfirmationPopover {...defaultProps} isOpen={false} />);
+
+        await waitFor(() => {
+            expect(document.activeElement).toBe(triggerButton);
+        });
+
+        document.body.removeChild(triggerButton);
+    });
+
+    it('recalculates position on window resize', async () => {
+        const anchorRef = {
+            current: {
+                getBoundingClientRect: vi.fn().mockReturnValue({
+                    top: 100,
+                    bottom: 130,
+                    left: 200,
+                    right: 280,
+                    width: 80,
+                    height: 30,
+                }),
+            },
+        };
+
+        render(
+            <ConfirmationPopover
+                {...defaultProps}
+                anchorRef={anchorRef}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+        });
+
+        // Initial call
+        const initialCallCount = anchorRef.current.getBoundingClientRect.mock.calls.length;
+
+        // Trigger resize
+        act(() => {
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        expect(anchorRef.current.getBoundingClientRect.mock.calls.length).toBeGreaterThan(initialCallCount);
+    });
+
+    it('recalculates position on scroll', async () => {
+        const anchorRef = {
+            current: {
+                getBoundingClientRect: vi.fn().mockReturnValue({
+                    top: 100,
+                    bottom: 130,
+                    left: 200,
+                    right: 280,
+                    width: 80,
+                    height: 30,
+                }),
+            },
+        };
+
+        render(
+            <ConfirmationPopover
+                {...defaultProps}
+                anchorRef={anchorRef}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+        });
+
+        const initialCallCount = anchorRef.current.getBoundingClientRect.mock.calls.length;
+
+        // Trigger scroll
+        act(() => {
+            window.dispatchEvent(new Event('scroll'));
+        });
+
+        expect(anchorRef.current.getBoundingClientRect.mock.calls.length).toBeGreaterThan(initialCallCount);
     });
 });
