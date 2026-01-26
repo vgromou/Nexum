@@ -172,7 +172,7 @@
 
 .user-card__contacts-separator {
     color: var(--text-tertiary);
-    margin: 0 9px;
+    margin: 0 var(--space-sm);
 }
 
 .user-card__email,

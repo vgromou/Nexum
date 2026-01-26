@@ -12,6 +12,23 @@ import IconButton from '../Button/IconButton';
 import RoleBadge from '../RoleBadge';
 import './UserCard.css';
 
+/** Maximum combined length of email + username for inline layout */
+const CONTACTS_INLINE_THRESHOLD = 35;
+
+/**
+ * Copyable text component - renders a button that copies text to clipboard on click
+ */
+const CopyableText = ({ text, field, copiedField, onCopy, className = '' }) => (
+    <button
+        type="button"
+        className={`user-card__copyable ${className} ${copiedField === field ? 'user-card__copyable--copied' : ''}`}
+        onClick={() => onCopy(text, field)}
+        title={copiedField === field ? 'Copied!' : 'Click to copy'}
+    >
+        {text}
+    </button>
+);
+
 /**
  * UserCard Component
  *
@@ -154,7 +171,7 @@ const UserCard = ({
     } = user;
 
     const fullName = `${firstName} ${lastName}`;
-    const isContactsShort = (email?.length || 0) + (username?.length || 0) < 35;
+    const isContactsShort = (email?.length || 0) + (username?.length || 0) < CONTACTS_INLINE_THRESHOLD;
 
     const toggleExpanded = () => {
         setIsExpanded(!isExpanded);
@@ -171,18 +188,6 @@ const UserCard = ({
         width: dimensions.width,
         height: dimensions.height
     } : {};
-
-    // Copyable text component
-    const CopyableText = ({ text, field, isLink = false, className: customClass = '' }) => (
-        <button
-            type="button"
-            className={`user-card__copyable ${customClass} ${copiedField === field ? 'user-card__copyable--copied' : ''}`}
-            onClick={() => copyToClipboard(text, field)}
-            title={copiedField === field ? 'Copied!' : 'Click to copy'}
-        >
-            {text}
-        </button>
-    );
 
     return (
         <div
@@ -249,11 +254,11 @@ const UserCard = ({
 
                 {/* Contact Info */}
                 <div className={`user-card__contacts ${isContactsShort ? 'user-card__contacts--inline' : 'user-card__contacts--stacked'}`}>
-                    <CopyableText text={email} field="email-compact" className="user-card__email" />
+                    <CopyableText text={email} field="email-compact" copiedField={copiedField} onCopy={copyToClipboard} className="user-card__email" />
                     {isContactsShort && (
                         <span className="user-card__contacts-separator">•</span>
                     )}
-                    <CopyableText text={username} field="username-compact" className="user-card__username" />
+                    <CopyableText text={username} field="username-compact" copiedField={copiedField} onCopy={copyToClipboard} className="user-card__username" />
                 </div>
 
                 {/* Roles */}
@@ -375,6 +380,8 @@ const UserCard = ({
                             <CopyableText
                                 text={email}
                                 field="email-expanded"
+                                copiedField={copiedField}
+                                onCopy={copyToClipboard}
                                 className="user-card__field-value user-card__field-value--link"
                             />
                         </div>
@@ -383,6 +390,8 @@ const UserCard = ({
                             <CopyableText
                                 text={username}
                                 field="username-expanded"
+                                copiedField={copiedField}
+                                onCopy={copyToClipboard}
                                 className="user-card__field-value user-card__field-value--link"
                             />
                         </div>
