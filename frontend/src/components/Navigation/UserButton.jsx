@@ -32,14 +32,14 @@ const UserButton = ({
                     <span className="user-role">{role}</span>
                 </div>
                 <button
-                    className="icon-btn icon-btn-md user-notification-btn"
+                    className="icon-btn icon-btn-sm user-notification-btn"
                     onClick={(e) => {
                         e.stopPropagation();
                         onNotificationClick?.();
                     }}
                     aria-label="Notifications"
                 >
-                    <Bell />
+                    <Bell size={16} />
                 </button>
             </button>
         </div>

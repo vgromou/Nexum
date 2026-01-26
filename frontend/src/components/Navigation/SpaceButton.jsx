@@ -27,14 +27,14 @@ const SpaceButton = ({
                     <span className="space-name">{name}</span>
                 </div>
                 <button
-                    className="icon-btn icon-btn-md space-search-btn"
+                    className="icon-btn icon-btn-sm space-search-btn"
                     onClick={(e) => {
                         e.stopPropagation();
                         onSearchClick?.();
                     }}
                     aria-label="Search in space"
                 >
-                    <Search />
+                    <Search size={16} />
                 </button>
             </button>
         </div>

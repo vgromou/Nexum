@@ -1,5 +1,6 @@
 .user-button-container {
     margin: var(--space-xs) var(--space-md);
+    min-width: 280px;
 }
 
 .user-button {
@@ -7,7 +8,7 @@
     align-items: center;
     gap: var(--space-md);
     width: 100%;
-    padding: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg) var(--space-sm) var(--space-sm);
     border: none;
     background: transparent;
     border-radius: var(--radius-md);

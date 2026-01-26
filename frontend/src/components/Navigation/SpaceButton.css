@@ -1,5 +1,6 @@
 .space-button-container {
     margin: 0 var(--space-sm);
+    min-width: 280px;
 }
 
 .space-button {

@@ -1,0 +1,43 @@
+/**
+ * RoleBadge Component Styles
+ *
+ * Square-ish badge for displaying user roles.
+ * Two variants: with scope label and without.
+ */
+
+/* Container for badge with label */
+.role-badge-container {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xxs);
+}
+
+/* Scope label (Organization / Space) */
+.role-badge__label {
+    font-size: var(--typography-caption-small-size);
+    font-weight: var(--typography-caption-small-weight);
+    line-height: var(--typography-caption-small-line-height);
+    color: var(--text-secondary);
+}
+
+/* Badge itself */
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--accent-primary-light);
+    border-radius: var(--radius-sm);
+    font-size: var(--typography-badge-size);
+    font-weight: var(--typography-badge-weight);
+    line-height: var(--typography-badge-line-height);
+    color: var(--accent-primary);
+    white-space: nowrap;
+}
+
+/* Space scope variant */
+.role-badge--space {
+    background: var(--accent-secondary-light);
+    color: var(--accent-secondary);
+}

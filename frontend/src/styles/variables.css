@@ -65,6 +65,24 @@
   --border-strong: #9CA3AF;
   --border-focus: #5E6AD2;
 
+  /* Field (Default) */
+  --field-background: #FFFFFF;
+  --field-border: #E5E7EB;
+  --field-text: #1F2937;
+  --field-placeholder: #D1D5DB;
+  --field-icon: #9CA3AF;
+  --field-label: #6B7280;
+  --field-helper: #9CA3AF;
+
+  /* Field (Read-only) */
+  --field-readonly-background: transparent;
+  --field-readonly-border: transparent;
+  --field-readonly-text: #1F2937;
+  --field-readonly-placeholder: transparent;
+  --field-readonly-icon: transparent;
+  --field-readonly-label: #6B7280;
+  --field-readonly-helper: #9CA3AF;
+
   /* Accent (Linear-style purple) */
   --accent-primary: #5E6AD2;
   --accent-primary-hover: #4C5CC0;
