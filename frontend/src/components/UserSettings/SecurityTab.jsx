@@ -39,6 +39,7 @@ const formatRelativeTime = (dateString) => {
 const SecurityTab = ({
     user,
     onChangePassword,
+    isLoading = false,
 }) => {
     const [formData, setFormData] = useState({
         currentPassword: '',
@@ -126,6 +127,7 @@ const SecurityTab = ({
                             rightIcon={showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
                             onRightIconClick={() => toggleShowPassword('current')}
                             autoComplete="current-password"
+                            disabled={isLoading}
                         />
                         <Field
                             label="New Password"
@@ -138,11 +140,17 @@ const SecurityTab = ({
                             rightIcon={showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
                             onRightIconClick={() => toggleShowPassword('new')}
                             autoComplete="new-password"
+                            disabled={isLoading}
                         />
                     </div>
 
                     <div className="security-tab__form-actions">
-                        <Button type="submit" variant="outline">
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            disabled={isLoading}
+                            {...(isLoading && { loading: true })}
+                        >
                             Change Password
                         </Button>
                     </div>
@@ -164,6 +172,8 @@ SecurityTab.propTypes = {
     }),
     /** Callback when password change is submitted */
     onChangePassword: PropTypes.func,
+    /** Loading state for password change */
+    isLoading: PropTypes.bool,
 };
 
 export default SecurityTab;

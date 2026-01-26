@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 
@@ -14,13 +13,7 @@ import PropTypes from 'prop-types';
  * </Portal>
  */
 const Portal = ({ children, container }) => {
-    const [mountNode, setMountNode] = useState(null);
-
-    useEffect(() => {
-        // Use provided container or default to document.body
-        const node = container || document.body;
-        setMountNode(node);
-    }, [container]);
+    const mountNode = container || (typeof document !== 'undefined' ? document.body : null);
 
     if (!mountNode) return null;
 

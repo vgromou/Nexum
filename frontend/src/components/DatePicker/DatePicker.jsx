@@ -322,16 +322,27 @@ const DatePicker = forwardRef(({
         setView('months');
     };
 
-    // Apply date mask (DD.MM.YYYY)
+    /**
+     * Apply date mask based on format
+     * Supports formats: DD.MM.YYYY, MM.DD.YYYY, YYYY.MM.DD (with . - / separators)
+     */
     const applyDateMask = (value) => {
         // Remove all non-digits
         const digits = value.replace(/\D/g, '');
 
+        // Detect separator from format
+        const separator = format.match(/[.\-\/]/)?.[0] || '.';
+
+        // Detect format structure
+        const startsWithYear = format.startsWith('YYYY');
+        const positions = startsWithYear ? [4, 6] : [2, 4];
+
         // Build masked value
         let masked = '';
-        for (let i = 0; i < digits.length && i < 8; i++) {
-            if (i === 2 || i === 4) {
-                masked += '.';
+        const maxDigits = 8;
+        for (let i = 0; i < digits.length && i < maxDigits; i++) {
+            if (i === positions[0] || i === positions[1]) {
+                masked += separator;
             }
             masked += digits[i];
         }

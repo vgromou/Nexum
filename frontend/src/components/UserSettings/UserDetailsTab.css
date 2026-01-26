@@ -13,12 +13,12 @@
 .user-details-tab__header {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
+    gap: var(--space-xl);
 }
 
 .user-details-tab__avatar {
-    width: 80px;
-    height: 80px;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;

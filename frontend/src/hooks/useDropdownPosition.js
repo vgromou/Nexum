@@ -9,10 +9,11 @@ import { useState, useCallback, useLayoutEffect } from 'react';
  * @param {Object} options - Configuration options
  * @param {string} options.placement - Preferred placement ('bottom' | 'top')
  * @param {number} options.offset - Vertical offset from trigger (default: 4)
+ * @param {number} options.dropdownHeight - Estimated dropdown height for placement calculation (default: 300)
  * @returns {Object} Position styles for the dropdown
  */
 const useDropdownPosition = (triggerRef, isOpen, options = {}) => {
-    const { placement = 'bottom', offset = 4 } = options;
+    const { placement = 'bottom', offset = 4, dropdownHeight = 300 } = options;
     const [position, setPosition] = useState({
         top: 0,
         left: 0,
@@ -27,9 +28,6 @@ const useDropdownPosition = (triggerRef, isOpen, options = {}) => {
         const viewportHeight = window.innerHeight;
         const spaceBelow = viewportHeight - rect.bottom;
         const spaceAbove = rect.top;
-
-        // Estimate dropdown height (can be passed as option if known)
-        const dropdownHeight = 300;
 
         // Determine best placement
         let actualPlacement = placement;
@@ -52,7 +50,7 @@ const useDropdownPosition = (triggerRef, isOpen, options = {}) => {
         }
 
         setPosition(newPosition);
-    }, [triggerRef, isOpen, placement, offset]);
+    }, [triggerRef, isOpen, placement, offset, dropdownHeight]);
 
     useLayoutEffect(() => {
         if (isOpen) {

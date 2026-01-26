@@ -63,7 +63,7 @@ const UserSettings = ({
 
     // Footer only for profile tab
     const footer = activeTab === 'profile' ? (
-        <>
+        <div className="user-settings__footer">
             <Button
                 variant="destructive-outline"
                 onClick={handleDiscard}
@@ -79,7 +79,7 @@ const UserSettings = ({
             >
                 Save
             </Button>
-        </>
+        </div>
     ) : null;
 
     return (

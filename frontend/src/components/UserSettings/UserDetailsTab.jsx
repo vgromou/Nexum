@@ -30,8 +30,8 @@ const formatDate = (date) => {
     return `${day}.${month}.${year}`;
 };
 
-// Mock options - in real app these would come from API
-const JOB_TITLE_OPTIONS = [
+// Default options - can be overridden via props
+const DEFAULT_JOB_TITLE_OPTIONS = [
     { value: 'system_analyst', label: 'System Analyst' },
     { value: 'business_analyst', label: 'Business Analyst' },
     { value: 'developer', label: 'Developer' },
@@ -40,7 +40,7 @@ const JOB_TITLE_OPTIONS = [
     { value: 'qa_engineer', label: 'QA Engineer' },
 ];
 
-const DEPARTMENT_OPTIONS = [
+const DEFAULT_DEPARTMENT_OPTIONS = [
     { value: 'system_analysis', label: 'System Analysis Department' },
     { value: 'development', label: 'Development Department' },
     { value: 'design', label: 'Design Department' },
@@ -80,6 +80,8 @@ const UserDetailsTab = forwardRef(({
     onSave,
     onDirtyChange,
     formId,
+    jobTitleOptions = DEFAULT_JOB_TITLE_OPTIONS,
+    departmentOptions = DEFAULT_DEPARTMENT_OPTIONS,
 }, ref) => {
     const [initialData, setInitialData] = useState(() => getInitialData(user));
     const [formData, setFormData] = useState(() => getInitialData(user));
@@ -190,7 +192,7 @@ const UserDetailsTab = forwardRef(({
                     <Select
                         label="Job Title"
                         name="jobTitle"
-                        options={JOB_TITLE_OPTIONS}
+                        options={jobTitleOptions}
                         value={formData.jobTitle}
                         onChange={handleChange('jobTitle')}
                         placeholder="Select job title"
@@ -198,7 +200,7 @@ const UserDetailsTab = forwardRef(({
                     <Select
                         label="Department"
                         name="department"
-                        options={DEPARTMENT_OPTIONS}
+                        options={departmentOptions}
                         value={formData.department}
                         onChange={handleChange('department')}
                         placeholder="Select department"
@@ -234,6 +236,11 @@ const UserDetailsTab = forwardRef(({
 
 UserDetailsTab.displayName = 'UserDetailsTab';
 
+const optionShape = PropTypes.shape({
+    value: PropTypes.string.isRequired,
+    label: PropTypes.string.isRequired,
+});
+
 UserDetailsTab.propTypes = {
     /** Current user data */
     user: PropTypes.shape({
@@ -255,6 +262,10 @@ UserDetailsTab.propTypes = {
     onDirtyChange: PropTypes.func,
     /** Form ID for external submit button */
     formId: PropTypes.string,
+    /** Options for job title select */
+    jobTitleOptions: PropTypes.arrayOf(optionShape),
+    /** Options for department select */
+    departmentOptions: PropTypes.arrayOf(optionShape),
 };
 
 export default UserDetailsTab;
