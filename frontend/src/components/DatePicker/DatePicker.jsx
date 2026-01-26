@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import Portal from '../Portal';
+import useDropdownPosition from '../../hooks/useDropdownPosition';
 import './DatePicker.css';
 
 const DAYS_OF_WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -113,10 +115,15 @@ const DatePicker = forwardRef(({
     const [focusedDate, setFocusedDate] = useState(null);
 
     const containerRef = useRef(null);
+    const triggerRef = useRef(null);
     const inputRef = useRef(null);
+    const dropdownRef = useRef(null);
 
     const pickerId = id || (name ? `datepicker-${name}` : undefined);
     const today = new Date();
+
+    // Get dropdown position for portal
+    const dropdownPosition = useDropdownPosition(triggerRef, isOpen);
 
     // Update input value when value prop changes
     useEffect(() => {
@@ -143,7 +150,9 @@ const DatePicker = forwardRef(({
     // Handle click outside
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (containerRef.current && !containerRef.current.contains(e.target)) {
+            const isInsideContainer = containerRef.current?.contains(e.target);
+            const isInsideDropdown = dropdownRef.current?.contains(e.target);
+            if (!isInsideContainer && !isInsideDropdown) {
                 setIsOpen(false);
                 setView('days');
                 setFocusedDate(null);
@@ -164,6 +173,19 @@ const DatePicker = forwardRef(({
             setFocusedDate(null);
         }
     }, [isOpen, view, value]);
+
+    // Focus input when dropdown opens
+    useEffect(() => {
+        if (isOpen && !isRange) {
+            requestAnimationFrame(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                    // Select all text for easy replacement
+                    inputRef.current.select();
+                }
+            });
+        }
+    }, [isOpen, isRange]);
 
     // Keyboard navigation handler
     const handleKeyDown = useCallback((e) => {
@@ -300,15 +322,36 @@ const DatePicker = forwardRef(({
         setView('months');
     };
 
-    // Input change handler
-    const handleInputChange = (e) => {
-        const val = e.target.value;
-        setInputValue(val);
+    // Apply date mask (DD.MM.YYYY)
+    const applyDateMask = (value) => {
+        // Remove all non-digits
+        const digits = value.replace(/\D/g, '');
 
-        const parsed = parseDate(val, format);
-        if (parsed) {
-            onChange?.(parsed);
-            setViewDate(parsed);
+        // Build masked value
+        let masked = '';
+        for (let i = 0; i < digits.length && i < 8; i++) {
+            if (i === 2 || i === 4) {
+                masked += '.';
+            }
+            masked += digits[i];
+        }
+
+        return masked;
+    };
+
+    // Input change handler with mask
+    const handleInputChange = (e) => {
+        const rawValue = e.target.value;
+        const maskedValue = applyDateMask(rawValue);
+        setInputValue(maskedValue);
+
+        // Parse and update if complete date
+        if (maskedValue.length === 10) {
+            const parsed = parseDate(maskedValue, format);
+            if (parsed) {
+                onChange?.(parsed);
+                setViewDate(parsed);
+            }
         }
     };
 
@@ -577,7 +620,11 @@ const DatePicker = forwardRef(({
             )}
 
             <div
-                ref={ref}
+                ref={(node) => {
+                    triggerRef.current = node;
+                    if (typeof ref === 'function') ref(node);
+                    else if (ref) ref.current = node;
+                }}
                 className="datepicker__trigger"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 onKeyDown={handleKeyDown}
@@ -626,12 +673,23 @@ const DatePicker = forwardRef(({
             </div>
 
             {isOpen && (
-                <div className="datepicker__dropdown">
-                    {renderHeader()}
-                    {view === 'days' && renderDays()}
-                    {view === 'months' && renderMonths()}
-                    {view === 'years' && renderYears()}
-                </div>
+                <Portal>
+                    <div
+                        ref={dropdownRef}
+                        className="datepicker__dropdown"
+                        style={{
+                            position: 'fixed',
+                            top: dropdownPosition.placement === 'bottom' ? dropdownPosition.top : 'auto',
+                            bottom: dropdownPosition.placement === 'top' ? dropdownPosition.bottom : 'auto',
+                            left: dropdownPosition.left,
+                        }}
+                    >
+                        {renderHeader()}
+                        {view === 'days' && renderDays()}
+                        {view === 'months' && renderMonths()}
+                        {view === 'years' && renderYears()}
+                    </div>
+                </Portal>
             )}
 
             {showError && (

@@ -414,11 +414,12 @@ describe('Select', () => {
         });
 
         it('applies custom menuClassName to menu', () => {
-            const { container } = render(<Select options={defaultOptions} menuClassName="custom-menu" />);
+            render(<Select options={defaultOptions} menuClassName="custom-menu" />);
 
             fireEvent.click(screen.getByRole('combobox'));
 
-            expect(container.querySelector('.select__menu.custom-menu')).toBeInTheDocument();
+            // Menu is rendered in Portal (document.body), not inside container
+            expect(document.querySelector('.select__menu.custom-menu')).toBeInTheDocument();
         });
     });
 

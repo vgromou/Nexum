@@ -153,11 +153,7 @@
 
 /* ===== Dropdown ===== */
 .datepicker__dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 1000;
-    margin-top: var(--space-xs);
+    z-index: 9999;
     padding: var(--space-md);
     background-color: var(--surface-card);
     border: 1px solid var(--border-default);

@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { Check, ChevronDown, X } from 'lucide-react';
+import Portal from '../Portal';
+import useDropdownPosition from '../../hooks/useDropdownPosition';
 import './Select.css';
 
 /**
@@ -136,12 +138,16 @@ const Select = forwardRef(({
     const [searchQuery, setSearchQuery] = useState('');
     const [isScrolling, setIsScrolling] = useState(false);
     const containerRef = useRef(null);
+    const triggerRef = useRef(null);
     const inputRef = useRef(null);
     const menuRef = useRef(null);
     const scrollTimeoutRef = useRef(null);
 
     // Generate unique ID if not provided
     const selectId = id || (name ? `select-${name}` : undefined);
+
+    // Get dropdown position for portal
+    const dropdownPosition = useDropdownPosition(triggerRef, isOpen);
 
     // Normalize value to array for consistent handling
     const selectedValues = multiple
@@ -161,7 +167,9 @@ const Select = forwardRef(({
     // Handle click outside to close
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
+            const isInsideContainer = containerRef.current?.contains(event.target);
+            const isInsideMenu = menuRef.current?.contains(event.target);
+            if (!isInsideContainer && !isInsideMenu) {
                 setIsOpen(false);
                 setSearchQuery('');
             }
@@ -260,11 +268,16 @@ const Select = forwardRef(({
 
     // Focus input when dropdown opens
     useEffect(() => {
-        if (isOpen && searchable && inputRef.current) {
-            inputRef.current.focus();
-            // Move caret to end
-            const len = inputRef.current.value.length;
-            inputRef.current.setSelectionRange(len, len);
+        if (isOpen && searchable) {
+            // Use requestAnimationFrame to ensure input is rendered
+            requestAnimationFrame(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                    // Move caret to end
+                    const len = inputRef.current.value.length;
+                    inputRef.current.setSelectionRange(len, len);
+                }
+            });
         }
     }, [isOpen, searchable]);
 
@@ -299,7 +312,11 @@ const Select = forwardRef(({
             )}
 
             <div
-                ref={ref}
+                ref={(node) => {
+                    triggerRef.current = node;
+                    if (typeof ref === 'function') ref(node);
+                    else if (ref) ref.current = node;
+                }}
                 className="select__trigger"
                 role="combobox"
                 aria-expanded={isOpen}
@@ -371,27 +388,36 @@ const Select = forwardRef(({
             </div>
 
             {isOpen && (
-                <div
-                    ref={menuRef}
-                    className={menuClasses}
-                    role="listbox"
-                    aria-multiselectable={multiple}
-                    onScroll={handleMenuScroll}
-                >
-                    {filteredOptions.length === 0 ? (
-                        <div className="select__no-options">No options</div>
-                    ) : (
-                        filteredOptions.map((option) => (
-                            <SelectOption
-                                key={option.value}
-                                option={option}
-                                isSelected={selectedValues.includes(option.value)}
-                                isDisabled={option.disabled}
-                                onSelect={handleSelect}
-                            />
-                        ))
-                    )}
-                </div>
+                <Portal>
+                    <div
+                        ref={menuRef}
+                        className={menuClasses}
+                        role="listbox"
+                        aria-multiselectable={multiple}
+                        onScroll={handleMenuScroll}
+                        style={{
+                            position: 'fixed',
+                            top: dropdownPosition.placement === 'bottom' ? dropdownPosition.top : 'auto',
+                            bottom: dropdownPosition.placement === 'top' ? dropdownPosition.bottom : 'auto',
+                            left: dropdownPosition.left,
+                            width: dropdownPosition.width,
+                        }}
+                    >
+                        {filteredOptions.length === 0 ? (
+                            <div className="select__no-options">No options</div>
+                        ) : (
+                            filteredOptions.map((option) => (
+                                <SelectOption
+                                    key={option.value}
+                                    option={option}
+                                    isSelected={selectedValues.includes(option.value)}
+                                    isDisabled={option.disabled}
+                                    onSelect={handleSelect}
+                                />
+                            ))
+                        )}
+                    </div>
+                </Portal>
             )}
 
             {showError && (
