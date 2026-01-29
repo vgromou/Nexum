@@ -12,12 +12,13 @@ public class UnauthorizedException : ApiException
     public UnauthorizedException(
         string message = "Authentication required",
         string errorCode = ErrorCodes.AUTH_TOKEN_INVALID,
-        ApiErrorDetails? details = null)
+        ApiErrorDetails? details = null,
+        DisplayType displayType = DisplayType.Page)
         : base(
             statusCode: 401,
             errorCode: errorCode,
             message: message,
-            displayType: DisplayType.Page,
+            displayType: displayType,
             details: details)
     {
     }
@@ -25,12 +26,14 @@ public class UnauthorizedException : ApiException
     /// <summary>
     /// Creates an exception for invalid credentials (login/password).
     /// Uses a generic message to avoid revealing whether the login exists.
+    /// DisplayType: Field - shows error under form fields.
     /// </summary>
     public static UnauthorizedException InvalidCredentials()
     {
         return new UnauthorizedException(
             "Invalid login or password",
-            ErrorCodes.AUTH_INVALID_CREDENTIALS);
+            ErrorCodes.AUTH_INVALID_CREDENTIALS,
+            displayType: DisplayType.Field);
     }
 
     /// <summary>

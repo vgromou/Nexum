@@ -26,29 +26,34 @@ const LoginPage = () => {
       try {
         await login(username, password);
       } catch (error) {
-        const errorCode = error.response?.data?.errorCode;
-        const message =
-          error.response?.data?.message || 'Login failed. Please try again.';
+        const responseData = error.response?.data;
 
-        // Handle specific error codes
-        if (errorCode === 'VALIDATION_ERROR') {
-          // Check if it's a specific field error
-          const details = error.response?.data?.details;
-          if (details?.login) {
-            setErrors((prev) => ({ ...prev, username: details.login }));
-          } else if (details?.password) {
-            setErrors((prev) => ({ ...prev, password: details.password }));
-          } else {
-            setErrors((prev) => ({ ...prev, general: message }));
-          }
-        } else if (
-          errorCode === 'INVALID_CREDENTIALS' ||
-          errorCode === 'ACCOUNT_DEACTIVATED' ||
-          errorCode === 'ACCOUNT_LOCKED'
-        ) {
-          setErrors((prev) => ({ ...prev, general: message }));
+        // Handle ASP.NET validation errors (400 Bad Request)
+        if (responseData?.errors) {
+          const validationErrors = responseData.errors;
+          setErrors({
+            username: validationErrors.Login?.[0] || '',
+            password: validationErrors.Password?.[0] || '',
+            general: '',
+          });
+          return;
+        }
+
+        // Handle our custom API errors
+        const errorData = responseData?.error;
+        const message = errorData?.message;
+        const displayType = errorData?.displayType;
+
+        if (displayType === 'field') {
+          // Show error under form fields
+          setErrors({
+            username: ' ',
+            password: message || 'Invalid username or password',
+            general: '',
+          });
         } else {
-          setErrors((prev) => ({ ...prev, general: message }));
+          // Default: show as general error (page/toast/inline)
+          setErrors((prev) => ({ ...prev, general: message || 'Login failed' }));
         }
       } finally {
         setIsLoading(false);

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import {
     LogOut,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import IconButton from '../Button/IconButton';
 import RoleBadge from '../RoleBadge';
+import ConfirmationPopover from '../ConfirmationPopover';
 import './UserCard.css';
 
 /** Maximum combined length of email + username for inline layout */
@@ -85,9 +87,11 @@ const UserCard = ({
     const [shouldRender, setShouldRender] = useState(false);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [copiedField, setCopiedField] = useState(null);
+    const [isSignOutPopoverOpen, setIsSignOutPopoverOpen] = useState(false);
     const cardRef = useRef(null);
     const compactRef = useRef(null);
     const expandedRef = useRef(null);
+    const signOutButtonRef = useRef(null);
 
     // Handle open/close animation
     useEffect(() => {
@@ -129,6 +133,12 @@ const UserCard = ({
         if (!isOpen) return;
 
         const handleClickOutside = (event) => {
+            // Don't close if clicking inside the sign out popover
+            const popover = document.querySelector('.confirmation-popover');
+            if (popover?.contains(event.target)) {
+                return;
+            }
+
             if (
                 cardRef.current &&
                 !cardRef.current.contains(event.target) &&
@@ -167,6 +177,20 @@ const UserCard = ({
             console.error('Failed to copy:', err);
         }
     }, []);
+
+    // Sign out popover handlers
+    const handleSignOutClick = useCallback(() => {
+        setIsSignOutPopoverOpen(true);
+    }, []);
+
+    const handleSignOutCancel = useCallback(() => {
+        setIsSignOutPopoverOpen(false);
+    }, []);
+
+    const handleSignOutConfirm = useCallback(() => {
+        setIsSignOutPopoverOpen(false);
+        onLogout?.();
+    }, [onLogout]);
 
     if (!shouldRender || !user) return null;
 
@@ -220,13 +244,15 @@ const UserCard = ({
             >
                 {/* Header */}
                 <header className="user-card__header">
-                    <IconButton
-                        icon={isLoggingOut ? <Loader2 size={16} className="user-card__spinner" /> : <LogOut size={16} />}
-                        size="sm"
-                        onClick={onLogout}
-                        disabled={isLoggingOut}
-                        aria-label={isLoggingOut ? 'Logging out...' : 'Log out'}
-                    />
+                    <div ref={signOutButtonRef}>
+                        <IconButton
+                            icon={isLoggingOut ? <Loader2 size={16} className="user-card__spinner" /> : <LogOut size={16} />}
+                            size="sm"
+                            onClick={handleSignOutClick}
+                            disabled={isLoggingOut || isSignOutPopoverOpen}
+                            aria-label={isLoggingOut ? 'Signing out...' : 'Sign out'}
+                        />
+                    </div>
                     <div className="user-card__header-actions">
                         <IconButton
                             icon={<Settings size={16} />}
@@ -309,9 +335,9 @@ const UserCard = ({
                     <IconButton
                         icon={isLoggingOut ? <Loader2 size={16} className="user-card__spinner" /> : <LogOut size={16} />}
                         size="sm"
-                        onClick={onLogout}
-                        disabled={isLoggingOut}
-                        aria-label={isLoggingOut ? 'Logging out...' : 'Log out'}
+                        onClick={handleSignOutClick}
+                        disabled={isLoggingOut || isSignOutPopoverOpen}
+                        aria-label={isLoggingOut ? 'Signing out...' : 'Sign out'}
                     />
                     <div className="user-card__header-actions">
                         <IconButton
@@ -433,6 +459,31 @@ const UserCard = ({
                     </div>
                 </div>
             </div>
+
+            {/* Sign Out Confirmation Popover - rendered via portal to escape overflow:hidden */}
+            {ReactDOM.createPortal(
+                <ConfirmationPopover
+                    isOpen={isSignOutPopoverOpen}
+                    onClose={handleSignOutCancel}
+                    title="Sign out of Nexum?"
+                    anchorRef={signOutButtonRef}
+                    placement="bottom"
+                    actions={[
+                        {
+                            label: 'Cancel',
+                            variant: 'outline',
+                            onClick: handleSignOutCancel,
+                        },
+                        {
+                            label: 'Sign Out',
+                            variant: 'destructive',
+                            onClick: handleSignOutConfirm,
+                            disabled: isLoggingOut,
+                        },
+                    ]}
+                />,
+                document.body
+            )}
         </div>
     );
 };
