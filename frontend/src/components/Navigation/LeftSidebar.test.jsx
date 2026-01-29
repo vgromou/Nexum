@@ -1,37 +1,79 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
 import LeftSidebar from './LeftSidebar';
+import { AuthContext } from '../../contexts/AuthContext';
+
+// Mock user data
+const mockUser = {
+    id: '123',
+    email: 'viktor@example.com',
+    username: 'vgromov',
+    firstName: 'Viktor',
+    lastName: 'Gromov',
+    position: 'Business Analyst',
+    organizationRole: 'user',
+    avatarUrl: null,
+};
+
+// Mock AuthContext value
+const mockAuthContext = {
+    user: mockUser,
+    isAuthenticated: true,
+    isSessionExpired: false,
+    isLoading: false,
+    mustChangePassword: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    reAuthenticate: vi.fn(),
+    clearSessionExpired: vi.fn(),
+    updateUser: vi.fn(),
+    refreshUser: vi.fn(),
+    onPasswordChanged: vi.fn(),
+};
+
+// Wrapper component for AuthContext
+const renderWithAuth = (ui, contextValue = mockAuthContext) => {
+    return render(
+        <AuthContext.Provider value={contextValue}>
+            {ui}
+        </AuthContext.Provider>
+    );
+};
 
 describe('LeftSidebar', () => {
     it('renders header with space button and search', () => {
-        render(<LeftSidebar />);
+        renderWithAuth(<LeftSidebar />);
 
         expect(screen.getByText('Space Name')).toBeInTheDocument();
-        expect(screen.getByLabelText('Search')).toBeInTheDocument();
+        expect(screen.getByLabelText('Search in space')).toBeInTheDocument();
     });
 
     it('renders standard pages section', () => {
-        render(<LeftSidebar />);
+        renderWithAuth(<LeftSidebar />);
 
         expect(screen.getByText('News')).toBeInTheDocument();
         expect(screen.getByText('Glossary')).toBeInTheDocument();
     });
 
     it('renders section divider', () => {
-        render(<LeftSidebar />);
+        renderWithAuth(<LeftSidebar />);
 
         expect(screen.getByText('PAGES')).toBeInTheDocument();
     });
 
-    it('renders footer with user info', () => {
-        render(<LeftSidebar />);
+    it('renders footer with user info from context', () => {
+        renderWithAuth(<LeftSidebar />);
 
+        // User name from mock context
         expect(screen.getByText('Viktor Gromov')).toBeInTheDocument();
+        // Position from mock context
         expect(screen.getByText('Business Analyst')).toBeInTheDocument();
         expect(screen.getByLabelText('Notifications')).toBeInTheDocument();
     });
 
     it('toggles collection when clicked', () => {
-        render(<LeftSidebar />);
+        renderWithAuth(<LeftSidebar />);
 
         // Find expand buttons
         const expandButtons = screen.getAllByLabelText(/Collapse|Expand/);
@@ -43,7 +85,7 @@ describe('LeftSidebar', () => {
     });
 
     it('has correct structure and styling classes', () => {
-        const { container } = render(<LeftSidebar />);
+        const { container } = renderWithAuth(<LeftSidebar />);
 
         expect(container.querySelector('.left-sidebar')).toBeInTheDocument();
         expect(container.querySelector('.sidebar-header')).toBeInTheDocument();
@@ -53,7 +95,7 @@ describe('LeftSidebar', () => {
 
     describe('Collection Switcher', () => {
         it('renders collection key buttons', () => {
-            render(<LeftSidebar />);
+            renderWithAuth(<LeftSidebar />);
 
             expect(screen.getByRole('button', { name: 'PAGES' })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: 'PRD' })).toBeInTheDocument();
@@ -63,7 +105,7 @@ describe('LeftSidebar', () => {
         });
 
         it('changes active collection when button is clicked', () => {
-            render(<LeftSidebar />);
+            renderWithAuth(<LeftSidebar />);
 
             // Click PRD button
             const prdButton = screen.getByRole('button', { name: 'PRD' });
@@ -77,7 +119,7 @@ describe('LeftSidebar', () => {
         });
 
         it('highlights active collection button', () => {
-            render(<LeftSidebar />);
+            renderWithAuth(<LeftSidebar />);
 
             // PAGES is active by default
             const pagesButton = screen.getByRole('button', { name: 'PAGES' });
@@ -92,7 +134,7 @@ describe('LeftSidebar', () => {
         });
 
         it('has correct styling structure', () => {
-            const { container } = render(<LeftSidebar />);
+            const { container } = renderWithAuth(<LeftSidebar />);
 
             expect(container.querySelector('.collection-switcher')).toBeInTheDocument();
             expect(container.querySelector('.collection-switcher-inner')).toBeInTheDocument();
@@ -102,14 +144,14 @@ describe('LeftSidebar', () => {
 
     describe('Collection Name Divider', () => {
         it('displays collection full name in divider', () => {
-            render(<LeftSidebar />);
+            renderWithAuth(<LeftSidebar />);
 
             // Default shows Pages
             expect(screen.getByText('Pages')).toBeInTheDocument();
         });
 
         it('updates divider label when collection changes', () => {
-            render(<LeftSidebar />);
+            renderWithAuth(<LeftSidebar />);
 
             // Click on API collection
             fireEvent.click(screen.getByRole('button', { name: 'API' }));
@@ -119,7 +161,7 @@ describe('LeftSidebar', () => {
         });
 
         it('shows action buttons on hover', () => {
-            const { container } = render(<LeftSidebar />);
+            const { container } = renderWithAuth(<LeftSidebar />);
 
             // Click on non-PAGES collection first (PAGES doesn't show settings)
             fireEvent.click(screen.getByRole('button', { name: 'PRD' }));
@@ -136,7 +178,7 @@ describe('LeftSidebar', () => {
         });
 
         it('hides action buttons on mouse leave', () => {
-            const { container } = render(<LeftSidebar />);
+            const { container } = renderWithAuth(<LeftSidebar />);
 
             // Use non-PAGES collection
             fireEvent.click(screen.getByRole('button', { name: 'PRD' }));
@@ -152,7 +194,7 @@ describe('LeftSidebar', () => {
         });
 
         it('does not show Settings button for PAGES collection', () => {
-            const { container } = render(<LeftSidebar />);
+            const { container } = renderWithAuth(<LeftSidebar />);
 
             const divider = container.querySelector('.collection-name-divider');
             fireEvent.mouseEnter(divider);

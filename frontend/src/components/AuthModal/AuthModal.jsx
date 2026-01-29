@@ -11,22 +11,33 @@ import './AuthModal.css';
  * AuthModal Component
  *
  * A login modal with username/email and password fields.
- * Supports error states and loading state.
+ * Supports error states, loading state, and session expiry mode.
  *
  * @example
+ * // Normal login
  * <AuthModal
  *   isOpen={showLogin}
  *   onSubmit={handleLogin}
  *   onClose={handleClose}
  * />
+ *
+ * @example
+ * // Session expired
+ * <AuthModal
+ *   isOpen={isSessionExpired}
+ *   mode="sessionExpired"
+ *   onSubmit={handleReauth}
+ * />
  */
 const AuthModal = ({
     isOpen = false,
+    mode = 'login',
     onSubmit,
     onClose,
     isLoading = false,
     usernameError,
     passwordError,
+    generalError,
     className = '',
     ...rest
 }) => {
@@ -58,12 +69,12 @@ const AuthModal = ({
         setShowPassword(prev => !prev);
     }, []);
 
-    // Handle overlay click
+    // Handle overlay click - don't allow closing in sessionExpired mode
     const handleOverlayClick = useCallback(() => {
-        if (!isLoading && onClose) {
+        if (!isLoading && onClose && mode !== 'sessionExpired') {
             onClose();
         }
-    }, [isLoading, onClose]);
+    }, [isLoading, onClose, mode]);
 
     // Prevent clicks inside modal from closing it
     const handleModalClick = useCallback((e) => {
@@ -104,8 +115,24 @@ const AuthModal = ({
 
                 {/* Subtitle */}
                 <h2 id="auth-modal-title" className="auth-modal__title">
-                    Sign into your account
+                    {mode === 'sessionExpired'
+                        ? 'Session expired'
+                        : 'Sign into your account'}
                 </h2>
+
+                {/* Session expired message */}
+                {mode === 'sessionExpired' && (
+                    <p className="auth-modal__message">
+                        Your session has expired. Please sign in again to continue.
+                    </p>
+                )}
+
+                {/* General error */}
+                {generalError && (
+                    <div className="auth-modal__error">
+                        {generalError}
+                    </div>
+                )}
 
                 {/* Form */}
                 <form className="auth-modal__form" onSubmit={handleSubmit}>
@@ -160,6 +187,8 @@ const AuthModal = ({
 AuthModal.propTypes = {
     /** Controls modal visibility */
     isOpen: PropTypes.bool,
+    /** Modal mode - 'login' for initial login, 'sessionExpired' for re-authentication */
+    mode: PropTypes.oneOf(['login', 'sessionExpired']),
     /** Callback when form is submitted with { username, password } */
     onSubmit: PropTypes.func,
     /** Callback when modal should close */
@@ -170,6 +199,8 @@ AuthModal.propTypes = {
     usernameError: PropTypes.string,
     /** Error message for password field */
     passwordError: PropTypes.string,
+    /** General error message (e.g., invalid credentials) */
+    generalError: PropTypes.string,
     /** Additional CSS classes */
     className: PropTypes.string,
 };

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import Layout from './Layout';
 
 // Mock sub-components to isolate Layout test

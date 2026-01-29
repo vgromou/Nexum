@@ -60,6 +60,27 @@
     text-align: center;
 }
 
+/* Session expired message */
+.auth-modal__message {
+    margin: 0;
+    font-size: var(--typography-small-size);
+    line-height: var(--typography-small-line-height);
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* General error */
+.auth-modal__error {
+    padding: var(--space-md);
+    background: var(--surface-error);
+    border: 1px solid var(--border-error);
+    border-radius: var(--radius-md);
+    font-size: var(--typography-small-size);
+    line-height: var(--typography-small-line-height);
+    color: var(--text-error);
+    text-align: center;
+}
+
 /* Form */
 .auth-modal__form {
     display: flex;

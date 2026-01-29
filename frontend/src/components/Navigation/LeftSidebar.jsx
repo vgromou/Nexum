@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
 import {
     ChevronRight,
     ChevronDown,
@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import SpaceButton from './SpaceButton';
 import UserButton from './UserButton';
+import UserCard from '../UserCard';
+import UserSettings from '../UserSettings';
+import { useAuth } from '../../hooks/useAuth';
 import './LeftSidebar.css';
 
 // Page item component for navigation - memoized to prevent unnecessary re-renders
@@ -239,8 +242,12 @@ const CollectionSwitcher = ({ collections, activeCollection, onCollectionChange 
 };
 
 const LeftSidebar = () => {
+    const { user, logout } = useAuth();
     const [activePageId, setActivePageId] = useState('page-title-active');
     const [activeCollection, setActiveCollection] = useState('PAGES');
+    const [isUserCardOpen, setIsUserCardOpen] = useState(false);
+    const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+    const userButtonRef = useRef(null);
 
     // Mock collections data - with full names
     const [collections, setCollections] = useState([
@@ -256,6 +263,54 @@ const LeftSidebar = () => {
             c.key === key ? { ...c, name: newName } : c
         ));
     };
+
+    const handleUserClick = useCallback(() => {
+        setIsUserCardOpen(true);
+    }, []);
+
+    const handleUserCardClose = useCallback(() => {
+        setIsUserCardOpen(false);
+    }, []);
+
+    const handleLogout = useCallback(async () => {
+        setIsUserCardOpen(false);
+        await logout();
+    }, [logout]);
+
+    const handleSettings = useCallback(() => {
+        setIsUserCardOpen(false);
+        setIsUserSettingsOpen(true);
+    }, []);
+
+    const handleSettingsClose = useCallback(() => {
+        setIsUserSettingsOpen(false);
+    }, []);
+
+    const handleSaveProfile = useCallback(async (data) => {
+        // TODO: Implement profile save via API
+        console.log('Save profile:', data);
+    }, []);
+
+    const handleChangePassword = useCallback(async (data) => {
+        // TODO: Implement password change via API
+        console.log('Change password:', data);
+    }, []);
+
+    // Transform user data for UserCard
+    const userCardData = user ? {
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        avatarUrl: user.avatarUrl,
+        description: user.position,
+        email: user.email || '',
+        username: `@${user.username || ''}`,
+        orgRole: user.organizationRole || 'user',
+        spaceRole: 'Member', // TODO: Get from space context
+        birthday: user.birthday,
+        location: user.location,
+        jobTitle: user.position,
+        department: user.department,
+    } : null;
 
     const activeCollectionData = collections.find(c => c.key === activeCollection);
     return (
@@ -350,15 +405,37 @@ const LeftSidebar = () => {
             <div className="footer-divider" />
 
             {/* Footer */}
-            <footer className="sidebar-footer">
+            <footer className="sidebar-footer" ref={userButtonRef}>
                 <UserButton
-                    avatarUrl="https://api.dicebear.com/7.x/avataaars/svg?seed=Viktor"
-                    name="Viktor Gromov"
-                    role="Business Analyst"
-                    onUserClick={() => console.log('User clicked')}
+                    avatarUrl={user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'user'}`}
+                    name={user ? `${user.firstName} ${user.lastName}` : 'User'}
+                    role={user?.position || 'Member'}
+                    onUserClick={handleUserClick}
                     onNotificationClick={() => console.log('Notification clicked')}
                 />
             </footer>
+
+            {/* UserCard Popup */}
+            {userCardData && (
+                <UserCard
+                    isOpen={isUserCardOpen}
+                    user={userCardData}
+                    onClose={handleUserCardClose}
+                    onLogout={handleLogout}
+                    onSettings={handleSettings}
+                    onNotificationClick={() => console.log('Notification clicked')}
+                    anchorRef={userButtonRef}
+                />
+            )}
+
+            {/* User Settings Dialog */}
+            <UserSettings
+                isOpen={isUserSettingsOpen}
+                onClose={handleSettingsClose}
+                user={user}
+                onSave={handleSaveProfile}
+                onChangePassword={handleChangePassword}
+            />
         </aside>
     );
 };
