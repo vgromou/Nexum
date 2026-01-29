@@ -18,6 +18,9 @@ import './UserCard.css';
 /** Maximum combined length of email + username for inline layout */
 const CONTACTS_INLINE_THRESHOLD = 35;
 
+/** Confirmation dialog title for sign out */
+const SIGN_OUT_CONFIRMATION_TITLE = 'Sign out of Nexum?';
+
 /**
  * Copyable text component - renders a button that copies text to clipboard on click
  */
@@ -92,6 +95,7 @@ const UserCard = ({
     const compactRef = useRef(null);
     const expandedRef = useRef(null);
     const signOutButtonRef = useRef(null);
+    const signOutButtonExpandedRef = useRef(null);
 
     // Handle open/close animation
     useEffect(() => {
@@ -133,9 +137,8 @@ const UserCard = ({
         if (!isOpen) return;
 
         const handleClickOutside = (event) => {
-            // Don't close if clicking inside the sign out popover
-            const popover = document.querySelector('.confirmation-popover');
-            if (popover?.contains(event.target)) {
+            // Don't close UserCard while sign out popover is open
+            if (isSignOutPopoverOpen) {
                 return;
             }
 
@@ -151,7 +154,7 @@ const UserCard = ({
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen, onClose, anchorRef]);
+    }, [isOpen, onClose, anchorRef, isSignOutPopoverOpen]);
 
     // Handle escape key
     useEffect(() => {
@@ -332,13 +335,15 @@ const UserCard = ({
             >
                 {/* Header */}
                 <header className="user-card__header">
-                    <IconButton
-                        icon={isLoggingOut ? <Loader2 size={16} className="user-card__spinner" /> : <LogOut size={16} />}
-                        size="sm"
-                        onClick={handleSignOutClick}
-                        disabled={isLoggingOut || isSignOutPopoverOpen}
-                        aria-label={isLoggingOut ? 'Signing out...' : 'Sign out'}
-                    />
+                    <div ref={signOutButtonExpandedRef}>
+                        <IconButton
+                            icon={isLoggingOut ? <Loader2 size={16} className="user-card__spinner" /> : <LogOut size={16} />}
+                            size="sm"
+                            onClick={handleSignOutClick}
+                            disabled={isLoggingOut || isSignOutPopoverOpen}
+                            aria-label={isLoggingOut ? 'Signing out...' : 'Sign out'}
+                        />
+                    </div>
                     <div className="user-card__header-actions">
                         <IconButton
                             icon={<Settings size={16} />}
@@ -465,8 +470,8 @@ const UserCard = ({
                 <ConfirmationPopover
                     isOpen={isSignOutPopoverOpen}
                     onClose={handleSignOutCancel}
-                    title="Sign out of Nexum?"
-                    anchorRef={signOutButtonRef}
+                    title={SIGN_OUT_CONFIRMATION_TITLE}
+                    anchorRef={isExpanded ? signOutButtonExpandedRef : signOutButtonRef}
                     placement="bottom"
                     actions={[
                         {

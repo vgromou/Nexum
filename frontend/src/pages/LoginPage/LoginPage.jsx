@@ -47,7 +47,7 @@ const LoginPage = () => {
         if (displayType === 'field') {
           // Show error under form fields
           setErrors({
-            username: ' ',
+            username: '',
             password: message || 'Invalid username or password',
             general: '',
           });
