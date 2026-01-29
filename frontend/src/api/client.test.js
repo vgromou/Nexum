@@ -125,9 +125,12 @@ describe('client interceptors behavior', () => {
         response: { status: 401 },
         config: { url: '/api/auth/refresh', _retry: false },
       };
+      const url = error.config.url || '';
       const isAuthEndpoint =
-        error.config.url?.includes('/auth/refresh') ||
-        error.config.url?.includes('/auth/login');
+        url === '/api/auth/refresh' ||
+        url === '/api/auth/login' ||
+        url.endsWith('/auth/refresh') ||
+        url.endsWith('/auth/login');
       expect(isAuthEndpoint).toBe(true);
     });
 
@@ -136,10 +139,27 @@ describe('client interceptors behavior', () => {
         response: { status: 401 },
         config: { url: '/api/auth/login', _retry: false },
       };
+      const url = error.config.url || '';
       const isAuthEndpoint =
-        error.config.url?.includes('/auth/refresh') ||
-        error.config.url?.includes('/auth/login');
+        url === '/api/auth/refresh' ||
+        url === '/api/auth/login' ||
+        url.endsWith('/auth/refresh') ||
+        url.endsWith('/auth/login');
       expect(isAuthEndpoint).toBe(true);
+    });
+
+    it('should retry endpoint that contains auth in path but is not auth endpoint', () => {
+      const error = {
+        response: { status: 401 },
+        config: { url: '/api/auth-history/list', _retry: false },
+      };
+      const url = error.config.url || '';
+      const isAuthEndpoint =
+        url === '/api/auth/refresh' ||
+        url === '/api/auth/login' ||
+        url.endsWith('/auth/refresh') ||
+        url.endsWith('/auth/login');
+      expect(isAuthEndpoint).toBe(false);
     });
   });
 });

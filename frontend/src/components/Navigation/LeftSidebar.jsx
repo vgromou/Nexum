@@ -274,7 +274,11 @@ const LeftSidebar = () => {
 
     const handleLogout = useCallback(async () => {
         setIsUserCardOpen(false);
-        await logout();
+        try {
+            await logout();
+        } catch {
+            // Logout errors are handled in authApi, state is already cleared
+        }
     }, [logout]);
 
     const handleSettings = useCallback(() => {
@@ -286,14 +290,12 @@ const LeftSidebar = () => {
         setIsUserSettingsOpen(false);
     }, []);
 
-    const handleSaveProfile = useCallback(async (data) => {
-        // TODO: Implement profile save via API
-        console.log('Save profile:', data);
+    const handleSaveProfile = useCallback(async () => {
+        // Profile save will be implemented when UserSettings API is ready
     }, []);
 
-    const handleChangePassword = useCallback(async (data) => {
-        // TODO: Implement password change via API
-        console.log('Change password:', data);
+    const handleChangePassword = useCallback(async () => {
+        // Password change will be implemented when UserSettings API is ready
     }, []);
 
     // Transform user data for UserCard

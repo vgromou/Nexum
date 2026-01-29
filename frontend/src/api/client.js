@@ -96,10 +96,13 @@ client.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Don't retry refresh or login endpoints
+    // Don't retry refresh or login endpoints (exact path match)
+    const url = originalRequest.url || '';
     if (
-      originalRequest.url?.includes('/auth/refresh') ||
-      originalRequest.url?.includes('/auth/login')
+      url === '/api/auth/refresh' ||
+      url === '/api/auth/login' ||
+      url.endsWith('/auth/refresh') ||
+      url.endsWith('/auth/login')
     ) {
       return Promise.reject(error);
     }

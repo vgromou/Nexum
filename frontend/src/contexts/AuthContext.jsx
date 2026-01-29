@@ -41,10 +41,17 @@ export function AuthProvider({ children }) {
       try {
         // Try to refresh token to restore session
         await apiRefresh();
-        const userData = await getMe();
-        setUser(userData);
-        setIsAuthenticated(true);
-        setMustChangePassword(userData.mustChangePassword || false);
+
+        try {
+          const userData = await getMe();
+          setUser(userData);
+          setIsAuthenticated(true);
+          setMustChangePassword(userData.mustChangePassword || false);
+        } catch {
+          // Token refreshed but getMe failed - clear and require re-login
+          clearAccessToken();
+          setIsAuthenticated(false);
+        }
       } catch {
         // No valid session
         clearAccessToken();
