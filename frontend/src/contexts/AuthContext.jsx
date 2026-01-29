@@ -79,15 +79,20 @@ export function AuthProvider({ children }) {
 
   /**
    * Logout and clear state
+   * Note: Local state is always cleared even if API call fails
    */
   const logout = useCallback(async () => {
     setIsLoggingOut(true);
     try {
       await apiLogout();
+    } catch (error) {
+      // Log error but continue with local cleanup
+      // User should still be logged out locally even if server request fails
+      console.error('Logout API error:', error);
+    } finally {
       setUser(null);
       setIsAuthenticated(false);
       setMustChangePassword(false);
-    } finally {
       setIsLoggingOut(false);
     }
   }, []);

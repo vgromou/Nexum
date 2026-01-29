@@ -30,6 +30,19 @@ const CopyableText = ({ text, field, copiedField, onCopy, className = '' }) => (
     </button>
 );
 
+CopyableText.propTypes = {
+    /** Text to display and copy */
+    text: PropTypes.string.isRequired,
+    /** Unique field identifier for tracking copied state */
+    field: PropTypes.string.isRequired,
+    /** Currently copied field (for visual feedback) */
+    copiedField: PropTypes.string,
+    /** Callback when text is copied */
+    onCopy: PropTypes.func.isRequired,
+    /** Additional CSS classes */
+    className: PropTypes.string,
+};
+
 /**
  * UserCard Component
  *

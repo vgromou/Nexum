@@ -78,9 +78,7 @@ describe('ProtectedRoute', () => {
     });
 
     it('preserves intended URL in location state', () => {
-      let capturedLocation = null;
       const LoginWithLocation = () => {
-        const location = window.location;
         return <div data-testid="login-page">Login Page</div>;
       };
 

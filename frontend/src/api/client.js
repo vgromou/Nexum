@@ -18,6 +18,9 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5066';
 
+/** Threshold in seconds before token expiry to trigger proactive refresh */
+const PROACTIVE_REFRESH_THRESHOLD = 60;
+
 // Callback for session expiry notification (set by AuthContext)
 let onSessionExpired = null;
 
@@ -57,6 +60,22 @@ const onRefreshComplete = (token) => {
 const onRefreshError = (error) => {
   refreshSubscribers.forEach((callback) => callback(null, error));
   refreshSubscribers = [];
+};
+
+/**
+ * Perform token refresh request
+ * @returns {Promise<string>} New access token
+ * @throws {Error} If refresh fails
+ */
+const performTokenRefresh = async () => {
+  const response = await axios.post(
+    `${API_BASE_URL}/api/auth/refresh`,
+    {},
+    { withCredentials: true }
+  );
+  const { accessToken } = response.data;
+  setAccessToken(accessToken);
+  return accessToken;
 };
 
 /**
@@ -104,14 +123,7 @@ export const ensureValidToken = async () => {
   isRefreshing = true;
 
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/api/auth/refresh`,
-      {},
-      { withCredentials: true }
-    );
-
-    const { accessToken } = response.data;
-    setAccessToken(accessToken);
+    const accessToken = await performTokenRefresh();
     onRefreshComplete(accessToken);
     return true;
   } catch {
@@ -140,8 +152,8 @@ client.interceptors.request.use(
       return config;
     }
 
-    // Proactive refresh if token expires within 60 seconds
-    if (getAccessToken() && isTokenExpiringSoon(60)) {
+    // Proactive refresh if token expires within threshold
+    if (getAccessToken() && isTokenExpiringSoon(PROACTIVE_REFRESH_THRESHOLD)) {
       await ensureValidToken();
     }
 
@@ -190,15 +202,7 @@ client.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // Try to refresh token
-      const response = await axios.post(
-        `${API_BASE_URL}/api/auth/refresh`,
-        {},
-        { withCredentials: true }
-      );
-
-      const { accessToken } = response.data;
-      setAccessToken(accessToken);
+      const accessToken = await performTokenRefresh();
       onRefreshComplete(accessToken);
 
       // Retry original request with new token
