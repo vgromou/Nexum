@@ -85,3 +85,20 @@ export const getTokenExpiresIn = () => {
   const remaining = expiresAt - Date.now();
   return remaining > 0 ? remaining : 0;
 };
+
+/**
+ * Check if token will expire within given threshold
+ * @param {number} thresholdSeconds - Seconds before expiration to consider "expiring soon"
+ * @returns {boolean} True if token expires within threshold or doesn't exist
+ */
+export const isTokenExpiringSoon = (thresholdSeconds = 60) => {
+  const token = getAccessToken();
+  if (!token) return true;
+
+  const payload = parseToken(token);
+  if (!payload || !payload.exp) return true;
+
+  const expiresAt = payload.exp * 1000;
+  const threshold = thresholdSeconds * 1000;
+  return Date.now() >= expiresAt - threshold;
+};

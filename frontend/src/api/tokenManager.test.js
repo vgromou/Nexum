@@ -7,6 +7,7 @@ import {
   parseToken,
   isTokenExpired,
   getTokenExpiresIn,
+  isTokenExpiringSoon,
 } from './tokenManager';
 
 describe('tokenManager', () => {
@@ -183,6 +184,71 @@ describe('tokenManager', () => {
       const token = `${header}.${body}.signature`;
       setAccessToken(token);
       expect(getTokenExpiresIn()).toBe(0);
+    });
+  });
+
+  describe('isTokenExpiringSoon', () => {
+    const createTestToken = (exp) => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const body = btoa(JSON.stringify({ exp }));
+      const signature = 'test-signature';
+      return `${header}.${body}.${signature}`;
+    };
+
+    it('returns true when no token exists', () => {
+      expect(isTokenExpiringSoon(60)).toBe(true);
+    });
+
+    it('returns true when token is already expired', () => {
+      const expiredTime = Math.floor(Date.now() / 1000) - 3600;
+      setAccessToken(createTestToken(expiredTime));
+      expect(isTokenExpiringSoon(60)).toBe(true);
+    });
+
+    it('returns true when token expires within threshold', () => {
+      // Token expires in 30 seconds (within 60 second threshold)
+      const nearExpiry = Math.floor(Date.now() / 1000) + 30;
+      setAccessToken(createTestToken(nearExpiry));
+      expect(isTokenExpiringSoon(60)).toBe(true);
+    });
+
+    it('returns false when token expires after threshold', () => {
+      // Token expires in 2 minutes (outside 60 second threshold)
+      const futureTime = Math.floor(Date.now() / 1000) + 120;
+      setAccessToken(createTestToken(futureTime));
+      expect(isTokenExpiringSoon(60)).toBe(false);
+    });
+
+    it('uses default threshold of 60 seconds', () => {
+      // Token expires in 30 seconds - should be expiring soon with default threshold
+      const nearExpiry = Math.floor(Date.now() / 1000) + 30;
+      setAccessToken(createTestToken(nearExpiry));
+      expect(isTokenExpiringSoon()).toBe(true);
+
+      // Token expires in 90 seconds - should NOT be expiring soon with default threshold
+      const futureTime = Math.floor(Date.now() / 1000) + 90;
+      setAccessToken(createTestToken(futureTime));
+      expect(isTokenExpiringSoon()).toBe(false);
+    });
+
+    it('respects custom threshold', () => {
+      // Token expires in 100 seconds
+      const expiryTime = Math.floor(Date.now() / 1000) + 100;
+      setAccessToken(createTestToken(expiryTime));
+
+      // With 60 second threshold - NOT expiring soon
+      expect(isTokenExpiringSoon(60)).toBe(false);
+
+      // With 120 second threshold - IS expiring soon
+      expect(isTokenExpiringSoon(120)).toBe(true);
+    });
+
+    it('returns true when token has no exp claim', () => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const body = btoa(JSON.stringify({ sub: '123' }));
+      const token = `${header}.${body}.signature`;
+      setAccessToken(token);
+      expect(isTokenExpiringSoon(60)).toBe(true);
     });
   });
 });

@@ -13,6 +13,7 @@ import {
   setAccessToken,
   clearAccessToken,
   isTokenExpired,
+  isTokenExpiringSoon,
 } from './tokenManager';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5066';
@@ -70,10 +71,80 @@ const client = axios.create({
 });
 
 /**
- * Request interceptor - attach Bearer token
+ * Check if URL is an auth endpoint that should skip proactive refresh
+ */
+const isAuthEndpoint = (url) => {
+  if (!url) return false;
+  return (
+    url === '/api/auth/refresh' ||
+    url === '/api/auth/login' ||
+    url.endsWith('/auth/refresh') ||
+    url.endsWith('/auth/login')
+  );
+};
+
+/**
+ * Pre-check token and refresh if needed before request
+ * Used for proactive refresh and critical operations
+ */
+export const ensureValidToken = async () => {
+  if (!isTokenExpired()) {
+    return true;
+  }
+
+  // If already refreshing, wait for it
+  if (isRefreshing) {
+    return new Promise((resolve) => {
+      subscribeToRefresh((token, err) => {
+        resolve(!err && !!token);
+      });
+    });
+  }
+
+  isRefreshing = true;
+
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/api/auth/refresh`,
+      {},
+      { withCredentials: true }
+    );
+
+    const { accessToken } = response.data;
+    setAccessToken(accessToken);
+    onRefreshComplete(accessToken);
+    return true;
+  } catch {
+    clearAccessToken();
+    onRefreshError(new Error('Refresh failed'));
+    if (onSessionExpired) {
+      onSessionExpired();
+    }
+    return false;
+  } finally {
+    isRefreshing = false;
+  }
+};
+
+/**
+ * Request interceptor - proactive token refresh and attach Bearer token
  */
 client.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Skip proactive refresh for auth endpoints
+    if (isAuthEndpoint(config.url)) {
+      const token = getAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    }
+
+    // Proactive refresh if token expires within 60 seconds
+    if (getAccessToken() && isTokenExpiringSoon(60)) {
+      await ensureValidToken();
+    }
+
     const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -96,14 +167,8 @@ client.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Don't retry refresh or login endpoints (exact path match)
-    const url = originalRequest.url || '';
-    if (
-      url === '/api/auth/refresh' ||
-      url === '/api/auth/login' ||
-      url.endsWith('/auth/refresh') ||
-      url.endsWith('/auth/login')
-    ) {
+    // Don't retry refresh or login endpoints
+    if (isAuthEndpoint(originalRequest.url)) {
       return Promise.reject(error);
     }
 
@@ -154,33 +219,5 @@ client.interceptors.response.use(
     }
   }
 );
-
-/**
- * Pre-check token and refresh if needed before request
- * Used for critical operations that shouldn't fail
- */
-export const ensureValidToken = async () => {
-  if (!isTokenExpired()) {
-    return true;
-  }
-
-  try {
-    const response = await axios.post(
-      `${API_BASE_URL}/api/auth/refresh`,
-      {},
-      { withCredentials: true }
-    );
-
-    const { accessToken } = response.data;
-    setAccessToken(accessToken);
-    return true;
-  } catch {
-    clearAccessToken();
-    if (onSessionExpired) {
-      onSessionExpired();
-    }
-    return false;
-  }
-};
 
 export default client;

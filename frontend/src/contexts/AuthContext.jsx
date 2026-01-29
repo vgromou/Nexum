@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
 
   /**
@@ -80,10 +81,15 @@ export function AuthProvider({ children }) {
    * Logout and clear state
    */
   const logout = useCallback(async () => {
-    await apiLogout();
-    setUser(null);
-    setIsAuthenticated(false);
-    setMustChangePassword(false);
+    setIsLoggingOut(true);
+    try {
+      await apiLogout();
+      setUser(null);
+      setIsAuthenticated(false);
+      setMustChangePassword(false);
+    } finally {
+      setIsLoggingOut(false);
+    }
   }, []);
 
   /**
@@ -140,6 +146,7 @@ export function AuthProvider({ children }) {
       isAuthenticated,
       isSessionExpired,
       isLoading,
+      isLoggingOut,
       mustChangePassword,
       login,
       logout,
@@ -154,6 +161,7 @@ export function AuthProvider({ children }) {
       isAuthenticated,
       isSessionExpired,
       isLoading,
+      isLoggingOut,
       mustChangePassword,
       login,
       logout,

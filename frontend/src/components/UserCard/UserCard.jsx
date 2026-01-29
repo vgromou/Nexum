@@ -6,7 +6,8 @@ import {
     Maximize2,
     Minimize2,
     X,
-    Bell
+    Bell,
+    Loader2
 } from 'lucide-react';
 import IconButton from '../Button/IconButton';
 import RoleBadge from '../RoleBadge';
@@ -63,6 +64,7 @@ const UserCard = ({
     onSettings,
     onNotificationClick,
     anchorRef,
+    isLoggingOut = false,
     className = '',
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -206,28 +208,32 @@ const UserCard = ({
                 {/* Header */}
                 <header className="user-card__header">
                     <IconButton
-                        icon={<LogOut size={16} />}
+                        icon={isLoggingOut ? <Loader2 size={16} className="user-card__spinner" /> : <LogOut size={16} />}
                         size="sm"
                         onClick={onLogout}
-                        aria-label="Log out"
+                        disabled={isLoggingOut}
+                        aria-label={isLoggingOut ? 'Logging out...' : 'Log out'}
                     />
                     <div className="user-card__header-actions">
                         <IconButton
                             icon={<Settings size={16} />}
                             size="sm"
                             onClick={onSettings}
+                            disabled={isLoggingOut}
                             aria-label="Settings"
                         />
                         <IconButton
                             icon={<Maximize2 size={16} />}
                             size="sm"
                             onClick={toggleExpanded}
+                            disabled={isLoggingOut}
                             aria-label="Expand details"
                         />
                         <IconButton
                             icon={<X size={16} />}
                             size="sm"
                             onClick={onClose}
+                            disabled={isLoggingOut}
                             aria-label="Close"
                         />
                     </div>
@@ -288,28 +294,32 @@ const UserCard = ({
                 {/* Header */}
                 <header className="user-card__header">
                     <IconButton
-                        icon={<LogOut size={16} />}
+                        icon={isLoggingOut ? <Loader2 size={16} className="user-card__spinner" /> : <LogOut size={16} />}
                         size="sm"
                         onClick={onLogout}
-                        aria-label="Log out"
+                        disabled={isLoggingOut}
+                        aria-label={isLoggingOut ? 'Logging out...' : 'Log out'}
                     />
                     <div className="user-card__header-actions">
                         <IconButton
                             icon={<Settings size={16} />}
                             size="sm"
                             onClick={onSettings}
+                            disabled={isLoggingOut}
                             aria-label="Settings"
                         />
                         <IconButton
                             icon={<Minimize2 size={16} />}
                             size="sm"
                             onClick={toggleExpanded}
+                            disabled={isLoggingOut}
                             aria-label="Collapse details"
                         />
                         <IconButton
                             icon={<X size={16} />}
                             size="sm"
                             onClick={onClose}
+                            disabled={isLoggingOut}
                             aria-label="Close"
                         />
                     </div>
@@ -454,6 +464,8 @@ UserCard.propTypes = {
     onNotificationClick: PropTypes.func,
     /** Reference to anchor element for positioning */
     anchorRef: PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+    /** Whether logout is in progress */
+    isLoggingOut: PropTypes.bool,
     /** Additional CSS classes */
     className: PropTypes.string,
 };

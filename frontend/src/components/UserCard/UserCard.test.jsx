@@ -406,6 +406,84 @@ describe('UserCard', () => {
         });
     });
 
+    describe('Logout loading state', () => {
+        it('shows spinner icon when isLoggingOut is true', () => {
+            const { container } = render(
+                <UserCard
+                    isOpen={true}
+                    user={defaultUser}
+                    onClose={mockOnClose}
+                    onLogout={mockOnLogout}
+                    isLoggingOut={true}
+                />
+            );
+
+            const spinners = container.querySelectorAll('.user-card__spinner');
+            expect(spinners.length).toBe(2); // Both compact and expanded modes
+        });
+
+        it('disables logout button when isLoggingOut is true', () => {
+            render(
+                <UserCard
+                    isOpen={true}
+                    user={defaultUser}
+                    onClose={mockOnClose}
+                    onLogout={mockOnLogout}
+                    isLoggingOut={true}
+                />
+            );
+
+            const logoutButtons = screen.getAllByRole('button', { name: 'Logging out...' });
+            expect(logoutButtons).toHaveLength(2);
+            logoutButtons.forEach(button => {
+                expect(button).toBeDisabled();
+            });
+        });
+
+        it('disables other header buttons when isLoggingOut is true', () => {
+            render(
+                <UserCard
+                    isOpen={true}
+                    user={defaultUser}
+                    onClose={mockOnClose}
+                    onLogout={mockOnLogout}
+                    onSettings={mockOnSettings}
+                    isLoggingOut={true}
+                />
+            );
+
+            // Settings buttons should be disabled
+            const settingsButtons = screen.getAllByRole('button', { name: 'Settings' });
+            settingsButtons.forEach(button => {
+                expect(button).toBeDisabled();
+            });
+
+            // Close buttons should be disabled
+            const closeButtons = screen.getAllByRole('button', { name: 'Close' });
+            closeButtons.forEach(button => {
+                expect(button).toBeDisabled();
+            });
+        });
+
+        it('shows normal logout button when isLoggingOut is false', () => {
+            render(
+                <UserCard
+                    isOpen={true}
+                    user={defaultUser}
+                    onClose={mockOnClose}
+                    onLogout={mockOnLogout}
+                    isLoggingOut={false}
+                />
+            );
+
+            const logoutButtons = screen.getAllByRole('button', { name: 'Log out' });
+            expect(logoutButtons).toHaveLength(2);
+            logoutButtons.forEach(button => {
+                expect(button).not.toBeDisabled();
+            });
+        });
+    });
+
     describe('Optional data handling', () => {
         it('renders without description when not provided', () => {
             const userWithoutDescription = { ...defaultUser, description: undefined };

@@ -28,6 +28,7 @@ const TestConsumer = ({ onContextValue }) => {
       <span data-testid="loading">{String(context.isLoading)}</span>
       <span data-testid="authenticated">{String(context.isAuthenticated)}</span>
       <span data-testid="sessionExpired">{String(context.isSessionExpired)}</span>
+      <span data-testid="loggingOut">{String(context.isLoggingOut)}</span>
       <span data-testid="user">{context.user ? context.user.email : 'null'}</span>
     </div>
   );
@@ -193,6 +194,76 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('authenticated').textContent).toBe('false');
       expect(screen.getByTestId('user').textContent).toBe('null');
     });
+
+    it('sets isLoggingOut to true while logging out', async () => {
+      const mockUser = { id: '123', email: 'test@example.com' };
+      api.refresh.mockResolvedValue({ accessToken: 'token' });
+      api.getMe.mockResolvedValue(mockUser);
+
+      let resolveLogout;
+      api.logout.mockImplementation(() => new Promise((resolve) => {
+        resolveLogout = resolve;
+      }));
+
+      let contextValue;
+      render(
+        <AuthProvider>
+          <TestConsumer onContextValue={(ctx) => (contextValue = ctx)} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      });
+
+      // Start logout but don't resolve
+      let logoutPromise;
+      act(() => {
+        logoutPromise = contextValue.logout();
+      });
+
+      // Check isLoggingOut is true during logout
+      await waitFor(() => {
+        expect(screen.getByTestId('loggingOut').textContent).toBe('true');
+      });
+
+      // Resolve logout
+      await act(async () => {
+        resolveLogout();
+        await logoutPromise;
+      });
+
+      // Check isLoggingOut is false after logout
+      expect(screen.getByTestId('loggingOut').textContent).toBe('false');
+    });
+
+    it('sets isLoggingOut to false even if logout fails', async () => {
+      const mockUser = { id: '123', email: 'test@example.com' };
+      api.refresh.mockResolvedValue({ accessToken: 'token' });
+      api.getMe.mockResolvedValue(mockUser);
+      api.logout.mockRejectedValue(new Error('Logout failed'));
+
+      let contextValue;
+      render(
+        <AuthProvider>
+          <TestConsumer onContextValue={(ctx) => (contextValue = ctx)} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      });
+
+      await act(async () => {
+        try {
+          await contextValue.logout();
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(screen.getByTestId('loggingOut').textContent).toBe('false');
+    });
   });
 
   describe('reAuthenticate', () => {
@@ -298,6 +369,7 @@ describe('AuthContext', () => {
       expect(contextValue).toHaveProperty('isAuthenticated');
       expect(contextValue).toHaveProperty('isSessionExpired');
       expect(contextValue).toHaveProperty('isLoading');
+      expect(contextValue).toHaveProperty('isLoggingOut');
       expect(contextValue).toHaveProperty('mustChangePassword');
 
       // Check all methods exist

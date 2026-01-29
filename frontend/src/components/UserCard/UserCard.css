@@ -337,6 +337,20 @@
     border-radius: var(--radius-xs);
 }
 
+/* ===== SPINNER ANIMATION ===== */
+.user-card__spinner {
+    animation: user-card-spin 1s linear infinite;
+}
+
+@keyframes user-card-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* ===== DATA-STATE SUPPORT FOR STORYBOOK ===== */
 .user-card[data-state="active"] {
     opacity: 1;

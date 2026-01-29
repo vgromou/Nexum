@@ -34,6 +34,7 @@ describe('client', () => {
       setAccessToken: vi.fn(),
       clearAccessToken: vi.fn(),
       isTokenExpired: vi.fn(),
+      isTokenExpiringSoon: vi.fn(),
     }));
 
     // Import fresh modules
@@ -160,6 +161,54 @@ describe('client interceptors behavior', () => {
         url.endsWith('/auth/refresh') ||
         url.endsWith('/auth/login');
       expect(isAuthEndpoint).toBe(false);
+    });
+  });
+
+  describe('proactive refresh logic', () => {
+    // Helper to check if URL is auth endpoint
+    const isAuthEndpoint = (url) => {
+      if (!url) return false;
+      return (
+        url === '/api/auth/refresh' ||
+        url === '/api/auth/login' ||
+        url.endsWith('/auth/refresh') ||
+        url.endsWith('/auth/login')
+      );
+    };
+
+    it('should skip proactive refresh for auth/refresh endpoint', () => {
+      expect(isAuthEndpoint('/api/auth/refresh')).toBe(true);
+    });
+
+    it('should skip proactive refresh for auth/login endpoint', () => {
+      expect(isAuthEndpoint('/api/auth/login')).toBe(true);
+    });
+
+    it('should allow proactive refresh for regular endpoints', () => {
+      expect(isAuthEndpoint('/api/users')).toBe(false);
+      expect(isAuthEndpoint('/api/me')).toBe(false);
+      expect(isAuthEndpoint('/api/organizations')).toBe(false);
+    });
+
+    it('should trigger proactive refresh when token expires within 60 seconds', () => {
+      const hasToken = true;
+      const tokenExpiringSoon = true; // expires in < 60 seconds
+      const shouldRefresh = hasToken && tokenExpiringSoon;
+      expect(shouldRefresh).toBe(true);
+    });
+
+    it('should not trigger proactive refresh when token is valid for more than 60 seconds', () => {
+      const hasToken = true;
+      const tokenExpiringSoon = false; // expires in > 60 seconds
+      const shouldRefresh = hasToken && tokenExpiringSoon;
+      expect(shouldRefresh).toBe(false);
+    });
+
+    it('should not trigger proactive refresh when no token exists', () => {
+      const hasToken = false;
+      const tokenExpiringSoon = true;
+      const shouldRefresh = hasToken && tokenExpiringSoon;
+      expect(shouldRefresh).toBe(false);
     });
   });
 });

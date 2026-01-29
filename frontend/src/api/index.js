@@ -8,6 +8,7 @@ export {
   parseToken,
   isTokenExpired,
   getTokenExpiresIn,
+  isTokenExpiringSoon,
 } from './tokenManager';
 export {
   login,

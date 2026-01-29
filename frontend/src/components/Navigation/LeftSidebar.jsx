@@ -242,7 +242,7 @@ const CollectionSwitcher = ({ collections, activeCollection, onCollectionChange 
 };
 
 const LeftSidebar = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, isLoggingOut } = useAuth();
     const [activePageId, setActivePageId] = useState('page-title-active');
     const [activeCollection, setActiveCollection] = useState('PAGES');
     const [isUserCardOpen, setIsUserCardOpen] = useState(false);
@@ -427,6 +427,7 @@ const LeftSidebar = () => {
                     onSettings={handleSettings}
                     onNotificationClick={() => console.log('Notification clicked')}
                     anchorRef={userButtonRef}
+                    isLoggingOut={isLoggingOut}
                 />
             )}
 
