@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ErrorProvider } from './contexts/ErrorContext';
 import { ToastProvider } from './components/Toast';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -101,7 +102,9 @@ function App() {
     <ToastProvider>
       <AuthProvider>
         <BrowserRouter>
-          <AppRoutes />
+          <ErrorProvider>
+            <AppRoutes />
+          </ErrorProvider>
         </BrowserRouter>
       </AuthProvider>
     </ToastProvider>

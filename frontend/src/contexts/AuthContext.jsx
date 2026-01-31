@@ -14,6 +14,24 @@ import {
   hasAccessToken,
 } from '../api';
 
+/**
+ * Set Sentry user context
+ * @param {object|null} user - User data or null to clear
+ */
+const setSentryUser = (user) => {
+  if (typeof window !== 'undefined' && window.Sentry) {
+    if (user) {
+      window.Sentry.setUser({
+        id: user.id,
+        email: user.email,
+        username: user.displayName || user.username,
+      });
+    } else {
+      window.Sentry.setUser(null);
+    }
+  }
+};
+
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -48,6 +66,7 @@ export function AuthProvider({ children }) {
           setUser(userData);
           setIsAuthenticated(true);
           setMustChangePassword(userData.mustChangePassword || false);
+          setSentryUser(userData);
         } catch {
           // Token refreshed but getMe failed - clear and require re-login
           clearAccessToken();
@@ -74,6 +93,7 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(true);
     setIsSessionExpired(false);
     setMustChangePassword(result.mustChangePassword || false);
+    setSentryUser(result.user);
     return result;
   }, []);
 
@@ -94,6 +114,7 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       setMustChangePassword(false);
       setIsLoggingOut(false);
+      setSentryUser(null);
     }
   }, []);
 
@@ -106,6 +127,7 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(true);
     setIsSessionExpired(false);
     setMustChangePassword(result.mustChangePassword || false);
+    setSentryUser(result.user);
     return result;
   }, []);
 
