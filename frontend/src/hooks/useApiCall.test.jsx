@@ -150,7 +150,7 @@ describe('useApiCall', () => {
       });
     });
 
-    it('uses silent mode when specified', async () => {
+    it('skips error handler when skipErrorHandler is true', async () => {
       const { result } = renderHook(() => useApiCall(), { wrapper });
 
       const apiError = {
@@ -162,10 +162,10 @@ describe('useApiCall', () => {
       const apiCallFn = () => Promise.reject(apiError);
 
       await act(async () => {
-        await result.current.call(apiCallFn, { silent: true });
+        await result.current.call(apiCallFn, { skipErrorHandler: true });
       });
 
-      // In silent mode, handleApiError is not called, so no toast
+      // When skipErrorHandler is true, handleApiError is not called, so no toast
       expect(mockShowToast).not.toHaveBeenCalled();
     });
   });

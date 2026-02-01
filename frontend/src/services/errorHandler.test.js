@@ -278,7 +278,7 @@ describe('errorHandler', () => {
         },
       };
 
-      handleApiError(error, { overrideDisplayType: 'silent' });
+      handleApiError(error, { overrideDisplayType: 'none' });
 
       expect(mockShowToast).not.toHaveBeenCalled();
     });

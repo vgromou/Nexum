@@ -26,7 +26,7 @@ async function executeApiCall(apiCallFn, options, showToast) {
     successMessage,
     retry = false,
     retryConfig,
-    silent = false,
+    skipErrorHandler = false,
     onSuccess,
     onError,
   } = options;
@@ -50,7 +50,7 @@ async function executeApiCall(apiCallFn, options, showToast) {
 
     return { data: response.data, error: null, fieldErrors: null };
   } catch (error) {
-    const parsed = silent ? parseError(error) : handleApiError(error);
+    const parsed = skipErrorHandler ? parseError(error) : handleApiError(error);
 
     if (onError) {
       onError(parsed);

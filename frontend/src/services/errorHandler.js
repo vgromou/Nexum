@@ -5,7 +5,7 @@
  * - toast: Show toast notification
  * - field: Return error for field-level display
  * - page: Navigate to error page
- * - silent: Log only, no UI feedback
+ * - none: Log only, no UI feedback (Sentry only)
  *
  * Integrates with:
  * - Toast notifications
@@ -221,8 +221,8 @@ export const handleApiError = (error, options = {}) => {
       // Field errors are returned for component handling
       break;
 
-    case 'silent':
-      // No UI action
+    case 'none':
+      // No UI action - error logged to Sentry only
       break;
   }
 
