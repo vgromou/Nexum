@@ -15,34 +15,84 @@ import { handleApiError, parseError } from '../services/errorHandler';
 import { withRetry } from '../utils/retry';
 
 /**
+ * Execute API call with common logic
+ * @param {Function} apiCallFn - Function that returns a promise
+ * @param {object} options - Call options
+ * @param {Function} showToast - Toast function
+ * @returns {Promise<{data: any, error: object|null, fieldErrors: object|null}>}
+ */
+async function executeApiCall(apiCallFn, options, showToast) {
+  const {
+    successMessage,
+    retry = false,
+    retryConfig,
+    silent = false,
+    onSuccess,
+    onError,
+  } = options;
+
+  try {
+    let response;
+
+    if (retry) {
+      response = await withRetry(apiCallFn, retryConfig);
+    } else {
+      response = await apiCallFn();
+    }
+
+    if (successMessage) {
+      showToast({ variant: 'success', message: successMessage });
+    }
+
+    if (onSuccess) {
+      onSuccess(response.data);
+    }
+
+    return { data: response.data, error: null, fieldErrors: null };
+  } catch (error) {
+    const parsed = silent ? parseError(error) : handleApiError(error);
+
+    if (onError) {
+      onError(parsed);
+    }
+
+    return {
+      data: null,
+      error: parsed,
+      fieldErrors: parsed.fieldErrors,
+    };
+  }
+}
+
+/**
  * Hook for making API calls with built-in loading and error handling
  *
  * @returns {{
- *   call: (apiPromise: Promise, options?: object) => Promise<{data: any, error: object|null, fieldErrors: object|null}>,
+ *   call: (apiCallFn: Function, options?: object) => Promise<{data: any, error: object|null, fieldErrors: object|null}>,
  *   loading: boolean
  * }}
  *
  * @example
  * // Simple usage
  * const { call, loading } = useApiCall();
- * const { data, error } = await call(api.getUser(userId));
+ * const { data, error } = await call(() => api.getUser(userId));
  *
  * @example
  * // With success message
- * const { data } = await call(api.saveData(formData), {
+ * const { data } = await call(() => api.saveData(formData), {
  *   successMessage: 'Сохранено!'
  * });
  *
  * @example
  * // Form with field errors
- * const { data, fieldErrors } = await call(api.register(formData));
+ * const { data, fieldErrors } = await call(() => api.register(formData));
  * if (fieldErrors) {
  *   setFormErrors(fieldErrors);
  * }
  *
  * @example
- * // With retry
- * const { data } = await call(api.uploadFile(file), {
+ * // With retry (function is called multiple times on failure)
+ * const { data } = await call(() => api.uploadFile(file), {
  *   retry: true,
  *   retryConfig: { maxRetries: 5 }
  * });
@@ -52,55 +102,10 @@ export function useApiCall() {
   const { showToast } = useToast();
 
   const call = useCallback(
-    async (apiPromise, options = {}) => {
-      const {
-        successMessage,
-        retry = false,
-        retryConfig,
-        silent = false,
-        onSuccess,
-        onError,
-      } = options;
-
+    async (apiCallFn, options = {}) => {
       setLoading(true);
-
       try {
-        let response;
-
-        if (retry) {
-          // Wrap in retry logic
-          response = await withRetry(() => apiPromise, retryConfig);
-        } else {
-          response = await apiPromise;
-        }
-
-        // Show success toast if message provided
-        if (successMessage) {
-          showToast({ variant: 'success', message: successMessage });
-        }
-
-        // Call success callback if provided
-        if (onSuccess) {
-          onSuccess(response.data);
-        }
-
-        return { data: response.data, error: null, fieldErrors: null };
-      } catch (error) {
-        // Parse the error
-        const parsed = silent
-          ? parseError(error)
-          : handleApiError(error);
-
-        // Call error callback if provided
-        if (onError) {
-          onError(parsed);
-        }
-
-        return {
-          data: null,
-          error: parsed,
-          fieldErrors: parsed.fieldErrors,
-        };
+        return await executeApiCall(apiCallFn, options, showToast);
       } finally {
         setLoading(false);
       }
@@ -116,7 +121,7 @@ export function useApiCall() {
  * Useful when you need multiple independent loading states
  *
  * @returns {{
- *   call: (key: string, apiPromise: Promise, options?: object) => Promise,
+ *   call: (key: string, apiCallFn: Function, options?: object) => Promise,
  *   isLoading: (key: string) => boolean,
  *   loadingKeys: Set<string>
  * }}
@@ -124,8 +129,8 @@ export function useApiCall() {
  * @example
  * const { call, isLoading } = useApiCallWithKey();
  *
- * await call('saveUser', api.saveUser(data));
- * await call('deleteUser', api.deleteUser(id));
+ * await call('saveUser', () => api.saveUser(data));
+ * await call('deleteUser', () => api.deleteUser(id));
  *
  * // In render
  * <Button loading={isLoading('saveUser')}>Save</Button>
@@ -135,56 +140,13 @@ export function useApiCallWithKey() {
   const [loadingKeys, setLoadingKeys] = useState(new Set());
   const { showToast } = useToast();
 
-  const isLoading = useCallback(
-    (key) => loadingKeys.has(key),
-    [loadingKeys]
-  );
+  const isLoading = useCallback((key) => loadingKeys.has(key), [loadingKeys]);
 
   const call = useCallback(
-    async (key, apiPromise, options = {}) => {
-      const {
-        successMessage,
-        retry = false,
-        retryConfig,
-        silent = false,
-        onSuccess,
-        onError,
-      } = options;
-
+    async (key, apiCallFn, options = {}) => {
       setLoadingKeys((prev) => new Set(prev).add(key));
-
       try {
-        let response;
-
-        if (retry) {
-          response = await withRetry(() => apiPromise, retryConfig);
-        } else {
-          response = await apiPromise;
-        }
-
-        if (successMessage) {
-          showToast({ variant: 'success', message: successMessage });
-        }
-
-        if (onSuccess) {
-          onSuccess(response.data);
-        }
-
-        return { data: response.data, error: null, fieldErrors: null };
-      } catch (error) {
-        const parsed = silent
-          ? parseError(error)
-          : handleApiError(error);
-
-        if (onError) {
-          onError(parsed);
-        }
-
-        return {
-          data: null,
-          error: parsed,
-          fieldErrors: parsed.fieldErrors,
-        };
+        return await executeApiCall(apiCallFn, options, showToast);
       } finally {
         setLoadingKeys((prev) => {
           const next = new Set(prev);

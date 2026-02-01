@@ -1,18 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useApiCall, useApiCallWithKey } from './useApiCall';
-import { ToastProvider } from '../components/Toast';
+import { ToastProvider, useToast } from '../components/Toast';
 import { setErrorHandlerRefs } from '../services/errorHandler';
+import { withRetry } from '../utils/retry';
 
 // Mock dependencies
 vi.mock('../utils/retry', () => ({
   withRetry: vi.fn((fn) => fn()),
 }));
 
+vi.mock('../components/Toast', async () => {
+  const actual = await vi.importActual('../components/Toast');
+  return {
+    ...actual,
+    useToast: vi.fn(() => ({ showToast: vi.fn() })),
+  };
+});
+
 // Wrapper with ToastProvider
-const wrapper = ({ children }) => (
-  <ToastProvider>{children}</ToastProvider>
-);
+const wrapper = ({ children }) => <ToastProvider>{children}</ToastProvider>;
 
 describe('useApiCall', () => {
   const mockShowToast = vi.fn();
@@ -20,6 +27,7 @@ describe('useApiCall', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setErrorHandlerRefs({ showToast: mockShowToast, navigate: vi.fn() });
+    useToast.mockReturnValue({ showToast: mockShowToast });
   });
 
   describe('basic functionality', () => {
@@ -27,11 +35,11 @@ describe('useApiCall', () => {
       const { result } = renderHook(() => useApiCall(), { wrapper });
 
       const mockResponse = { data: { id: 1, name: 'Test' } };
-      const apiPromise = Promise.resolve(mockResponse);
+      const apiCallFn = () => Promise.resolve(mockResponse);
 
       let callResult;
       await act(async () => {
-        callResult = await result.current.call(apiPromise);
+        callResult = await result.current.call(apiCallFn);
       });
 
       expect(callResult).toEqual({
@@ -47,12 +55,13 @@ describe('useApiCall', () => {
       expect(result.current.loading).toBe(false);
 
       let resolvePromise;
-      const apiPromise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
+      const apiCallFn = () =>
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        });
 
       act(() => {
-        result.current.call(apiPromise);
+        result.current.call(apiCallFn);
       });
 
       await waitFor(() => {
@@ -71,16 +80,18 @@ describe('useApiCall', () => {
     it('shows success toast when successMessage provided', async () => {
       const { result } = renderHook(() => useApiCall(), { wrapper });
 
-      const apiPromise = Promise.resolve({ data: 'test' });
+      const apiCallFn = () => Promise.resolve({ data: 'test' });
 
       await act(async () => {
-        await result.current.call(apiPromise, {
+        await result.current.call(apiCallFn, {
           successMessage: 'Saved successfully!',
         });
       });
 
-      // Check that showToast was called via ToastProvider
-      // The actual toast is shown via context, which is mocked
+      expect(mockShowToast).toHaveBeenCalledWith({
+        variant: 'success',
+        message: 'Saved successfully!',
+      });
     });
   });
 
@@ -100,11 +111,11 @@ describe('useApiCall', () => {
           },
         },
       };
-      const apiPromise = Promise.reject(apiError);
+      const apiCallFn = () => Promise.reject(apiError);
 
       let callResult;
       await act(async () => {
-        callResult = await result.current.call(apiPromise);
+        callResult = await result.current.call(apiCallFn);
       });
 
       expect(callResult.data).toBeNull();
@@ -126,11 +137,11 @@ describe('useApiCall', () => {
           },
         },
       };
-      const apiPromise = Promise.reject(validationError);
+      const apiCallFn = () => Promise.reject(validationError);
 
       let callResult;
       await act(async () => {
-        callResult = await result.current.call(apiPromise);
+        callResult = await result.current.call(apiCallFn);
       });
 
       expect(callResult.fieldErrors).toEqual({
@@ -148,10 +159,10 @@ describe('useApiCall', () => {
           data: { error: { message: 'Error', displayType: 'toast' } },
         },
       };
-      const apiPromise = Promise.reject(apiError);
+      const apiCallFn = () => Promise.reject(apiError);
 
       await act(async () => {
-        await result.current.call(apiPromise, { silent: true });
+        await result.current.call(apiCallFn, { silent: true });
       });
 
       // In silent mode, handleApiError is not called, so no toast
@@ -164,10 +175,10 @@ describe('useApiCall', () => {
       const { result } = renderHook(() => useApiCall(), { wrapper });
       const onSuccess = vi.fn();
 
-      const apiPromise = Promise.resolve({ data: { id: 1 } });
+      const apiCallFn = () => Promise.resolve({ data: { id: 1 } });
 
       await act(async () => {
-        await result.current.call(apiPromise, { onSuccess });
+        await result.current.call(apiCallFn, { onSuccess });
       });
 
       expect(onSuccess).toHaveBeenCalledWith({ id: 1 });
@@ -183,22 +194,53 @@ describe('useApiCall', () => {
           data: { error: { code: 'BAD_REQUEST' } },
         },
       };
-      const apiPromise = Promise.reject(apiError);
+      const apiCallFn = () => Promise.reject(apiError);
 
       await act(async () => {
-        await result.current.call(apiPromise, { onError });
+        await result.current.call(apiCallFn, { onError });
       });
 
       expect(onError).toHaveBeenCalled();
       expect(onError.mock.calls[0][0].code).toBe('BAD_REQUEST');
     });
   });
+
+  describe('retry', () => {
+    it('passes function to withRetry when retry is enabled', async () => {
+      const { result } = renderHook(() => useApiCall(), { wrapper });
+
+      const apiCallFn = vi.fn(() => Promise.resolve({ data: 'test' }));
+      const retryConfig = { maxRetries: 5 };
+
+      await act(async () => {
+        await result.current.call(apiCallFn, { retry: true, retryConfig });
+      });
+
+      expect(withRetry).toHaveBeenCalledWith(apiCallFn, retryConfig);
+    });
+
+    it('calls function directly when retry is disabled', async () => {
+      const { result } = renderHook(() => useApiCall(), { wrapper });
+
+      const apiCallFn = vi.fn(() => Promise.resolve({ data: 'test' }));
+
+      await act(async () => {
+        await result.current.call(apiCallFn, { retry: false });
+      });
+
+      expect(withRetry).not.toHaveBeenCalled();
+      expect(apiCallFn).toHaveBeenCalled();
+    });
+  });
 });
 
 describe('useApiCallWithKey', () => {
+  const mockShowToast = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
-    setErrorHandlerRefs({ showToast: vi.fn(), navigate: vi.fn() });
+    setErrorHandlerRefs({ showToast: mockShowToast, navigate: vi.fn() });
+    useToast.mockReturnValue({ showToast: mockShowToast });
   });
 
   it('tracks loading state by key', async () => {
@@ -208,12 +250,13 @@ describe('useApiCallWithKey', () => {
     expect(result.current.isLoading('delete')).toBe(false);
 
     let resolveSave;
-    const savePromise = new Promise((resolve) => {
-      resolveSave = resolve;
-    });
+    const saveCallFn = () =>
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      });
 
     act(() => {
-      result.current.call('save', savePromise);
+      result.current.call('save', saveCallFn);
     });
 
     await waitFor(() => {
@@ -234,16 +277,18 @@ describe('useApiCallWithKey', () => {
     const { result } = renderHook(() => useApiCallWithKey(), { wrapper });
 
     let resolveSave, resolveDelete;
-    const savePromise = new Promise((resolve) => {
-      resolveSave = resolve;
-    });
-    const deletePromise = new Promise((resolve) => {
-      resolveDelete = resolve;
-    });
+    const saveCallFn = () =>
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      });
+    const deleteCallFn = () =>
+      new Promise((resolve) => {
+        resolveDelete = resolve;
+      });
 
     act(() => {
-      result.current.call('save', savePromise);
-      result.current.call('delete', deletePromise);
+      result.current.call('save', saveCallFn);
+      result.current.call('delete', deleteCallFn);
     });
 
     await waitFor(() => {
@@ -266,6 +311,23 @@ describe('useApiCallWithKey', () => {
 
     await waitFor(() => {
       expect(result.current.isLoading('delete')).toBe(false);
+    });
+  });
+
+  it('shows success toast when successMessage provided', async () => {
+    const { result } = renderHook(() => useApiCallWithKey(), { wrapper });
+
+    const apiCallFn = () => Promise.resolve({ data: 'test' });
+
+    await act(async () => {
+      await result.current.call('test', apiCallFn, {
+        successMessage: 'Done!',
+      });
+    });
+
+    expect(mockShowToast).toHaveBeenCalledWith({
+      variant: 'success',
+      message: 'Done!',
     });
   });
 });
