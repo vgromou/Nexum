@@ -44,8 +44,8 @@ const LoginPage = () => {
         mode="login"
         onSubmit={handleSubmit}
         isLoading={isLoading}
-        usernameError={fieldErrors.login}
-        passwordError={fieldErrors.password}
+        usernameError={fieldErrors.Login}
+        passwordError={fieldErrors.Password}
       />
     </div>
   );

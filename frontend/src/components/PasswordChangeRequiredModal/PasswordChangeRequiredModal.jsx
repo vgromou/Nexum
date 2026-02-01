@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Modal from '../Modal';
@@ -35,7 +35,7 @@ const PasswordChangeRequiredModal = ({
     const { call, loading } = useApiCall();
 
     // Clear form on close
-    React.useEffect(() => {
+    useEffect(() => {
         if (!isOpen) {
             setCurrentPassword('');
             setNewPassword('');
@@ -156,7 +156,7 @@ const PasswordChangeRequiredModal = ({
                     disabled={loading}
                     autoComplete="current-password"
                     autoFocus
-                    rightIcon={showCurrentPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                    rightIcon={showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     onRightIconClick={toggleCurrentPasswordVisibility}
                 />
 
@@ -170,7 +170,7 @@ const PasswordChangeRequiredModal = ({
                     helper="At least 8 characters"
                     disabled={loading}
                     autoComplete="new-password"
-                    rightIcon={showNewPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                    rightIcon={showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     onRightIconClick={toggleNewPasswordVisibility}
                 />
             </form>

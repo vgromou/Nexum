@@ -120,7 +120,7 @@ export const parseError = (error) => {
       data?.message ||
       data?.title ||
       DEFAULT_ERROR_MESSAGES[getCodeFromStatus(status)] ||
-      'Произошла ошибка',
+      'An error occurred',
     displayType: 'toast',
     status,
     traceId: null,
