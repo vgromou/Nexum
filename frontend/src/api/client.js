@@ -5,6 +5,7 @@
  * - Automatic Bearer token attachment
  * - Automatic token refresh on 401
  * - Session expiry callback for UI notification
+ * - Centralized error handling integration
  */
 
 import axios from 'axios';
@@ -15,6 +16,7 @@ import {
   isTokenExpired,
   isTokenExpiringSoon,
 } from './tokenManager';
+import { handleApiError } from '../services/errorHandler';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5066';
 
@@ -167,60 +169,69 @@ client.interceptors.request.use(
 );
 
 /**
- * Response interceptor - handle 401 and auto-refresh
+ * Response interceptor - handle 401, auto-refresh, and centralized error handling
  */
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Don't retry if not 401 or already retried
-    if (error.response?.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
-    }
-
-    // Don't retry refresh or login endpoints
-    if (isAuthEndpoint(originalRequest.url)) {
-      return Promise.reject(error);
-    }
-
-    // If already refreshing, wait for completion
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        subscribeToRefresh((token, err) => {
-          if (err) {
-            reject(err);
-          } else {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(client(originalRequest));
-          }
-        });
-      });
-    }
-
-    originalRequest._retry = true;
-    isRefreshing = true;
-
-    try {
-      const accessToken = await performTokenRefresh();
-      onRefreshComplete(accessToken);
-
-      // Retry original request with new token
-      originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-      return client(originalRequest);
-    } catch (refreshError) {
-      // Refresh failed - session expired
-      clearAccessToken();
-      onRefreshError(refreshError);
-
-      if (onSessionExpired) {
-        onSessionExpired();
+    // Handle 401 with token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't retry refresh or login endpoints
+      if (isAuthEndpoint(originalRequest.url)) {
+        return Promise.reject(error);
       }
 
-      return Promise.reject(refreshError);
-    } finally {
-      isRefreshing = false;
+      // If already refreshing, wait for completion
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          subscribeToRefresh((token, err) => {
+            if (err) {
+              reject(err);
+            } else {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(client(originalRequest));
+            }
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const accessToken = await performTokenRefresh();
+        onRefreshComplete(accessToken);
+
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return client(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed - session expired
+        clearAccessToken();
+        onRefreshError(refreshError);
+
+        if (onSessionExpired) {
+          onSessionExpired();
+        }
+
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
+    // Centralized error handling for non-401 errors
+    // Use handleErrors: true in request config to enable automatic error handling
+    // Use handleErrors: false or omit to handle errors manually in component
+    if (originalRequest?.handleErrors === true) {
+      const parsed = handleApiError(error);
+      // Attach parsed error to the error object for component access
+      error.parsed = parsed;
+    }
+
+    return Promise.reject(error);
   }
 );
 
