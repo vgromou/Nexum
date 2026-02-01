@@ -176,8 +176,8 @@ const UserCard = ({
             await navigator.clipboard.writeText(text);
             setCopiedField(field);
             setTimeout(() => setCopiedField(null), 2000);
-        } catch (err) {
-            console.error('Failed to copy:', err);
+        } catch {
+            // Clipboard API may fail in some browsers/contexts - silently ignore
         }
     }, []);
 

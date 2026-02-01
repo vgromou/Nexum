@@ -307,7 +307,7 @@ const LeftSidebar = () => {
         email: user.email || '',
         username: `@${user.username || ''}`,
         orgRole: user.organizationRole || 'user',
-        spaceRole: 'Member', // TODO: Get from space context
+        spaceRole: 'Member',
         birthday: user.birthday,
         location: user.location,
         jobTitle: user.position,
@@ -322,8 +322,6 @@ const LeftSidebar = () => {
                 <SpaceButton
                     icon={<span>🚀</span>}
                     name="Space Name"
-                    onSpaceClick={() => console.log('Space clicked')}
-                    onSearchClick={() => console.log('Search clicked')}
                 />
             </header>
 
@@ -413,7 +411,6 @@ const LeftSidebar = () => {
                     name={user ? `${user.firstName} ${user.lastName}` : 'User'}
                     role={user?.position || 'Member'}
                     onUserClick={handleUserClick}
-                    onNotificationClick={() => console.log('Notification clicked')}
                 />
             </footer>
 
@@ -425,7 +422,6 @@ const LeftSidebar = () => {
                     onClose={handleUserCardClose}
                     onLogout={handleLogout}
                     onSettings={handleSettings}
-                    onNotificationClick={() => console.log('Notification clicked')}
                     anchorRef={userButtonRef}
                     isLoggingOut={isLoggingOut}
                 />

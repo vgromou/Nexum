@@ -136,8 +136,7 @@ const InlineNode = memo(({ node, nodeKey }) => {
         }
 
         default:
-            // Unknown node type
-            console.warn('Unknown inline node type:', node.type);
+            // Unknown node type - ignore silently
             return null;
     }
 });

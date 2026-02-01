@@ -247,24 +247,6 @@ describe('errorHandler', () => {
       expect(result.fieldErrors).toEqual({ Email: 'Invalid email' });
     });
 
-    it('respects silent option', () => {
-      const error = {
-        response: {
-          status: 500,
-          data: {
-            error: {
-              message: 'Error',
-              displayType: 'toast',
-            },
-          },
-        },
-      };
-
-      handleApiError(error, { silent: true });
-
-      expect(mockShowToast).not.toHaveBeenCalled();
-    });
-
     it('respects overrideDisplayType option', () => {
       const error = {
         response: {
@@ -315,7 +297,7 @@ describe('errorHandler', () => {
 
   describe('createErrorHandler', () => {
     it('creates handler with default options', () => {
-      const handler = createErrorHandler({ silent: true });
+      const handler = createErrorHandler({ overrideDisplayType: 'none' });
 
       const error = {
         response: {
@@ -330,7 +312,7 @@ describe('errorHandler', () => {
     });
 
     it('allows overriding default options', () => {
-      const handler = createErrorHandler({ silent: true });
+      const handler = createErrorHandler({ overrideDisplayType: 'none' });
 
       const error = {
         response: {
@@ -339,7 +321,7 @@ describe('errorHandler', () => {
         },
       };
 
-      handler(error, { silent: false });
+      handler(error, { overrideDisplayType: 'toast' });
 
       expect(mockShowToast).toHaveBeenCalled();
     });

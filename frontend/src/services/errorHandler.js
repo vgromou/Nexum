@@ -158,13 +158,12 @@ const getCodeFromStatus = (status) => {
  * @param {Error} error - Error to handle
  * @param {object} [options] - Handler options
  * @param {string} [options.fallbackMessage] - Custom message if none in error
- * @param {string} [options.overrideDisplayType] - Force specific display type
- * @param {boolean} [options.silent] - If true, only log error
+ * @param {string} [options.overrideDisplayType] - Force specific display type ('none' to skip UI)
  * @returns {object} Parsed error for component use
  */
 export const handleApiError = (error, options = {}) => {
   const parsed = parseError(error);
-  const { fallbackMessage, overrideDisplayType, silent } = options;
+  const { fallbackMessage, overrideDisplayType } = options;
 
   // Override message if provided and no specific message
   if (fallbackMessage && parsed.code === 'UNKNOWN_ERROR') {
@@ -187,11 +186,6 @@ export const handleApiError = (error, options = {}) => {
       }
       Sentry.captureException(error);
     });
-  }
-
-  // Silent mode - return without UI action
-  if (silent) {
-    return parsed;
   }
 
   // Handle based on display type

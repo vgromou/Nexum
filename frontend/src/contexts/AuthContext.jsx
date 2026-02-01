@@ -105,10 +105,9 @@ export function AuthProvider({ children }) {
     setIsLoggingOut(true);
     try {
       await apiLogout();
-    } catch (error) {
-      // Log error but continue with local cleanup
-      // User should still be logged out locally even if server request fails
-      console.error('Logout API error:', error);
+    } catch {
+      // Logout errors are non-critical - user is logged out locally regardless
+      // Server-side cleanup (token revocation) may fail but session is still ended
     } finally {
       setUser(null);
       setIsAuthenticated(false);

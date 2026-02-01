@@ -144,7 +144,7 @@ describe('UserCard', () => {
             render(
                 <UserCard isOpen={true} user={defaultUser} onClose={mockOnClose} />
             );
-            expect(screen.getAllByRole('button', { name: 'Log out' })).toHaveLength(2);
+            expect(screen.getAllByRole('button', { name: 'Sign out' })).toHaveLength(2);
         });
 
         it('renders settings buttons in both modes', () => {
@@ -192,7 +192,7 @@ describe('UserCard', () => {
             expect(mockOnClose).toHaveBeenCalledTimes(1);
         });
 
-        it('calls onLogout when logout button is clicked', () => {
+        it('calls onLogout when logout is confirmed', () => {
             render(
                 <UserCard
                     isOpen={true}
@@ -201,7 +201,10 @@ describe('UserCard', () => {
                     onLogout={mockOnLogout}
                 />
             );
-            fireEvent.click(screen.getAllByRole('button', { name: 'Log out' })[0]);
+            // Click sign out button to open confirmation popover
+            fireEvent.click(screen.getAllByRole('button', { name: 'Sign out' })[0]);
+            // Click confirm button in popover
+            fireEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
             expect(mockOnLogout).toHaveBeenCalledTimes(1);
         });
 
@@ -398,7 +401,7 @@ describe('UserCard', () => {
                 <UserCard isOpen={true} user={defaultUser} onClose={mockOnClose} />
             );
 
-            expect(screen.getAllByRole('button', { name: 'Log out' })).toHaveLength(2);
+            expect(screen.getAllByRole('button', { name: 'Sign out' })).toHaveLength(2);
             expect(screen.getAllByRole('button', { name: 'Settings' })).toHaveLength(2);
             expect(screen.getByRole('button', { name: 'Expand details' })).toBeInTheDocument();
             expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
@@ -433,7 +436,7 @@ describe('UserCard', () => {
                 />
             );
 
-            const logoutButtons = screen.getAllByRole('button', { name: 'Logging out...' });
+            const logoutButtons = screen.getAllByRole('button', { name: 'Signing out...' });
             expect(logoutButtons).toHaveLength(2);
             logoutButtons.forEach(button => {
                 expect(button).toBeDisabled();
@@ -476,7 +479,7 @@ describe('UserCard', () => {
                 />
             );
 
-            const logoutButtons = screen.getAllByRole('button', { name: 'Log out' });
+            const logoutButtons = screen.getAllByRole('button', { name: 'Sign out' });
             expect(logoutButtons).toHaveLength(2);
             logoutButtons.forEach(button => {
                 expect(button).not.toBeDisabled();

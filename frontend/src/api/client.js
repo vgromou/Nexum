@@ -92,15 +92,17 @@ const client = axios.create({
 });
 
 /**
+ * Auth endpoints that should skip proactive refresh
+ */
+const AUTH_ENDPOINTS = ['/api/auth/refresh', '/api/auth/login'];
+
+/**
  * Check if URL is an auth endpoint that should skip proactive refresh
  */
 const isAuthEndpoint = (url) => {
   if (!url) return false;
-  return (
-    url === '/api/auth/refresh' ||
-    url === '/api/auth/login' ||
-    url.endsWith('/auth/refresh') ||
-    url.endsWith('/auth/login')
+  return AUTH_ENDPOINTS.some(
+    (endpoint) => url === endpoint || url.endsWith(endpoint)
   );
 };
 
