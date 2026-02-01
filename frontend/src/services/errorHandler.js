@@ -13,6 +13,16 @@
  * - Sentry (when configured)
  */
 
+import * as Sentry from '@sentry/react';
+
+/**
+ * Check if Sentry is initialized
+ * @returns {boolean}
+ */
+const isSentryInitialized = () => {
+  return Sentry.getClient() !== undefined;
+};
+
 // References set by ErrorProvider
 let errorHandlerRefs = {
   showToast: null,
@@ -164,9 +174,9 @@ export const handleApiError = (error, options = {}) => {
   // Override display type if specified
   const displayType = overrideDisplayType || parsed.displayType;
 
-  // Log to Sentry if available
-  if (typeof window !== 'undefined' && window.Sentry) {
-    window.Sentry.withScope((scope) => {
+  // Log to Sentry if initialized
+  if (isSentryInitialized()) {
+    Sentry.withScope((scope) => {
       scope.setTag('errorCode', parsed.code);
       scope.setTag('displayType', displayType);
       if (parsed.traceId) {
@@ -175,7 +185,7 @@ export const handleApiError = (error, options = {}) => {
       if (parsed.details) {
         scope.setExtra('details', parsed.details);
       }
-      window.Sentry.captureException(error);
+      Sentry.captureException(error);
     });
   }
 

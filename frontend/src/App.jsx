@@ -7,6 +7,7 @@ import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 import LoginPage from './pages/LoginPage';
+import ErrorPage from './pages/ErrorPage';
 import AuthModal from './components/AuthModal';
 import './App.css';
 
@@ -78,6 +79,7 @@ function AppRoutes() {
     <>
       <Routes>
         <Route path="/login" element={<LoginPageWrapper />} />
+        <Route path="/error" element={<ErrorPage />} />
         <Route
           path="/*"
           element={

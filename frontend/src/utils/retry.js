@@ -31,9 +31,10 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @returns {boolean}
  */
 const isRetryable = (error, config) => {
-  // Network error (no response)
+  // Network error (no response) - only retry actual network failures
+  // Check for axios network error code to avoid retrying CORS or blocked requests
   if (!error.response) {
-    return true;
+    return error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED';
   }
 
   const status = error.response?.status;

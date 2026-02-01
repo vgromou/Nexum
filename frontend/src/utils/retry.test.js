@@ -20,8 +20,9 @@ describe('retry', () => {
       expect(apiCall).toHaveBeenCalledTimes(1);
     });
 
-    it('retries on network error (no response)', async () => {
+    it('retries on network error with ERR_NETWORK code', async () => {
       const networkError = new Error('Network Error');
+      networkError.code = 'ERR_NETWORK';
       const apiCall = vi
         .fn()
         .mockRejectedValueOnce(networkError)
@@ -33,6 +34,30 @@ describe('retry', () => {
 
       expect(result).toEqual({ data: 'success' });
       expect(apiCall).toHaveBeenCalledTimes(2);
+    });
+
+    it('retries on timeout error with ECONNABORTED code', async () => {
+      const timeoutError = new Error('timeout of 5000ms exceeded');
+      timeoutError.code = 'ECONNABORTED';
+      const apiCall = vi
+        .fn()
+        .mockRejectedValueOnce(timeoutError)
+        .mockResolvedValue({ data: 'success' });
+
+      const promise = withRetry(apiCall);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result).toEqual({ data: 'success' });
+      expect(apiCall).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry on errors without response and without network error code', async () => {
+      const unknownError = new Error('Unknown error');
+      const apiCall = vi.fn().mockRejectedValue(unknownError);
+
+      await expect(withRetry(apiCall)).rejects.toEqual(unknownError);
+      expect(apiCall).toHaveBeenCalledTimes(1);
     });
 
     it('retries on retryable status codes', async () => {

@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import {
   setErrorHandlerRefs,
+  getErrorHandlerRefs,
   handleApiError,
   parseError,
 } from '../services/errorHandler';
@@ -40,9 +41,12 @@ export const ErrorProvider = ({ children }) => {
   useEffect(() => {
     setErrorHandlerRefs({ showToast, navigate });
 
-    // Cleanup on unmount
+    // Cleanup on unmount - only clear if refs still belong to this provider
     return () => {
-      setErrorHandlerRefs({ showToast: null, navigate: null });
+      const currentRefs = getErrorHandlerRefs();
+      if (currentRefs.showToast === showToast && currentRefs.navigate === navigate) {
+        setErrorHandlerRefs({ showToast: null, navigate: null });
+      }
     };
   }, [showToast, navigate]);
 

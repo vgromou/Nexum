@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as Sentry from '@sentry/react';
 import {
   parseError,
   handleApiError,
@@ -7,6 +8,12 @@ import {
   createErrorHandler,
 } from './errorHandler';
 
+vi.mock('@sentry/react', () => ({
+  getClient: vi.fn(),
+  withScope: vi.fn(),
+  captureException: vi.fn(),
+}));
+
 describe('errorHandler', () => {
   const mockShowToast = vi.fn();
   const mockNavigate = vi.fn();
@@ -14,6 +21,8 @@ describe('errorHandler', () => {
   beforeEach(() => {
     setErrorHandlerRefs({ showToast: mockShowToast, navigate: mockNavigate });
     vi.clearAllMocks();
+    // Default: Sentry not initialized
+    vi.mocked(Sentry.getClient).mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -333,6 +342,58 @@ describe('errorHandler', () => {
       handler(error, { silent: false });
 
       expect(mockShowToast).toHaveBeenCalled();
+    });
+  });
+
+  describe('Sentry integration', () => {
+    it('reports error to Sentry when initialized', () => {
+      const mockScope = {
+        setTag: vi.fn(),
+        setExtra: vi.fn(),
+      };
+      vi.mocked(Sentry.getClient).mockReturnValue({});
+      vi.mocked(Sentry.withScope).mockImplementation((callback) =>
+        callback(mockScope)
+      );
+
+      const error = {
+        response: {
+          status: 500,
+          data: {
+            error: {
+              code: 'SERVER_ERROR',
+              message: 'Something went wrong',
+              displayType: 'toast',
+              traceId: 'trace-123',
+              details: { foo: 'bar' },
+            },
+          },
+        },
+      };
+
+      handleApiError(error);
+
+      expect(Sentry.withScope).toHaveBeenCalled();
+      expect(mockScope.setTag).toHaveBeenCalledWith('errorCode', 'SERVER_ERROR');
+      expect(mockScope.setTag).toHaveBeenCalledWith('displayType', 'toast');
+      expect(mockScope.setTag).toHaveBeenCalledWith('traceId', 'trace-123');
+      expect(mockScope.setExtra).toHaveBeenCalledWith('details', { foo: 'bar' });
+      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+    });
+
+    it('does not report to Sentry when not initialized', () => {
+      vi.mocked(Sentry.getClient).mockReturnValue(undefined);
+
+      const error = {
+        response: {
+          status: 500,
+          data: { error: { message: 'Error' } },
+        },
+      };
+
+      handleApiError(error);
+
+      expect(Sentry.withScope).not.toHaveBeenCalled();
     });
   });
 });

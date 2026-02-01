@@ -29,9 +29,6 @@ if (import.meta.env.VITE_SENTRY_DSN) {
       return event;
     },
   });
-
-  // Expose Sentry globally for error handler integration
-  window.Sentry = Sentry;
 }
 
 createRoot(document.getElementById('root')).render(
