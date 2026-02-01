@@ -48,14 +48,14 @@ export const getErrorHandlerRefs = () => errorHandlerRefs;
  * Default error messages by error code
  */
 const DEFAULT_ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Не удалось подключиться к серверу',
-  VALIDATION_FAILED: 'Проверьте введенные данные',
-  UNAUTHORIZED: 'Необходима авторизация',
-  FORBIDDEN: 'Доступ запрещен',
-  NOT_FOUND: 'Ресурс не найден',
-  SERVER_ERROR: 'Внутренняя ошибка сервера',
-  OPERATION_TIMEOUT: 'Превышено время ожидания',
-  RATE_LIMITED: 'Слишком много запросов',
+  NETWORK_ERROR: 'Unable to connect to server',
+  VALIDATION_FAILED: 'Please check entered data',
+  UNAUTHORIZED: 'Authorization required',
+  FORBIDDEN: 'Access denied',
+  NOT_FOUND: 'Resource not found',
+  SERVER_ERROR: 'Internal server error',
+  OPERATION_TIMEOUT: 'Operation timed out',
+  RATE_LIMITED: 'Too many requests',
 };
 
 /**
@@ -104,7 +104,7 @@ export const parseError = (error) => {
       message:
         apiError.message ||
         DEFAULT_ERROR_MESSAGES[apiError.code] ||
-        'Произошла ошибка',
+        'An error occurred',
       displayType: apiError.displayType || 'toast',
       status,
       traceId: apiError.traceId || null,

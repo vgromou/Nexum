@@ -37,7 +37,6 @@ const AuthModal = ({
     isLoading = false,
     usernameError,
     passwordError,
-    generalError,
     className = '',
     ...rest
 }) => {
@@ -127,13 +126,6 @@ const AuthModal = ({
                     </p>
                 )}
 
-                {/* General error */}
-                {generalError && (
-                    <div className="auth-modal__error">
-                        {generalError}
-                    </div>
-                )}
-
                 {/* Form */}
                 <form className="auth-modal__form" onSubmit={handleSubmit}>
                     <div className="auth-modal__fields">
@@ -199,8 +191,6 @@ AuthModal.propTypes = {
     usernameError: PropTypes.string,
     /** Error message for password field */
     passwordError: PropTypes.string,
-    /** General error message (e.g., invalid credentials) */
-    generalError: PropTypes.string,
     /** Additional CSS classes */
     className: PropTypes.string,
 };

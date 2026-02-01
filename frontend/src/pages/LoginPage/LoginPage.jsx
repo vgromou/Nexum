@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import AuthModal from '../../components/AuthModal';
+import { handleApiError } from '../../services/errorHandler';
 import './LoginPage.css';
 
 /**
@@ -12,48 +13,22 @@ import './LoginPage.css';
 const LoginPage = () => {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState({
-    username: '',
-    password: '',
-    general: '',
-  });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleSubmit = useCallback(
     async ({ username, password }) => {
-      setErrors({ username: '', password: '', general: '' });
+      setFieldErrors({});
       setIsLoading(true);
 
       try {
         await login(username, password);
       } catch (error) {
-        const responseData = error.response?.data;
-
-        // Handle ASP.NET validation errors (400 Bad Request)
-        if (responseData?.errors) {
-          const validationErrors = responseData.errors;
-          setErrors({
-            username: validationErrors.Login?.[0] || '',
-            password: validationErrors.Password?.[0] || '',
-            general: '',
-          });
-          return;
-        }
-
-        // Handle our custom API errors
-        const errorData = responseData?.error;
-        const message = errorData?.message;
-        const displayType = errorData?.displayType;
-
-        if (displayType === 'field') {
-          // Show error under form fields
-          setErrors({
-            username: '',
-            password: message || 'Invalid username or password',
-            general: '',
-          });
-        } else {
-          // Default: show as general error (page/toast/inline)
-          setErrors((prev) => ({ ...prev, general: message || 'Login failed' }));
+        const parsed = handleApiError(error);
+        if (parsed.fieldErrors) {
+          setFieldErrors(parsed.fieldErrors);
+        } else if (parsed.displayType === 'field') {
+          // Field error without specific field - show on password field
+          setFieldErrors({ password: parsed.message });
         }
       } finally {
         setIsLoading(false);
@@ -69,9 +44,8 @@ const LoginPage = () => {
         mode="login"
         onSubmit={handleSubmit}
         isLoading={isLoading}
-        usernameError={errors.username}
-        passwordError={errors.password}
-        generalError={errors.general}
+        usernameError={fieldErrors.login}
+        passwordError={fieldErrors.password}
       />
     </div>
   );

@@ -117,6 +117,31 @@ const Modal = ({
         }
     }, [isOpen]);
 
+    // Protect input fields from external keyboard interception (e.g., editor shortcuts)
+    useEffect(() => {
+        if (!isOpen || !modalRef.current) return;
+
+        const handleInputKeyDown = (event) => {
+            const target = event.target;
+            const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+            // Stop propagation for paste/copy/cut in input fields
+            if (isInput && (event.metaKey || event.ctrlKey)) {
+                const key = event.key.toLowerCase();
+                if (key === 'v' || key === 'c' || key === 'x' || key === 'a') {
+                    event.stopPropagation();
+                }
+            }
+        };
+
+        // Use capture phase to intercept before other handlers
+        modalRef.current.addEventListener('keydown', handleInputKeyDown, true);
+
+        return () => {
+            modalRef.current?.removeEventListener('keydown', handleInputKeyDown, true);
+        };
+    }, [isOpen]);
+
     useEffect(() => {
         if (isOpen) {
             document.addEventListener('keydown', handleKeyDown);

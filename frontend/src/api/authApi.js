@@ -61,13 +61,14 @@ export const getMe = async () => {
  * Change password
  * @param {string} currentPassword - Current password
  * @param {string} newPassword - New password
- * @returns {Promise<void>}
+ * @returns {Promise<object>} Response object
  */
 export const changePassword = async (currentPassword, newPassword) => {
-  await client.post('/api/auth/change-password', {
+  const response = await client.post('/api/auth/change-password', {
     currentPassword,
     newPassword,
   });
+  return response;
 };
 
 export default {

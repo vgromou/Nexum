@@ -9,6 +9,8 @@ import Layout from './components/Layout/Layout';
 import LoginPage from './pages/LoginPage';
 import ErrorPage from './pages/ErrorPage';
 import AuthModal from './components/AuthModal';
+import PasswordChangeRequiredModal from './components/PasswordChangeRequiredModal';
+import { handleApiError } from './services/errorHandler';
 import './App.css';
 
 /**
@@ -18,20 +20,16 @@ function SessionExpiredModal() {
   const { isSessionExpired, reAuthenticate, clearSessionExpired } = useAuth();
 
   const [reAuthLoading, setReAuthLoading] = useState(false);
-  const [reAuthError, setReAuthError] = useState('');
 
   const handleReAuth = useCallback(
     async ({ username, password }) => {
       setReAuthLoading(true);
-      setReAuthError('');
 
       try {
         await reAuthenticate(username, password);
         clearSessionExpired();
       } catch (error) {
-        const message =
-          error.response?.data?.message || 'Invalid login or password';
-        setReAuthError(message);
+        handleApiError(error);
       } finally {
         setReAuthLoading(false);
       }
@@ -45,7 +43,21 @@ function SessionExpiredModal() {
       mode="sessionExpired"
       onSubmit={handleReAuth}
       isLoading={reAuthLoading}
-      generalError={reAuthError}
+    />
+  );
+}
+
+/**
+ * Password change required modal - rendered at app level
+ */
+function PasswordChangeModal() {
+  const { mustChangePassword, onPasswordChanged, logout } = useAuth();
+
+  return (
+    <PasswordChangeRequiredModal
+      isOpen={mustChangePassword}
+      onPasswordChanged={onPasswordChanged}
+      onLogout={logout}
     />
   );
 }
@@ -92,6 +104,9 @@ function AppRoutes() {
 
       {/* Session expired modal - always rendered at app level */}
       <SessionExpiredModal />
+
+      {/* Password change required modal - always rendered at app level */}
+      <PasswordChangeModal />
     </>
   );
 }
