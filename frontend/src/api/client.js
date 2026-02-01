@@ -216,6 +216,10 @@ client.interceptors.response.use(
           onSessionExpired();
         }
 
+        if (originalRequest?.handleErrors) {
+          const parsed = handleApiError(refreshError);
+          refreshError.parsed = parsed;
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -225,7 +229,7 @@ client.interceptors.response.use(
     // Centralized error handling for non-401 errors
     // Use handleErrors: true in request config to enable automatic error handling
     // Use handleErrors: false or omit to handle errors manually in component
-    if (originalRequest?.handleErrors === true) {
+    if (originalRequest?.handleErrors) {
       const parsed = handleApiError(error);
       // Attach parsed error to the error object for component access
       error.parsed = parsed;
