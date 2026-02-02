@@ -339,6 +339,7 @@
 
   /* ===== LAYOUT ===== */
   --left-sidebar-width: 280px;
+  --sidebar-button-width: 264px;
   --content-width: 640px;
   --right-sidebar-width: 320px;
   --header-height: 50px;

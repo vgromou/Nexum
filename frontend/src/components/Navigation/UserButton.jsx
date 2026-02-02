@@ -46,6 +46,8 @@ const UserButton = forwardRef(({
     );
 });
 
+UserButton.displayName = 'UserButton';
+
 UserButton.propTypes = {
     avatarUrl: PropTypes.string.isRequired,
     name: PropTypes.string,

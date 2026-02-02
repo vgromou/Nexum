@@ -6,7 +6,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 264px;
+    width: var(--sidebar-button-width);
     padding: var(--space-sm);
     box-sizing: border-box;
     border: none;
