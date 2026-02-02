@@ -1,14 +1,14 @@
 .space-button-container {
     margin: 0 var(--space-sm);
-    min-width: 280px;
 }
 
 .space-button {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
+    width: 264px;
     padding: var(--space-sm);
+    box-sizing: border-box;
     border: none;
     background: transparent;
     border-radius: var(--radius-md);

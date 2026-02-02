@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { Bell } from 'lucide-react';
 import './UserButton.css';
@@ -7,15 +7,15 @@ import './UserButton.css';
  * UserButton - Interactive button for user profile
  * Features hover state and integrated notification button
  */
-const UserButton = ({
+const UserButton = forwardRef(({
     avatarUrl,
     name = 'User Name',
     role = 'Role',
     onUserClick,
     onNotificationClick
-}) => {
+}, ref) => {
     return (
-        <div className="user-button-container">
+        <div className="user-button-container" ref={ref}>
             <button
                 className="user-button"
                 onClick={onUserClick}
@@ -44,7 +44,7 @@ const UserButton = ({
             </button>
         </div>
     );
-};
+});
 
 UserButton.propTypes = {
     avatarUrl: PropTypes.string.isRequired,

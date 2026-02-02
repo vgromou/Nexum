@@ -89,6 +89,7 @@ const UserCard = ({
     const [isActive, setIsActive] = useState(false);
     const [shouldRender, setShouldRender] = useState(false);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [position, setPosition] = useState({ left: 0, bottom: 0 });
     const [copiedField, setCopiedField] = useState(null);
     const [isSignOutPopoverOpen, setIsSignOutPopoverOpen] = useState(false);
     const cardRef = useRef(null);
@@ -131,6 +132,30 @@ const UserCard = ({
         const timer = setTimeout(measureDimensions, 50);
         return () => clearTimeout(timer);
     }, [shouldRender, isExpanded]);
+
+    // Calculate position based on anchor element
+    useEffect(() => {
+        if (!shouldRender || !anchorRef?.current) return;
+
+        const calculatePosition = () => {
+            const anchorRect = anchorRef.current.getBoundingClientRect();
+            const parentRect = cardRef.current?.parentElement?.getBoundingClientRect();
+
+            if (parentRect) {
+                // Position relative to parent (left-sidebar)
+                // Left edge aligned with anchor's left edge
+                const left = anchorRect.left - parentRect.left;
+                // Bottom edge aligned with anchor's bottom edge (-1px adjustment)
+                const bottom = parentRect.bottom - anchorRect.bottom - 1;
+
+                setPosition({ left, bottom });
+            }
+        };
+
+        calculatePosition();
+        window.addEventListener('resize', calculatePosition);
+        return () => window.removeEventListener('resize', calculatePosition);
+    }, [shouldRender, anchorRef]);
 
     // Handle click outside
     useEffect(() => {
@@ -226,10 +251,14 @@ const UserCard = ({
         className
     ].filter(Boolean).join(' ');
 
-    const cardStyle = dimensions.width > 0 ? {
-        width: dimensions.width,
-        height: dimensions.height
-    } : {};
+    const cardStyle = {
+        ...(dimensions.width > 0 && {
+            width: dimensions.width,
+            height: dimensions.height
+        }),
+        left: position.left,
+        bottom: position.bottom
+    };
 
     return (
         <div

@@ -405,8 +405,9 @@ const LeftSidebar = () => {
             <div className="footer-divider" />
 
             {/* Footer */}
-            <footer className="sidebar-footer" ref={userButtonRef}>
+            <footer className="sidebar-footer">
                 <UserButton
+                    ref={userButtonRef}
                     avatarUrl={user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'user'}`}
                     name={user ? `${user.firstName} ${user.lastName}` : 'User'}
                     role={user?.position || 'Member'}

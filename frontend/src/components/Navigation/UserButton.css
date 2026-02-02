@@ -1,14 +1,14 @@
 .user-button-container {
-    margin: var(--space-xs) var(--space-md);
-    min-width: 280px;
+    margin: 0;
 }
 
 .user-button {
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    width: 100%;
-    padding: var(--space-sm) var(--space-lg) var(--space-sm) var(--space-sm);
+    width: 264px;
+    padding: var(--space-sm);
+    box-sizing: border-box;
     border: none;
     background: transparent;
     border-radius: var(--radius-md);

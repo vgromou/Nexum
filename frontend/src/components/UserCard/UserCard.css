@@ -12,7 +12,7 @@
     bottom: 0;
     left: 0;
     background: var(--surface-card);
-    border: 1px solid var(--border-light);
+    outline: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
@@ -55,8 +55,8 @@
 
 /* Compact mode dimensions */
 .user-card__content--compact {
-    width: 280px;
-    padding: var(--space-lg);
+    width: 264px;
+    padding: var(--space-sm);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -198,7 +198,8 @@
     align-items: center;
     justify-content: flex-end;
     width: 100%;
-    margin-top: var(--space-sm);
+    height: 40px;
+    margin-top: 0;
 }
 
 .user-card__footer--expanded {

@@ -28,7 +28,7 @@ const LoginPage = () => {
           setFieldErrors(parsed.fieldErrors);
         } else if (parsed.displayType === 'field') {
           // Field error without specific field - show on password field
-          setFieldErrors({ password: parsed.message });
+          setFieldErrors({ Password: parsed.message });
         }
       } finally {
         setIsLoading(false);
