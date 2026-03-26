@@ -104,4 +104,14 @@ public class User : AuditableEntity
     /// User's active refresh tokens (multiple sessions)
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+    /// <summary>
+    /// User's space memberships
+    /// </summary>
+    public ICollection<SpaceMember> SpaceMemberships { get; set; } = new List<SpaceMember>();
+
+    /// <summary>
+    /// Space members invited by this user
+    /// </summary>
+    public ICollection<SpaceMember> InvitedSpaceMembers { get; set; } = new List<SpaceMember>();
 }

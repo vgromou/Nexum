@@ -17,6 +17,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
 
+    // Spaces schema
+    public DbSet<Space> Spaces => Set<Space>();
+    public DbSet<SpaceMember> SpaceMembers => Set<SpaceMember>();
+    public DbSet<SpaceSettings> SpaceSettings => Set<SpaceSettings>();
+
     // Auth schema
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -80,6 +85,83 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.User)
                 .WithMany(u => u.OrganizationMemberships)
                 .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Space configuration (spaces schema)
+        modelBuilder.Entity<Space>(entity =>
+        {
+            entity.ToTable("spaces", "spaces");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Icon).HasMaxLength(100);
+            entity.Property(e => e.Slug).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.DefaultAccess)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
+            entity.Property(e => e.IsArchived)
+                .HasDefaultValue(false);
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Slug })
+                .IsUnique()
+                .HasDatabaseName("uq_spaces_org_slug");
+            entity.HasIndex(e => e.OrganizationId)
+                .HasDatabaseName("ix_spaces_organization");
+            entity.HasOne(e => e.Organization)
+                .WithMany(o => o.Spaces)
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SpaceMember configuration (spaces schema)
+        modelBuilder.Entity<SpaceMember>(entity =>
+        {
+            entity.ToTable("space_members", "spaces");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Role)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.SpaceId, e.UserId })
+                .IsUnique()
+                .HasDatabaseName("uq_space_members_space_user");
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("ix_space_members_user");
+            entity.HasIndex(e => new { e.SpaceId, e.Role })
+                .HasDatabaseName("ix_space_members_space_role");
+
+            entity.HasOne(e => e.Space)
+                .WithMany(s => s.Members)
+                .HasForeignKey(e => e.SpaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.SpaceMemberships)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.InvitedByUser)
+                .WithMany(u => u.InvitedSpaceMembers)
+                .HasForeignKey(e => e.InvitedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.ToTable(t => t.HasCheckConstraint(
+                "ck_space_members_role_not_private",
+                "role <> 'Private'"));
+        });
+
+        // SpaceSettings configuration (spaces schema, 1:1 shared PK)
+        modelBuilder.Entity<SpaceSettings>(entity =>
+        {
+            entity.ToTable("space_settings", "spaces");
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Space)
+                .WithOne(s => s.Settings)
+                .HasForeignKey<SpaceSettings>(e => e.Id)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

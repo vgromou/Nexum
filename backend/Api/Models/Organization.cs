@@ -26,4 +26,9 @@ public class Organization : AuditableEntity
     /// Organization members (users with roles)
     /// </summary>
     public ICollection<OrganizationMember> Members { get; set; } = new List<OrganizationMember>();
+
+    /// <summary>
+    /// Spaces within this organization
+    /// </summary>
+    public ICollection<Space> Spaces { get; set; } = new List<Space>();
 }
