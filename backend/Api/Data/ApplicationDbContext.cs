@@ -91,7 +91,9 @@ public class ApplicationDbContext : DbContext
         // Space configuration (spaces schema)
         modelBuilder.Entity<Space>(entity =>
         {
-            entity.ToTable("spaces", "spaces");
+            entity.ToTable("spaces", "spaces", t => t.HasCheckConstraint(
+                "ck_spaces_default_access",
+                "default_access IN ('Private', 'Viewer', 'Editor')"));
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(256).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(1000);
