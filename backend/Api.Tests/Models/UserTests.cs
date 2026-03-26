@@ -17,7 +17,6 @@ public class UserTests
         user.PasswordHash.Should().BeEmpty();
         user.FirstName.Should().BeEmpty();
         user.LastName.Should().BeEmpty();
-        user.Role.Should().Be(UserRole.User);
         user.Position.Should().BeNull();
         user.DateOfBirth.Should().BeNull();
         user.AvatarUrl.Should().BeNull();
@@ -27,13 +26,13 @@ public class UserTests
         user.LockoutUntil.Should().BeNull();
         user.PasswordChangedAt.Should().BeNull();
         user.RefreshTokens.Should().BeEmpty();
+        user.OrganizationMemberships.Should().BeEmpty();
     }
 
     [Fact]
     public void User_ShouldSetProperties()
     {
         // Arrange
-        var orgId = Guid.NewGuid();
         var birthDate = new DateOnly(1990, 5, 15);
         var lockoutTime = DateTime.UtcNow.AddMinutes(15);
         var passwordChangedAt = DateTime.UtcNow;
@@ -42,13 +41,11 @@ public class UserTests
         var user = new User
         {
             Id = Guid.NewGuid(),
-            OrganizationId = orgId,
             Email = "john@example.com",
             Username = "johndoe",
             PasswordHash = "hashed_password",
             FirstName = "John",
             LastName = "Doe",
-            Role = UserRole.Admin,
             Position = "Software Engineer",
             DateOfBirth = birthDate,
             AvatarUrl = "https://example.com/avatar.png",
@@ -60,13 +57,11 @@ public class UserTests
         };
 
         // Assert
-        user.OrganizationId.Should().Be(orgId);
         user.Email.Should().Be("john@example.com");
         user.Username.Should().Be("johndoe");
         user.PasswordHash.Should().Be("hashed_password");
         user.FirstName.Should().Be("John");
         user.LastName.Should().Be("Doe");
-        user.Role.Should().Be(UserRole.Admin);
         user.Position.Should().Be("Software Engineer");
         user.DateOfBirth.Should().Be(birthDate);
         user.AvatarUrl.Should().Be("https://example.com/avatar.png");
@@ -75,19 +70,6 @@ public class UserTests
         user.FailedLoginAttempts.Should().Be(3);
         user.LockoutUntil.Should().Be(lockoutTime);
         user.PasswordChangedAt.Should().Be(passwordChangedAt);
-    }
-
-    [Theory]
-    [InlineData(UserRole.User)]
-    [InlineData(UserRole.Manager)]
-    [InlineData(UserRole.Admin)]
-    public void User_ShouldAcceptAllRoleValues(UserRole role)
-    {
-        // Arrange & Act
-        var user = new User { Role = role };
-
-        // Assert
-        user.Role.Should().Be(role);
     }
 
     [Fact]
@@ -99,6 +81,17 @@ public class UserTests
         // Act & Assert
         user.RefreshTokens.Should().NotBeNull();
         user.RefreshTokens.Should().BeAssignableTo<ICollection<RefreshToken>>();
+    }
+
+    [Fact]
+    public void User_ShouldInitializeOrganizationMembershipsCollection()
+    {
+        // Arrange
+        var user = new User();
+
+        // Act & Assert
+        user.OrganizationMemberships.Should().NotBeNull();
+        user.OrganizationMemberships.Should().BeAssignableTo<ICollection<OrganizationMember>>();
     }
 
     [Fact]
@@ -129,15 +122,5 @@ public class UserTests
 
         // Assert
         user.FailedLoginAttempts.Should().Be(0, "new users should have zero failed login attempts");
-    }
-
-    [Fact]
-    public void User_NewUser_ShouldHaveUserRole()
-    {
-        // Arrange & Act
-        var user = new User();
-
-        // Assert
-        user.Role.Should().Be(UserRole.User, "new users should have 'User' role by default");
     }
 }

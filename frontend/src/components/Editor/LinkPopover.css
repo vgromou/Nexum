@@ -5,20 +5,20 @@
     transform: translate(-50%, -100%);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-sm);
     width: 390px;
     padding: var(--space-sm);
     background: var(--surface-elevated);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
-    box-shadow: 0 4px 16px var(--shadow-default);
+    box-shadow: 0 var(--space-xs) var(--space-lg) var(--shadow-default);
     animation: linkPopoverAppear 0.15s ease-out;
 }
 
 @keyframes linkPopoverAppear {
     0% {
         opacity: 0;
-        transform: translate(-50%, -100%) translateY(4px);
+        transform: translate(-50%, -100%) translateY(var(--space-xs));
     }
 
     100% {
@@ -37,7 +37,7 @@
 .link-popover-input {
     width: 100%;
     height: auto;
-    padding: 8px 12px;
+    padding: var(--space-sm) var(--space-md);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     font-family: var(--font-family-sans);
@@ -76,7 +76,7 @@
 .link-popover-url-display {
     display: block;
     width: 100%;
-    padding: 8px 12px;
+    padding: var(--space-sm) var(--space-md);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     font-family: var(--font-family-sans);
@@ -101,49 +101,22 @@
 .link-popover-button-group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     flex-shrink: 0;
 }
 
-/* Button styles */
-.link-popover-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    border-radius: var(--radius-md);
-    color: var(--icons-disabled);
-    cursor: default;
-    transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-/* Button enabled state */
-.link-popover-button.enabled {
-    color: var(--icons-default);
-    cursor: pointer;
-}
-
-.link-popover-button.enabled:hover {
-    background-color: var(--background-hover);
-    color: var(--icons-hover);
-}
-
-/* Apply button specific */
-.link-popover-button.link-popover-apply.enabled {
+/* Apply button specific - override icon-btn colors */
+.link-popover-apply:not(.disabled) {
     color: var(--accent-primary);
 }
 
-.link-popover-button.link-popover-apply.enabled:hover {
+.link-popover-apply:not(.disabled):hover {
     background-color: var(--accent-primary-light);
     color: var(--accent-primary);
 }
 
-/* Unlink button specific */
-.link-popover-button.link-popover-unlink.enabled:hover {
+/* Unlink button specific - override icon-btn colors on hover */
+.link-popover-unlink:not(.disabled):hover {
     background-color: var(--semantic-error-light);
     color: var(--semantic-error);
 }

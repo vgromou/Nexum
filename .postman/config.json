@@ -1,0 +1,23 @@
+{
+  "workspace": {
+    "id": "d48a7caf-fd19-4e7f-a35b-5b6ed7c13608"
+  },
+  "entities": {
+    "collections": [
+      {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "path": "postman/collections/nexum-api.postman_collection.json"
+      }
+    ],
+    "environments": [
+      {
+        "id": "c8e4f2a1-3b5d-4e7f-9a1c-2d3e4f5a6b7c",
+        "path": "postman/environments/local.postman_environment.json"
+      }
+    ],
+    "specs": [],
+    "flows": [],
+    "globals": [],
+    "mocks": []
+  }
+}

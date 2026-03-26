@@ -23,7 +23,7 @@ public class Organization : AuditableEntity
     // Navigation properties
 
     /// <summary>
-    /// Users belonging to this organization
+    /// Organization members (users with roles)
     /// </summary>
-    public ICollection<User> Users { get; set; } = new List<User>();
+    public ICollection<OrganizationMember> Members { get; set; } = new List<OrganizationMember>();
 }

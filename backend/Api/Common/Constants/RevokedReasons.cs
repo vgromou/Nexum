@@ -1,0 +1,54 @@
+namespace Api.Common.Constants;
+
+/// <summary>
+/// Constants for refresh token revocation reasons.
+/// </summary>
+public static class RevokedReasons
+{
+    /// <summary>
+    /// Token was revoked due to normal token rotation during refresh.
+    /// </summary>
+    public const string Refresh = "refresh";
+
+    /// <summary>
+    /// Token was revoked due to user logout.
+    /// </summary>
+    public const string Logout = "logout";
+
+    /// <summary>
+    /// Token was revoked because an already-revoked token was reused (potential attack).
+    /// All tokens in the family are revoked as a security measure.
+    /// </summary>
+    public const string TokenReuse = "token_reuse";
+
+    /// <summary>
+    /// Token was revoked as part of a security measure (e.g., family revocation after reuse detection).
+    /// </summary>
+    public const string SecurityRevocation = "security_revocation";
+
+    /// <summary>
+    /// Token was revoked because the user's password was reset by an admin.
+    /// </summary>
+    public const string PasswordReset = "password_reset";
+
+    /// <summary>
+    /// Token was revoked because the user exceeded the maximum number of active sessions.
+    /// </summary>
+    public const string SessionLimitExceeded = "session_limit_exceeded";
+
+    /// <summary>
+    /// Token was revoked because the user changed their password.
+    /// </summary>
+    public const string PasswordChange = "password_change";
+
+    /// <summary>
+    /// Token was revoked because the user's account was deactivated by an admin.
+    /// </summary>
+    public const string AccountDeactivated = "account_deactivated";
+
+    /// <summary>
+    /// Token was revoked because the user's account was reactivated by an admin.
+    /// Forces fresh login with new credentials.
+    /// </summary>
+    public const string AccountReactivated = "account_reactivated";
+}

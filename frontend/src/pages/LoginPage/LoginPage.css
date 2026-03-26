@@ -1,0 +1,10 @@
+/**
+ * LoginPage Styles
+ *
+ * Full-page login with centered AuthModal
+ */
+
+.login-page {
+    min-height: 100vh;
+    background: var(--background-secondary);
+}

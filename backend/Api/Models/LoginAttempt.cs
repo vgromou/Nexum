@@ -4,19 +4,19 @@ namespace Api.Models;
 
 /// <summary>
 /// Login attempt tracking for brute-force protection
-/// Tracks attempts for both existing and non-existing emails
+/// Tracks attempts for both existing and non-existing accounts
 /// </summary>
 public class LoginAttempt : BaseEntity
 {
     /// <summary>
-    /// Email used in the login attempt
+    /// Login identifier used in the attempt (email or username)
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public string LoginIdentifier { get; set; } = string.Empty;
 
     /// <summary>
-    /// IP address of the client (required)
+    /// IP address of the client
     /// </summary>
-    public IPAddress IpAddress { get; set; } = null!;
+    public IPAddress? IpAddress { get; set; }
 
     /// <summary>
     /// Whether the login was successful

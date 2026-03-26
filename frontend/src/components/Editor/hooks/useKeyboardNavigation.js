@@ -113,26 +113,31 @@ export function useKeyboardNavigation({
             const activeTagName = activeEl?.tagName?.toUpperCase();
             const isActiveInput = activeTagName === 'INPUT' || activeTagName === 'TEXTAREA';
 
-            // Check e.target 
+            // Check e.target
             const targetTagName = targetEl?.tagName?.toUpperCase();
             const isTargetInput = targetTagName === 'INPUT' || targetTagName === 'TEXTAREA';
 
             const isInInput = isActiveInput || isTargetInput;
 
-            // Check if inside any popover or dialog (check both elements)
+            // Check if inside any popover, dialog, or modal (check both elements)
             const checkPopover = (el) => {
                 if (!el) return false;
                 return el.closest('.link-popover') ||
                     el.closest('.slash-command-menu') ||
                     el.closest('.formatting-popup') ||
                     el.closest('[role="dialog"]') ||
+                    el.closest('.modal') ||
+                    el.closest('.auth-modal') ||
                     el.classList?.contains('link-popover-input');
             };
 
             const isInPopover = checkPopover(activeEl) || checkPopover(targetEl);
 
-            if (isInInput || isInPopover) {
-                return; // Allow native paste in inputs and popovers
+            // Also check if target is outside the editor entirely
+            const isOutsideEditor = !targetEl?.closest('.block-editor') && !activeEl?.closest('.block-editor');
+
+            if (isInInput || isInPopover || isOutsideEditor) {
+                return; // Allow native paste in inputs, popovers, and outside editor
             }
 
             e.preventDefault();

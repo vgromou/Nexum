@@ -1,0 +1,15 @@
+/**
+ * UserSettings Component Styles
+ */
+
+.user-settings {
+    /* Container styles if needed */
+}
+
+/* Footer with buttons on opposite sides */
+.user-settings__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}

@@ -15,7 +15,7 @@ public class OrganizationTests
         organization.Name.Should().BeEmpty();
         organization.Slug.Should().BeEmpty();
         organization.LogoUrl.Should().BeNull();
-        organization.Users.Should().BeEmpty();
+        organization.Members.Should().BeEmpty();
     }
 
     [Fact]
@@ -37,13 +37,13 @@ public class OrganizationTests
     }
 
     [Fact]
-    public void Organization_ShouldInitializeUsersCollection()
+    public void Organization_ShouldInitializeMembersCollection()
     {
         // Arrange
         var organization = new Organization();
 
         // Act & Assert
-        organization.Users.Should().NotBeNull();
-        organization.Users.Should().BeAssignableTo<ICollection<User>>();
+        organization.Members.Should().NotBeNull();
+        organization.Members.Should().BeAssignableTo<ICollection<OrganizationMember>>();
     }
 }

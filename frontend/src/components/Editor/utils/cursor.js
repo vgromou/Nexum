@@ -182,9 +182,8 @@ export const restoreCursor = (editorRef, cursorState) => {
 
         sel.removeAllRanges();
         sel.addRange(range);
-    } catch (e) {
+    } catch {
         // If restoration fails, just focus the block
-        console.warn('Failed to restore cursor:', e);
         blockEl.focus();
     }
 };

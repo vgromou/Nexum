@@ -14,15 +14,21 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@sentry/react": "^10.38.0",
+    "axios": "^1.13.4",
     "dompurify": "^3.3.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.562.0",
     "prop-types": "^15.8.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@storybook/addon-a11y": "^10.1.11",
+    "@storybook/addon-docs": "^10.1.11",
+    "@storybook/react-vite": "^10.1.11",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",
@@ -33,9 +39,11 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-storybook": "^10.1.11",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",
     "prettier": "^3.7.4",
+    "storybook": "^10.1.11",
     "vite": "^7.2.4",
     "vitest": "^4.0.16",
     "storybook": "^10.1.11",

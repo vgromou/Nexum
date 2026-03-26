@@ -5,20 +5,21 @@
     transform: translate(-50%, -100%);
     background: var(--surface-elevated, white);
     border: 1px solid var(--border-default, #E5E7EB);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
-    padding: var(--space-xs, 4px) var(--space-sm, 8px);
-    min-height: 42px;
-    display: flex;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 var(--space-xs) var(--space-lg) 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
+    padding: var(--space-xs) var(--space-sm);
+    display: inline-flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-xs);
+    width: auto;
+    height: auto;
     animation: formattingMenuAppear 0.15s ease-out;
 }
 
 @keyframes formattingMenuAppear {
     0% {
         opacity: 0;
-        transform: translate(-50%, -100%) translateY(4px);
+        transform: translate(-50%, -100%) translateY(var(--space-xs));
     }
 
     100% {
@@ -28,9 +29,11 @@
 }
 
 .formatting-menu-main {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--space-xxs);
+    width: auto;
+    height: auto;
 }
 
 .formatting-menu-group {
@@ -38,159 +41,114 @@
     align-items: center;
 }
 
-.formatting-menu-button {
-    display: flex;
-    width: 32px;
-    height: 32px;
-    justify-content: center;
+/* Color picker button - hug contents, gap 4px, padding left/right 4px */
+.color-picker-button {
+    display: inline-flex;
+    width: auto;
+    min-height: 28px;
+    padding: 0 var(--space-xs);
+    gap: var(--space-xs);
     align-items: center;
-    gap: 10px;
-    aspect-ratio: 1/1;
-    padding: 0;
     border: none;
     background: transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: background-color 0.1s ease, color 0.1s ease;
 }
 
-/* Formatting button icon default state */
-.formatting-menu-button svg {
-    color: var(--icons-default, #9CA3AF);
-}
-
-/* Formatting button hover state */
-.formatting-menu-button:hover {
-    background-color: var(--background-hover, #F3F4F6);
-}
-
-.formatting-menu-button:hover svg {
-    color: var(--icons-hover, #6B7280);
-}
-
-/* Formatting button active state */
-.formatting-menu-button.active {
-    background-color: var(--accent-primary-light, #ECEEFF);
-}
-
-.formatting-menu-button.active svg {
-    color: var(--icons-active, #5E6AD2);
-}
-
-/* Formatting button disabled state */
-.formatting-menu-button.disabled,
-.formatting-menu-button:disabled {
-    background: transparent;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.formatting-menu-button.disabled svg,
-.formatting-menu-button:disabled svg {
-    color: var(--icons-disabled, #E5E7EB);
-}
-
-.formatting-menu-button.with-dropdown {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    gap: 0;
-}
-
-/* Color picker button - hug contents, gap 4px, padding left/right 4px */
-.formatting-menu-button.color-picker-button {
-    display: inline-flex;
-    width: auto;
-    height: 32px;
-    padding: 0 4px;
-    gap: 4px;
-    align-items: center;
-}
-
 /* Color picker - default state */
-.formatting-menu-button.color-picker-button svg {
+.color-picker-button svg {
     color: var(--icons-default, #9CA3AF);
 }
 
 /* Color picker - hover state */
-.formatting-menu-button.color-picker-button:hover svg {
+.color-picker-button:hover {
+    background-color: var(--background-hover, #F3F4F6);
+}
+
+.color-picker-button:hover svg {
     color: var(--icons-hover, #6B7280);
 }
 
 /* Color picker - active state */
-.formatting-menu-button.color-picker-button.active svg {
+.color-picker-button.active {
+    background-color: var(--accent-primary-light, #ECEEFF);
+}
+
+.color-picker-button.active svg {
     color: var(--icons-active, #5E6AD2);
 }
 
-/* Color picker button states - inherits background from base formatting-menu-button */
-
 /* Turn Into Button with block type label */
-.formatting-menu-button.turn-into-button {
+.turn-into-button {
     display: inline-flex;
     width: auto;
-    height: 32px;
-    padding: 2px 4px;
+    min-height: 28px;
+    padding: var(--space-xxs) var(--space-xs);
     align-items: center;
-    gap: 4px;
-    border-radius: 4px;
+    gap: var(--space-xs);
+    border-radius: var(--radius-sm);
+    border: none;
     background: transparent;
+    cursor: pointer;
+    transition: background-color 0.1s ease, color 0.1s ease;
 }
 
 /* Turn Into - Default state */
-.formatting-menu-button.turn-into-button svg {
+.turn-into-button svg {
     color: var(--icons-default, #9CA3AF);
 }
 
-.formatting-menu-button.turn-into-button .block-type-label {
+.turn-into-button .block-type-label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-tertiary, #9CA3AF);
     white-space: nowrap;
 }
 
-.formatting-menu-button.turn-into-button .chevron-icon {
+.turn-into-button .chevron-icon {
     color: var(--icons-default, #9CA3AF);
 }
 
 /* Turn Into - Hover state */
-.formatting-menu-button.turn-into-button:hover {
+.turn-into-button:hover {
     background-color: var(--background-hover, #F3F4F6);
 }
 
-.formatting-menu-button.turn-into-button:hover svg {
+.turn-into-button:hover svg {
     color: var(--icons-hover, #6B7280);
 }
 
-.formatting-menu-button.turn-into-button:hover .block-type-label {
+.turn-into-button:hover .block-type-label {
     color: var(--text-primary, #1F2937);
 }
 
-.formatting-menu-button.turn-into-button:hover .chevron-icon {
+.turn-into-button:hover .chevron-icon {
     color: var(--icons-hover, #6B7280);
 }
 
 /* Turn Into - Active state */
-.formatting-menu-button.turn-into-button.active {
+.turn-into-button.active {
     background-color: var(--accent-primary-light, #ECEEFF);
 }
 
-.formatting-menu-button.turn-into-button.active svg {
+.turn-into-button.active svg {
     color: var(--icons-active, #5E6AD2);
 }
 
-.formatting-menu-button.turn-into-button.active .block-type-label {
+.turn-into-button.active .block-type-label {
     color: var(--accent-primary, #5E6AD2);
 }
 
-.formatting-menu-button.turn-into-button.active .chevron-icon {
+.turn-into-button.active .chevron-icon {
     color: var(--icons-active, #5E6AD2);
 }
 
 .formatting-menu-divider {
     width: 1px;
-    height: 24px;
+    height: var(--space-xl);
     background-color: var(--border-default, #E5E7EB);
-    margin: 0 4px;
+    margin: 0 var(--space-xs);
 }
 
 /* Formatting Popup - Separate floating panels */
@@ -199,8 +157,8 @@
     z-index: 1110;
     background: var(--color-bg-white, white);
     border: 1px solid var(--color-gray-100, #f3f4f6);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px var(--color-shadow-menu, rgba(0, 0, 0, 0.16)),
+    border-radius: var(--radius-xl);
+    box-shadow: 0 var(--space-sm) var(--space-2xl) var(--color-shadow-menu, rgba(0, 0, 0, 0.16)),
         0 0 1px rgba(0, 0, 0, 0.08);
     animation: popupAppear 0.15s ease-out;
     overflow: hidden;
@@ -209,7 +167,7 @@
 @keyframes popupAppear {
     0% {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(calc(-1 * var(--space-sm)));
     }
 
     100% {
@@ -221,7 +179,7 @@
 /* Turn Into Popup */
 .turn-into-popup {
     width: 220px;
-    padding: 8px;
+    padding: var(--space-sm);
 }
 
 .popup-header {
@@ -230,13 +188,13 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--color-gray-400, #9ca3af);
-    padding: 8px 12px 6px;
+    padding: var(--space-sm) var(--space-md) 6px;
 }
 
 .popup-content {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xxs);
 }
 
 .popup-item {
@@ -244,10 +202,10 @@
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 10px 12px;
+    padding: 10px var(--space-md);
     border: none;
     background: transparent;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     color: var(--color-text-primary, #000);
     font-size: 14px;
     cursor: pointer;
@@ -277,205 +235,3 @@
     color: var(--color-selection-blue, #2383e2);
 }
 
-/* Highlight Popup */
-.highlight-popup {
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-/* Clear Formatting Button */
-.clear-formatting-button {
-    width: 100%;
-    padding: 4px 12px;
-    background-color: var(--color-bg-white, white);
-    border: 1px solid var(--color-gray-300, #d1d5db);
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--color-gray-500, #6b7280);
-    cursor: pointer;
-    transition: background-color 0.1s ease, color 0.1s ease;
-}
-
-.clear-formatting-button:hover {
-    background-color: var(--color-gray-100, #f3f4f6);
-    color: var(--color-text-primary, #000);
-}
-
-/* Color Section with header */
-.color-section {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.color-section-header {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--color-gray-400, #9ca3af);
-    padding-left: 2px;
-}
-
-/* Color Row - swatches in a row */
-.color-row {
-    display: flex;
-    gap: 4px;
-}
-
-/* Color Swatch - Large square with letter A */
-.color-swatch {
-    position: relative;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    border: 1px solid var(--color-gray-200, #e5e7eb);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-    background: transparent;
-    padding: 0;
-}
-
-.color-swatch:hover {
-    transform: scale(1.08);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Letter A inside swatches */
-.swatch-letter {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1;
-}
-
-/* Clear swatch - white with X */
-.clear-swatch {
-    background-color: var(--color-bg-white, white);
-    border: 1px solid var(--color-gray-300, #d1d5db);
-    color: var(--color-gray-400, #9ca3af);
-}
-
-.clear-swatch:hover {
-    color: var(--color-gray-600, #4b5563);
-}
-
-/* Highlight Swatches - Background color with text */
-.highlight-swatch {
-    border: none;
-}
-
-.highlight-swatch .swatch-letter {
-    color: var(--color-text-primary, #000);
-}
-
-.highlight-swatch-default {
-    background-color: var(--color-highlight-default-bg);
-    border: 1px solid var(--border-default, #E5E7EB);
-}
-
-.highlight-swatch-default .swatch-letter {
-    color: var(--color-highlight-default-text);
-}
-
-.highlight-swatch-gray {
-    background-color: var(--color-highlight-gray-bg);
-}
-
-.highlight-swatch-gray .swatch-letter {
-    color: var(--color-highlight-gray-text);
-}
-
-.highlight-swatch-brown {
-    background-color: var(--color-highlight-brown-bg);
-}
-
-.highlight-swatch-brown .swatch-letter {
-    color: var(--color-highlight-brown-text);
-}
-
-.highlight-swatch-orange {
-    background-color: var(--color-highlight-orange-bg);
-}
-
-.highlight-swatch-orange .swatch-letter {
-    color: var(--color-highlight-orange-text);
-}
-
-.highlight-swatch-yellow {
-    background-color: var(--color-highlight-yellow-bg);
-}
-
-.highlight-swatch-yellow .swatch-letter {
-    color: var(--color-highlight-yellow-text);
-}
-
-.highlight-swatch-green {
-    background-color: var(--color-highlight-green-bg);
-}
-
-.highlight-swatch-green .swatch-letter {
-    color: var(--color-highlight-green-text);
-}
-
-.highlight-swatch-blue {
-    background-color: var(--color-highlight-blue-bg);
-}
-
-.highlight-swatch-blue .swatch-letter {
-    color: var(--color-highlight-blue-text);
-}
-
-.highlight-swatch-purple {
-    background-color: var(--color-highlight-purple-bg);
-}
-
-.highlight-swatch-purple .swatch-letter {
-    color: var(--color-highlight-purple-text);
-}
-
-.highlight-swatch-magenta {
-    background-color: var(--color-highlight-magenta-bg);
-}
-
-.highlight-swatch-magenta .swatch-letter {
-    color: var(--color-highlight-magenta-text);
-}
-
-.highlight-swatch-red {
-    background-color: var(--color-highlight-red-bg);
-}
-
-.highlight-swatch-red .swatch-letter {
-    color: var(--color-highlight-red-text);
-}
-
-/* Active Highlight Button State (when a highlight is active) */
-.formatting-menu-button.has-active-style {
-    color: var(--color-selection-blue, #2383e2);
-    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
-}
-
-/* Active Color Swatch State */
-.color-swatch.active {
-    border: 2px solid var(--color-selection-blue, #2383e2);
-    transform: scale(0.95);
-    /* Slight shrink to fit border inside layout */
-}
-
-.swatch-check {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: var(--color-bg-white, white);
-    border-radius: 50%;
-    padding: 1px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    color: var(--color-selection-blue, #2383e2);
-    z-index: 10;
-}

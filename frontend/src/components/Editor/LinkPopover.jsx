@@ -150,7 +150,7 @@ const LinkPopover = ({
             <div className="link-popover-button-group">
                 {/* Apply/Check button */}
                 <button
-                    className={`link-popover-button link-popover-apply ${hasUrl ? 'enabled' : ''}`}
+                    className={`icon-btn link-popover-apply ${hasUrl ? '' : 'disabled'}`}
                     onClick={hasUrl ? handleApply : undefined}
                     onMouseDown={(e) => e.preventDefault()}
                     title="Apply link"
@@ -161,7 +161,7 @@ const LinkPopover = ({
 
                 {/* Unlink button */}
                 <button
-                    className={`link-popover-button link-popover-unlink ${isEditing ? 'enabled' : ''}`}
+                    className={`icon-btn link-popover-unlink ${isEditing ? '' : 'disabled'}`}
                     onClick={isEditing ? handleUnlink : undefined}
                     onMouseDown={(e) => e.preventDefault()}
                     title="Remove link"
@@ -172,7 +172,7 @@ const LinkPopover = ({
 
                 {/* Open in new tab button */}
                 <button
-                    className={`link-popover-button link-popover-open ${hasUrl ? 'enabled' : ''}`}
+                    className={`icon-btn link-popover-open ${hasUrl ? '' : 'disabled'}`}
                     onClick={hasUrl ? handleOpen : undefined}
                     onMouseDown={(e) => e.preventDefault()}
                     title="Open in new tab"

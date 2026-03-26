@@ -5,14 +5,14 @@
     display: flex;
     width: fit-content;
     height: fit-content;
-    padding: 12px;
+    padding: var(--space-md);
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    border-radius: 8px;
+    gap: var(--space-md);
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-default, #E5E7EB);
     background: var(--surface-elevated, #FFF);
-    box-shadow: 0 4px 16px 0 var(--shadow-default, rgba(0, 0, 0, 0.12));
+    box-shadow: var(--shadow-md);
     animation: colorPickerAppear 0.15s ease-out;
 }
 
@@ -33,7 +33,7 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 
 /* Section header */
@@ -42,7 +42,7 @@
     width: 100%;
     padding: 4px 12px 4px 0;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     color: var(--text-tertiary, #9CA3AF);
     font-family: Inter, sans-serif;
     font-size: 11px;
@@ -56,13 +56,13 @@
 .color-picker-palette {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 
 /* Row of color swatches */
 .color-picker-row {
     display: flex;
-    gap: 6px !important;
+    gap: var(--space-xs);
     width: 100%;
     justify-content: flex-start;
 }
@@ -94,17 +94,17 @@
     border-radius: 8px !important;
     cursor: pointer;
     padding: 0;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, border-width 0.1s ease;
 }
 
 .color-picker-swatch:hover {
-    transform: scale(1.05);
+    border-width: 2px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .color-picker-swatch.active {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 2px var(--accent-primary, #5E6AD2);
+    border-width: 2px !important;
+    box-shadow: none;
 }
 
 /* Letter A in swatch */

@@ -67,12 +67,12 @@ const RightSidebar = () => {
                     {tabs.map(({ id, icon: Icon, label }) => (
                         <button
                             key={id}
-                            className={`tab-button ${activeTab === id ? 'active' : ''}`}
+                            className={`icon-btn icon-btn-sm tab-button ${activeTab === id ? 'active' : ''}`}
                             onClick={() => setActiveTab(id)}
                             aria-label={label}
                             title={label}
                         >
-                            <Icon size={18} />
+                            <Icon />
                         </button>
                     ))}
                 </div>

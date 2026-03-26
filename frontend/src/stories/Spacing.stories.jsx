@@ -94,6 +94,7 @@ const SpacingPage = () => (
       Spacing Scale
     </h2>
 
+    <SpacingBox name="Extra Extra Small" cssVar="--space-xxs" size="2px" />
     <SpacingBox name="Extra Small" cssVar="--space-xs" size="4px" />
     <SpacingBox name="Small" cssVar="--space-sm" size="8px" />
     <SpacingBox name="Medium" cssVar="--space-md" size="12px" />
@@ -116,9 +117,19 @@ const SpacingPage = () => (
       Shadows
     </h2>
 
-    <ShadowBox name="Small" cssVar="--shadow-sm" />
-    <ShadowBox name="Medium" cssVar="--shadow-md" />
-    <ShadowBox name="Large" cssVar="--shadow-lg" />
+    <div style={{ marginBottom: '24px' }}>
+      <h3 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: 'var(--text-secondary)' }}>Default Shadows</h3>
+      <ShadowBox name="Small" cssVar="--shadow-sm" />
+      <ShadowBox name="Medium" cssVar="--shadow-md" />
+      <ShadowBox name="Large" cssVar="--shadow-lg" />
+    </div>
+
+    <div>
+      <h3 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: 'var(--text-secondary)' }}>Accent Shadows (Purple)</h3>
+      <ShadowBox name="Small Accent" cssVar="--shadow-sm-accent" />
+      <ShadowBox name="Medium Accent" cssVar="--shadow-md-accent" />
+      <ShadowBox name="Large Accent" cssVar="--shadow-lg-accent" />
+    </div>
 
     <h2 style={{ fontSize: '20px', fontWeight: 600, margin: '48px 0 24px', color: 'var(--text-primary)' }}>
       Layout Dimensions

@@ -13,7 +13,7 @@ public class LoginAttemptTests
         var attempt = new LoginAttempt();
 
         // Assert
-        attempt.Email.Should().BeEmpty();
+        attempt.LoginIdentifier.Should().BeEmpty();
         attempt.Success.Should().BeFalse();
         attempt.FailureReason.Should().BeNull();
         attempt.UserAgent.Should().BeNull();
@@ -29,14 +29,14 @@ public class LoginAttemptTests
         var attempt = new LoginAttempt
         {
             Id = Guid.NewGuid(),
-            Email = "user@example.com",
+            LoginIdentifier = "user@example.com",
             IpAddress = ipAddress,
             Success = true,
             UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
         };
 
         // Assert
-        attempt.Email.Should().Be("user@example.com");
+        attempt.LoginIdentifier.Should().Be("user@example.com");
         attempt.IpAddress.Should().Be(ipAddress);
         attempt.Success.Should().BeTrue();
         attempt.UserAgent.Should().Contain("Mozilla");
@@ -48,7 +48,7 @@ public class LoginAttemptTests
         // Arrange & Act
         var attempt = new LoginAttempt
         {
-            Email = "user@example.com",
+            LoginIdentifier = "user@example.com",
             Success = true,
             FailureReason = null
         };
@@ -69,7 +69,7 @@ public class LoginAttemptTests
         // Arrange & Act
         var attempt = new LoginAttempt
         {
-            Email = "user@example.com",
+            LoginIdentifier = "user@example.com",
             Success = false,
             FailureReason = reason
         };
@@ -85,14 +85,14 @@ public class LoginAttemptTests
         // Arrange & Act
         var attempt = new LoginAttempt
         {
-            Email = "nonexistent@example.com",
+            LoginIdentifier = "nonexistent@example.com",
             Success = false,
             FailureReason = "user_not_found",
             IpAddress = IPAddress.Parse("192.168.1.1")
         };
 
         // Assert
-        attempt.Email.Should().Be("nonexistent@example.com");
+        attempt.LoginIdentifier.Should().Be("nonexistent@example.com");
         attempt.Success.Should().BeFalse();
         attempt.FailureReason.Should().Be("user_not_found");
     }

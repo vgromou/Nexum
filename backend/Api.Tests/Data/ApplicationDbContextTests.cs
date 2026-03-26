@@ -54,7 +54,7 @@ public class ApplicationDbContextTests
     }
 
     [Fact]
-    public async Task Organization_ShouldCascadeDeleteUsers()
+    public async Task Organization_ShouldCascadeDeleteMembers()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
@@ -69,22 +69,29 @@ public class ApplicationDbContextTests
             Username = "testuser",
             PasswordHash = "hash",
             FirstName = "Test",
-            LastName = "User",
-            Organization = organization
+            LastName = "User"
+        };
+        var membership = new OrganizationMember
+        {
+            Organization = organization,
+            User = user,
+            OrganizationRole = OrganizationRole.User,
+            JoinedAt = DateTime.UtcNow
         };
 
         context.Organizations.Add(organization);
         context.Users.Add(user);
+        context.OrganizationMembers.Add(membership);
         await context.SaveChangesAsync();
 
-        var userId = user.Id;
+        var membershipId = membership.Id;
 
         // Act
         context.Organizations.Remove(organization);
         await context.SaveChangesAsync();
 
         // Assert
-        context.Users.Find(userId).Should().BeNull("user should be cascade deleted with organization");
+        context.OrganizationMembers.Find(membershipId).Should().BeNull("membership should be cascade deleted with organization");
     }
 
     [Fact]
@@ -92,19 +99,13 @@ public class ApplicationDbContextTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var organization = new Organization
-        {
-            Name = "Test Org",
-            Slug = "test-org"
-        };
         var user = new User
         {
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
             FirstName = "Test",
-            LastName = "User",
-            Organization = organization
+            LastName = "User"
         };
         var token = new RefreshToken
         {
@@ -113,7 +114,6 @@ public class ApplicationDbContextTests
             User = user
         };
 
-        context.Organizations.Add(organization);
         context.Users.Add(user);
         context.RefreshTokens.Add(token);
         await context.SaveChangesAsync();
@@ -128,8 +128,8 @@ public class ApplicationDbContextTests
         context.RefreshTokens.Find(tokenId).Should().BeNull("refresh token should be cascade deleted with user");
     }
 
-    [Fact(Skip = "InMemory database does not enforce unique constraints - use integration tests with real DB")]
-    public async Task User_EmailShouldBeUnique()
+    [Fact]
+    public async Task User_ShouldCascadeDeleteMemberships()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
@@ -138,14 +138,49 @@ public class ApplicationDbContextTests
             Name = "Test Org",
             Slug = "test-org"
         };
+        var user = new User
+        {
+            Email = "user@test.com",
+            Username = "testuser",
+            PasswordHash = "hash",
+            FirstName = "Test",
+            LastName = "User"
+        };
+        var membership = new OrganizationMember
+        {
+            Organization = organization,
+            User = user,
+            OrganizationRole = OrganizationRole.User,
+            JoinedAt = DateTime.UtcNow
+        };
+
+        context.Organizations.Add(organization);
+        context.Users.Add(user);
+        context.OrganizationMembers.Add(membership);
+        await context.SaveChangesAsync();
+
+        var membershipId = membership.Id;
+
+        // Act
+        context.Users.Remove(user);
+        await context.SaveChangesAsync();
+
+        // Assert
+        context.OrganizationMembers.Find(membershipId).Should().BeNull("membership should be cascade deleted with user");
+    }
+
+    [Fact(Skip = "InMemory database does not enforce unique constraints - use integration tests with real DB")]
+    public async Task User_EmailShouldBeUnique()
+    {
+        // Arrange
+        using var context = TestDbContextFactory.Create();
         var user1 = new User
         {
             Email = "same@test.com",
             Username = "user1",
             PasswordHash = "hash",
             FirstName = "User",
-            LastName = "One",
-            Organization = organization
+            LastName = "One"
         };
         var user2 = new User
         {
@@ -153,11 +188,9 @@ public class ApplicationDbContextTests
             Username = "user2",
             PasswordHash = "hash",
             FirstName = "User",
-            LastName = "Two",
-            Organization = organization
+            LastName = "Two"
         };
 
-        context.Organizations.Add(organization);
         context.Users.Add(user1);
         await context.SaveChangesAsync();
         context.Users.Add(user2);
@@ -172,19 +205,13 @@ public class ApplicationDbContextTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var organization = new Organization
-        {
-            Name = "Test Org",
-            Slug = "test-org"
-        };
         var user1 = new User
         {
             Email = "user1@test.com",
             Username = "sameusername",
             PasswordHash = "hash",
             FirstName = "User",
-            LastName = "One",
-            Organization = organization
+            LastName = "One"
         };
         var user2 = new User
         {
@@ -192,11 +219,9 @@ public class ApplicationDbContextTests
             Username = "sameusername",
             PasswordHash = "hash",
             FirstName = "User",
-            LastName = "Two",
-            Organization = organization
+            LastName = "Two"
         };
 
-        context.Organizations.Add(organization);
         context.Users.Add(user1);
         await context.SaveChangesAsync();
         context.Users.Add(user2);
@@ -228,15 +253,13 @@ public class ApplicationDbContextTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var organization = new Organization { Name = "Test Org", Slug = "test-org" };
         var user = new User
         {
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
             FirstName = "Test",
-            LastName = "User",
-            Organization = organization
+            LastName = "User"
         };
         var token1 = new RefreshToken
         {
@@ -251,7 +274,6 @@ public class ApplicationDbContextTests
             User = user
         };
 
-        context.Organizations.Add(organization);
         context.Users.Add(user);
         context.RefreshTokens.Add(token1);
         await context.SaveChangesAsync();
@@ -269,7 +291,7 @@ public class ApplicationDbContextTests
         using var context = TestDbContextFactory.Create();
         var attempt = new LoginAttempt
         {
-            Email = "nonexistent@test.com",
+            LoginIdentifier = "nonexistent@test.com",
             Success = false,
             FailureReason = "user_not_found",
             IpAddress = IPAddress.Parse("192.168.1.1")
@@ -285,7 +307,7 @@ public class ApplicationDbContextTests
     }
 
     [Fact]
-    public async Task User_RoleShouldBeStoredAsString()
+    public async Task OrganizationMember_RoleShouldBeStoredAsString()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
@@ -296,21 +318,27 @@ public class ApplicationDbContextTests
             Username = "admin",
             PasswordHash = "hash",
             FirstName = "Admin",
-            LastName = "User",
-            Role = UserRole.Admin,
-            Organization = organization
+            LastName = "User"
+        };
+        var membership = new OrganizationMember
+        {
+            Organization = organization,
+            User = user,
+            OrganizationRole = OrganizationRole.Admin,
+            JoinedAt = DateTime.UtcNow
         };
 
         context.Organizations.Add(organization);
         context.Users.Add(user);
+        context.OrganizationMembers.Add(membership);
         await context.SaveChangesAsync();
 
         // Act - Query directly to verify storage format
-        var savedUser = await context.Users.FindAsync(user.Id);
+        var savedMembership = await context.OrganizationMembers.FindAsync(membership.Id);
 
         // Assert
-        savedUser.Should().NotBeNull();
-        savedUser!.Role.Should().Be(UserRole.Admin);
+        savedMembership.Should().NotBeNull();
+        savedMembership!.OrganizationRole.Should().Be(OrganizationRole.Admin);
     }
 
     [Fact]
@@ -318,15 +346,13 @@ public class ApplicationDbContextTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var organization = new Organization { Name = "Test Org", Slug = "test-org" };
         var user = new User
         {
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
             FirstName = "Test",
-            LastName = "User",
-            Organization = organization
+            LastName = "User"
         };
         var token1 = new RefreshToken
         {
@@ -350,7 +376,6 @@ public class ApplicationDbContextTests
             User = user
         };
 
-        context.Organizations.Add(organization);
         context.Users.Add(user);
         context.RefreshTokens.AddRange(token1, token2, token3);
         await context.SaveChangesAsync();
@@ -370,7 +395,7 @@ public class ApplicationDbContextTests
         using var context = TestDbContextFactory.Create();
         var attempt = new LoginAttempt
         {
-            Email = "test@example.com",
+            LoginIdentifier = "test@example.com",
             Success = true,
             IpAddress = IPAddress.Parse("192.168.1.1")
         };
@@ -388,15 +413,13 @@ public class ApplicationDbContextTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var organization = new Organization { Name = "Test Org", Slug = "test-org" };
         var user = new User
         {
             Email = "user@test.com",
             Username = "testuser",
             PasswordHash = "hash",
             FirstName = "Test",
-            LastName = "User",
-            Organization = organization
+            LastName = "User"
         };
         var token = new RefreshToken
         {
@@ -406,7 +429,6 @@ public class ApplicationDbContextTests
         };
 
         // Act
-        context.Organizations.Add(organization);
         context.Users.Add(user);
         context.RefreshTokens.Add(token);
         await context.SaveChangesAsync();

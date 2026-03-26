@@ -325,7 +325,9 @@ const PageContent = () => {
             {/* Top Navigation Bar */}
             <div className="top-nav-bar">
                 <div className="breadcrumbs-area">
-                    <PanelLeftClose size={18} className="sidebar-icon" />
+                    <button className="icon-btn icon-btn-sm" aria-label="Toggle left sidebar">
+                        <PanelLeftClose />
+                    </button>
                     <Breadcrumbs
                         collectionName="Pages"
                         ancestors={[]} /* Mock: empty = level 1, ['Parent'] = level 2, ['A', 'B'] = level 3+ */
@@ -334,40 +336,40 @@ const PageContent = () => {
                 </div>
 
                 <div className="nav-actions">
-                    <button className="nav-btn" aria-label="Add to favorites">
-                        <Star size={18} />
+                    <button className="icon-btn icon-btn-sm" aria-label="Add to favorites">
+                        <Star />
                     </button>
                     {isEditMode ? (
                         <>
                             <button
-                                className="nav-btn nav-btn-cancel"
+                                className="icon-btn icon-btn-sm"
                                 aria-label="Cancel editing"
                                 onClick={handleCancelRequest}
                             >
-                                <X size={18} />
+                                <X />
                             </button>
                             <button
-                                className="nav-btn nav-btn-save"
+                                className="icon-btn icon-btn-sm"
                                 aria-label="Save changes"
                                 onClick={handleSave}
                             >
-                                <Check size={18} />
+                                <Check />
                             </button>
                         </>
                     ) : (
                         <button
-                            className="nav-btn"
+                            className="icon-btn icon-btn-sm"
                             aria-label="Edit page"
                             onClick={enterEditMode}
                         >
-                            <PenLine size={18} />
+                            <PenLine />
                         </button>
                     )}
-                    <button className="nav-btn" aria-label="More options">
-                        <MoreHorizontal size={18} />
+                    <button className="icon-btn icon-btn-sm" aria-label="More options">
+                        <MoreHorizontal />
                     </button>
-                    <button className="nav-btn ml-1" aria-label="Toggle properties panel">
-                        <PanelRightClose size={18} />
+                    <button className="icon-btn icon-btn-sm ml-1" aria-label="Toggle properties panel">
+                        <PanelRightClose />
                     </button>
                 </div>
             </div>

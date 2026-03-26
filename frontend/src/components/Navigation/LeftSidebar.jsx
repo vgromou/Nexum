@@ -1,7 +1,5 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
 import {
-    Search,
-    Bell,
     ChevronRight,
     ChevronDown,
     FileText,
@@ -11,6 +9,11 @@ import {
     Plus,
     Settings
 } from 'lucide-react';
+import SpaceButton from './SpaceButton';
+import UserButton from './UserButton';
+import UserCard from '../UserCard';
+import UserSettings from '../UserSettings';
+import { useAuth } from '../../hooks/useAuth';
 import './LeftSidebar.css';
 
 // Page item component for navigation - memoized to prevent unnecessary re-renders
@@ -159,12 +162,12 @@ const CollectionNameDivider = React.memo(({ collectionKey, name, isPages = false
             {isHovered && !isEditing && (
                 <div className="divider-actions">
                     {!isPages && (
-                        <button className="divider-action-btn" aria-label="Settings">
-                            <Settings size={16} />
+                        <button className="icon-btn icon-btn-xs" aria-label="Settings">
+                            <Settings />
                         </button>
                     )}
-                    <button className="divider-action-btn" aria-label="Add page">
-                        <Plus size={16} />
+                    <button className="icon-btn icon-btn-xs" aria-label="Add page">
+                        <Plus />
                     </button>
                 </div>
             )}
@@ -239,8 +242,12 @@ const CollectionSwitcher = ({ collections, activeCollection, onCollectionChange 
 };
 
 const LeftSidebar = () => {
+    const { user, logout, isLoggingOut } = useAuth();
     const [activePageId, setActivePageId] = useState('page-title-active');
     const [activeCollection, setActiveCollection] = useState('PAGES');
+    const [isUserCardOpen, setIsUserCardOpen] = useState(false);
+    const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+    const userButtonRef = useRef(null);
 
     // Mock collections data - with full names
     const [collections, setCollections] = useState([
@@ -257,24 +264,66 @@ const LeftSidebar = () => {
         ));
     };
 
+    const handleUserClick = useCallback(() => {
+        setIsUserCardOpen(true);
+    }, []);
+
+    const handleUserCardClose = useCallback(() => {
+        setIsUserCardOpen(false);
+    }, []);
+
+    const handleLogout = useCallback(async () => {
+        setIsUserCardOpen(false);
+        try {
+            await logout();
+        } catch {
+            // Logout errors are handled in authApi, state is already cleared
+        }
+    }, [logout]);
+
+    const handleSettings = useCallback(() => {
+        setIsUserCardOpen(false);
+        setIsUserSettingsOpen(true);
+    }, []);
+
+    const handleSettingsClose = useCallback(() => {
+        setIsUserSettingsOpen(false);
+    }, []);
+
+    const handleSaveProfile = useCallback(async () => {
+        // Profile save will be implemented when UserSettings API is ready
+    }, []);
+
+    const handleChangePassword = useCallback(async () => {
+        // Password change will be implemented when UserSettings API is ready
+    }, []);
+
+    // Transform user data for UserCard
+    const userCardData = user ? {
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        avatarUrl: user.avatarUrl,
+        description: user.position,
+        email: user.email || '',
+        username: `@${user.username || ''}`,
+        orgRole: user.organizationRole || 'user',
+        spaceRole: 'Member',
+        birthday: user.birthday,
+        location: user.location,
+        jobTitle: user.position,
+        department: user.department,
+    } : null;
+
     const activeCollectionData = collections.find(c => c.key === activeCollection);
     return (
         <aside className="left-sidebar">
             {/* Header */}
             <header className="sidebar-header">
-                <button className="space-button">
-                    <div className="space-icon">
-                        <span>🚀</span>
-                    </div>
-                    <span className="space-name">Space Name</span>
-                </button>
-                <button className="search-button" aria-label="Search">
-                    <Search size={18} />
-                </button>
+                <SpaceButton
+                    icon={<span>🚀</span>}
+                    name="Space Name"
+                />
             </header>
-
-            {/* Divider after header */}
-            <div className="header-divider" />
 
             {/* Content */}
             <nav className="sidebar-content">
@@ -357,22 +406,36 @@ const LeftSidebar = () => {
 
             {/* Footer */}
             <footer className="sidebar-footer">
-                <div className="user-info">
-                    <div className="user-avatar">
-                        <img
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Viktor"
-                            alt="Viktor Gromov"
-                        />
-                    </div>
-                    <div className="user-details">
-                        <span className="user-name">Viktor Gromov</span>
-                        <span className="user-role">Business Analyst</span>
-                    </div>
-                </div>
-                <button className="notification-button" aria-label="Notifications">
-                    <Bell size={18} />
-                </button>
+                <UserButton
+                    ref={userButtonRef}
+                    avatarUrl={user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'user'}`}
+                    name={user ? `${user.firstName} ${user.lastName}` : 'User'}
+                    role={user?.position || 'Member'}
+                    onUserClick={handleUserClick}
+                />
             </footer>
+
+            {/* UserCard Popup */}
+            {userCardData && (
+                <UserCard
+                    isOpen={isUserCardOpen}
+                    user={userCardData}
+                    onClose={handleUserCardClose}
+                    onLogout={handleLogout}
+                    onSettings={handleSettings}
+                    anchorRef={userButtonRef}
+                    isLoggingOut={isLoggingOut}
+                />
+            )}
+
+            {/* User Settings Dialog */}
+            <UserSettings
+                isOpen={isUserSettingsOpen}
+                onClose={handleSettingsClose}
+                user={user}
+                onSave={handleSaveProfile}
+                onChangePassword={handleChangePassword}
+            />
         </aside>
     );
 };

@@ -212,19 +212,19 @@ describe('useClipboard', () => {
     });
 
     it('handles paste error gracefully', async () => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
         clipboardMock.readText.mockRejectedValueOnce(new Error('Clipboard read failed'));
 
         const { result } = renderHook(() =>
             useClipboard({ state: mockState, actions: mockActions, editorRef: mockEditorRef })
         );
 
+        // Should not throw, should silently handle the error
         await act(async () => {
             await result.current.pasteFromClipboard();
         });
 
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to paste:', expect.any(Error));
-        consoleErrorSpy.mockRestore();
+        // No blocks should be inserted when paste fails
+        expect(mockActions.insertBlocks).not.toHaveBeenCalled();
     });
 
     it('generates correct HTML for different block types', async () => {

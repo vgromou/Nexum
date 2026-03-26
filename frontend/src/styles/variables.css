@@ -1,4 +1,44 @@
+/*
+ * NEXUM DESIGN SYSTEM VARIABLES
+ * Updated with Figma design tokens
+ * Last updated: 2026-01-21
+ */
+
 :root {
+  /* ===== SPACING ===== */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+
+  /* Block Spacing (from Figma design system) */
+  --spacing-block-paragraph-top: 0px;
+  --spacing-block-paragraph-bottom: 16px;
+  --spacing-block-h1-top: 32px;
+  --spacing-block-h1-bottom: 16px;
+  --spacing-block-h2-top: 24px;
+  --spacing-block-h2-bottom: 12px;
+  --spacing-block-h3-top: 20px;
+  --spacing-block-h3-bottom: 8px;
+  --spacing-block-h4-top: 16px;
+  --spacing-block-h4-bottom: 8px;
+  --spacing-block-list-top: 6px;
+  --spacing-block-list-bottom: 6px;
+  --spacing-block-quote-top: 16px;
+  --spacing-block-quote-bottom: 16px;
+
+  /* ===== BORDER RADIUS ===== */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
   /* ===== COLORS ===== */
 
   /* Background */
@@ -25,6 +65,24 @@
   --border-strong: #9CA3AF;
   --border-focus: #5E6AD2;
 
+  /* Field (Default) */
+  --field-background: #FFFFFF;
+  --field-border: #E5E7EB;
+  --field-text: #1F2937;
+  --field-placeholder: #D1D5DB;
+  --field-icon: #9CA3AF;
+  --field-label: #6B7280;
+  --field-helper: #9CA3AF;
+
+  /* Field (Read-only) */
+  --field-readonly-background: transparent;
+  --field-readonly-border: transparent;
+  --field-readonly-text: #1F2937;
+  --field-readonly-placeholder: transparent;
+  --field-readonly-icon: transparent;
+  --field-readonly-label: #6B7280;
+  --field-readonly-helper: #9CA3AF;
+
   /* Accent (Linear-style purple) */
   --accent-primary: #5E6AD2;
   --accent-primary-hover: #4C5CC0;
@@ -32,6 +90,7 @@
   --accent-primary-light: #ECEEFF;
   --accent-secondary: #3B82F6;
   --accent-secondary-light: #DBEAFE;
+  --accent-current: #E85454;
 
   /* Semantic */
   --semantic-success: #10B981;
@@ -67,12 +126,6 @@
   --surface-sidebar: #FAFBFC;
   --surface-card: #FFFFFF;
   --surface-overlay: rgba(0, 0, 0, 0.5);
-
-  /* Shadow */
-  --shadow-default: rgba(0, 0, 0, 0.12);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 
   /* Comments */
   --comments-background: #FFFBEB;
@@ -140,8 +193,153 @@
   --color-highlight-magenta-text: #DB2777;
   --color-highlight-red-text: #DC2626;
 
+  /* Missing shadow variables (now defined) */
+  --color-shadow-menu: rgba(0, 0, 0, 0.1);
+  --color-shadow-drag: rgba(94, 106, 210, 0.15);
+
+  /* ===== SHADOWS ===== */
+  /* Default shadows (black) */
+  --shadow-default: rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Accent shadows (purple) */
+  --shadow-sm-accent: 0 1px 3px rgba(94, 106, 210, 0.1);
+  --shadow-md-accent: 0 4px 8px rgba(94, 106, 210, 0.12);
+  --shadow-lg-accent: 0 8px 24px rgba(94, 106, 210, 0.15);
+
+  /* ===== BUTTON STYLES ===== */
+
+  /* Primary Button */
+  --button-primary-bg-default: #5E6AD2;
+  --button-primary-bg-hover: #4C5CC0;
+  --button-primary-bg-active: #3D4DB0;
+  --button-primary-bg-disabled: #FAFBFC;
+  --button-primary-text-default: #FFFFFF;
+  --button-primary-text-hover: #FFFFFF;
+  --button-primary-text-active: #FFFFFF;
+  --button-primary-text-disabled: #9CA3AF;
+  --button-primary-border-default: transparent;
+  --button-primary-border-hover: transparent;
+  --button-primary-border-active: transparent;
+  --button-primary-border-disabled: transparent;
+
+  /* Ghost Button */
+  --button-ghost-bg-default: transparent;
+  --button-ghost-bg-hover: #F3F4F6;
+  --button-ghost-bg-active: #E5E7EB;
+  --button-ghost-bg-disabled: transparent;
+  --button-ghost-text-default: #6B7280;
+  --button-ghost-text-hover: #1F2937;
+  --button-ghost-text-active: #1F2937;
+  --button-ghost-text-disabled: #D1D5DB;
+  --button-ghost-border-default: transparent;
+  --button-ghost-border-hover: transparent;
+  --button-ghost-border-active: transparent;
+  --button-ghost-border-disabled: transparent;
+
+  /* Outline Button */
+  --button-outline-bg-default: transparent;
+  --button-outline-bg-hover: #F3F4F6;
+  --button-outline-bg-active: #E5E7EB;
+  --button-outline-bg-disabled: transparent;
+  --button-outline-text-default: #6B7280;
+  --button-outline-text-hover: #1F2937;
+  --button-outline-text-active: #1F2937;
+  --button-outline-text-disabled: #E5E7EB;
+  --button-outline-border-default: #D1D5DB;
+  --button-outline-border-hover: #9CA3AF;
+  --button-outline-border-active: #9CA3AF;
+  --button-outline-border-disabled: #E5E7EB;
+
+  /* Destructive Button */
+  --button-destructive-bg-default: #EF4444;
+  --button-destructive-bg-hover: #DC2626;
+  --button-destructive-bg-active: #DC2626;
+  --button-destructive-bg-disabled: #FAFBFC;
+  --button-destructive-text-default: #FFFFFF;
+  --button-destructive-text-hover: #FFFFFF;
+  --button-destructive-text-active: #FFFFFF;
+  --button-destructive-text-disabled: #9CA3AF;
+  --button-destructive-border-default: transparent;
+  --button-destructive-border-hover: transparent;
+  --button-destructive-border-active: transparent;
+  --button-destructive-border-disabled: transparent;
+
+  /* Destructive Ghost Button */
+  --button-destructive-ghost-bg-default: transparent;
+  --button-destructive-ghost-bg-hover: #FEE2E2;
+  --button-destructive-ghost-bg-active: #FEE2E2;
+  --button-destructive-ghost-bg-disabled: transparent;
+  --button-destructive-ghost-text-default: #EF4444;
+  --button-destructive-ghost-text-hover: #DC2626;
+  --button-destructive-ghost-text-active: #DC2626;
+  --button-destructive-ghost-text-disabled: #D1D5DB;
+  --button-destructive-ghost-border-default: transparent;
+  --button-destructive-ghost-border-hover: transparent;
+  --button-destructive-ghost-border-active: transparent;
+  --button-destructive-ghost-border-disabled: transparent;
+
+  /* Destructive Outline Button */
+  --button-destructive-outline-bg-default: transparent;
+  --button-destructive-outline-bg-hover: #FEE2E2;
+  --button-destructive-outline-bg-active: #FEE2E2;
+  --button-destructive-outline-bg-disabled: transparent;
+  --button-destructive-outline-text-default: #EF4444;
+  --button-destructive-outline-text-hover: #DC2626;
+  --button-destructive-outline-text-active: #DC2626;
+  --button-destructive-outline-text-disabled: #D1D5DB;
+  --button-destructive-outline-border-default: #EF4444;
+  --button-destructive-outline-border-hover: #DC2626;
+  --button-destructive-outline-border-active: #DC2626;
+  --button-destructive-outline-border-disabled: #E5E7EB;
+
+  /* Success Button */
+  --button-success-bg-default: #10B981;
+  --button-success-bg-hover: #059669;
+  --button-success-bg-active: #059669;
+  --button-success-bg-disabled: #FAFBFC;
+  --button-success-text-default: #FFFFFF;
+  --button-success-text-hover: #FFFFFF;
+  --button-success-text-active: #FFFFFF;
+  --button-success-text-disabled: #9CA3AF;
+  --button-success-border-default: transparent;
+  --button-success-border-hover: transparent;
+  --button-success-border-active: transparent;
+  --button-success-border-disabled: transparent;
+
+  /* Success Ghost Button */
+  --button-success-ghost-bg-default: transparent;
+  --button-success-ghost-bg-hover: #D1FAE5;
+  --button-success-ghost-bg-active: #D1FAE5;
+  --button-success-ghost-bg-disabled: transparent;
+  --button-success-ghost-text-default: #10B981;
+  --button-success-ghost-text-hover: #059669;
+  --button-success-ghost-text-active: #059669;
+  --button-success-ghost-text-disabled: #D1D5DB;
+  --button-success-ghost-border-default: transparent;
+  --button-success-ghost-border-hover: transparent;
+  --button-success-ghost-border-active: transparent;
+  --button-success-ghost-border-disabled: transparent;
+
+  /* Success Outline Button */
+  --button-success-outline-bg-default: transparent;
+  --button-success-outline-bg-hover: #D1FAE5;
+  --button-success-outline-bg-active: #D1FAE5;
+  --button-success-outline-bg-disabled: transparent;
+  --button-success-outline-text-default: #10B981;
+  --button-success-outline-text-hover: #059669;
+  --button-success-outline-text-active: #059669;
+  --button-success-outline-text-disabled: #D1D5DB;
+  --button-success-outline-border-default: #10B981;
+  --button-success-outline-border-hover: #059669;
+  --button-success-outline-border-active: #059669;
+  --button-success-outline-border-disabled: #E5E7EB;
+
   /* ===== LAYOUT ===== */
   --left-sidebar-width: 280px;
+  --sidebar-button-width: 264px;
   --content-width: 640px;
   --right-sidebar-width: 320px;
   --header-height: 50px;
@@ -291,46 +489,16 @@
   --typography-sidebar-item-weight: 400;
   --typography-sidebar-item-active-weight: 500;
 
-  /* ===== SPACING ===== */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
-  --space-2xl: 32px;
-  --space-3xl: 48px;
-  --space-4xl: 64px;
-
-  /* Block Spacing (from Figma design system) */
-  --spacing-block-paragraph-top: 0px;
-  --spacing-block-paragraph-bottom: 16px;
-  --spacing-block-h1-top: 32px;
-  --spacing-block-h1-bottom: 16px;
-  --spacing-block-h2-top: 24px;
-  --spacing-block-h2-bottom: 12px;
-  --spacing-block-h3-top: 20px;
-  --spacing-block-h3-bottom: 8px;
-  --spacing-block-h4-top: 16px;
-  --spacing-block-h4-bottom: 8px;
-  --spacing-block-list-top: 6px;
-  --spacing-block-list-bottom: 6px;
-  --spacing-block-quote-top: 16px;
-  --spacing-block-quote-bottom: 16px;
-
   /* ===== TRANSITIONS ===== */
   --transition-fast: 0.15s ease;
   --transition-base: 0.2s ease;
   --transition-slow: 0.3s ease;
 
-  /* ===== BORDER RADIUS ===== */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-
   /* ===== Z-INDEX ===== */
   --z-index-sticky: 100;
   --z-index-menu: 1100;
   --z-index-popover: 1110;
+  --z-index-dropdown: 1150;
   --z-index-modal: 1200;
+  --z-index-toast: 1300;
 }

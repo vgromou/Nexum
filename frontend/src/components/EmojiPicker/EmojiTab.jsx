@@ -84,7 +84,7 @@ const EmojiTab = ({
                         aria-pressed={activeCategory === category.id}
                         disabled={isDisabled}
                     >
-                        {IconComponent && <IconComponent size={18} strokeWidth={1.5} />}
+                        {IconComponent && <IconComponent size={20} strokeWidth={1.5} />}
                     </button>
                 );
             })}

@@ -302,8 +302,8 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
                     }
                 }
             }
-        } catch (err) {
-            console.error('Failed to paste:', err);
+        } catch {
+            // Paste operation failed - silently ignore
         }
     }, [state.blocks, actions, editorRef]);
 

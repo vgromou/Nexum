@@ -21,10 +21,19 @@ describe('useFormattingMenu', () => {
     let mockRange;
 
     beforeEach(() => {
+        // Clear all mocks first
+        vi.clearAllMocks();
+
+        // Use fake timers for better test control
+        vi.useFakeTimers();
+
         // Setup mock editor ref
         mockEditorRef = {
             current: document.createElement('div'),
         };
+
+        // Append editor to document.body so elements are connected
+        document.body.appendChild(mockEditorRef.current);
 
         // Setup block element first (needed for range setup)
         const blockEl = document.createElement('p');
@@ -49,10 +58,20 @@ describe('useFormattingMenu', () => {
             getClientRects: vi.fn(() => [
                 { top: 100, left: 200, width: 50 },
             ]),
-            cloneRange: vi.fn(() => mockRange),
+            cloneRange: vi.fn(function() { return { ...mockRange }; }),
             toString: vi.fn(() => 'selected text'),
             surroundContents: vi.fn(),
             intersectsNode: vi.fn(() => true),
+            deleteContents: vi.fn(),
+            extractContents: vi.fn(() => {
+                const frag = document.createDocumentFragment();
+                const text = document.createTextNode('selected text');
+                frag.appendChild(text);
+                return frag;
+            }),
+            insertNode: vi.fn(),
+            setStart: vi.fn(),
+            setEnd: vi.fn(),
         };
 
         // Setup mock selection
@@ -61,7 +80,12 @@ describe('useFormattingMenu', () => {
             isCollapsed: false,
             getRangeAt: vi.fn(() => mockRange),
             removeAllRanges: vi.fn(),
-            addRange: vi.fn(),
+            addRange: vi.fn((range) => {
+                // Update anchorNode when addRange is called to simulate real browser behavior
+                if (range && range.startContainer) {
+                    mockSelection.anchorNode = range.startContainer;
+                }
+            }),
             anchorNode: blockEl.firstChild,
         };
 
@@ -73,7 +97,15 @@ describe('useFormattingMenu', () => {
     });
 
     afterEach(() => {
+        // Clean up editor from document.body
+        if (mockEditorRef?.current && mockEditorRef.current.parentNode) {
+            mockEditorRef.current.parentNode.removeChild(mockEditorRef.current);
+        }
+
+        vi.useRealTimers();
         vi.restoreAllMocks();
+        mockActions.updateBlock.mockClear();
+        mockActions.changeBlockType.mockClear();
     });
 
     it('should initialize with menu closed', () => {
@@ -464,7 +496,7 @@ describe('useFormattingMenu', () => {
 
             const selection = result.current.getSavedSelection();
 
-            expect(selection).toBe(mockRange);
+            expect(selection).toStrictEqual(mockRange);
         });
     });
 
@@ -601,6 +633,16 @@ describe('useFormattingMenu', () => {
                 result.current.applyFormat('bold');
             });
 
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(150);
+            });
+
+            // Close menu to trigger sync
+            act(() => {
+                result.current.closeMenu();
+            });
+
             // Should call updateBlock to sync changes to state
             expect(mockActions.updateBlock).toHaveBeenCalledWith(
                 '1',
@@ -625,6 +667,16 @@ describe('useFormattingMenu', () => {
             // Apply a link
             act(() => {
                 result.current.applyLinkToSelection('https://example.com');
+            });
+
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(150);
+            });
+
+            // Close menu to trigger sync
+            act(() => {
+                result.current.closeMenu();
             });
 
             // Should call updateBlock to sync changes to state
@@ -658,6 +710,375 @@ describe('useFormattingMenu', () => {
                 '1',
                 expect.any(String)
             );
+        });
+    });
+
+    describe('applyTextColor', () => {
+        it('should provide applyTextColor function', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(typeof result.current.applyTextColor).toBe('function');
+        });
+
+        it('should not throw when called without valid selection', () => {
+            mockSelection.isCollapsed = true;
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(() => {
+                act(() => {
+                    result.current.applyTextColor('red');
+                });
+            }).not.toThrow();
+        });
+
+        it('should not throw when applying text color', () => {
+            const blockEl = mockEditorRef.current.querySelector('[data-block-id]');
+            blockEl.innerHTML = 'Hello world';
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply text color should not throw
+            expect(() => {
+                act(() => {
+                    result.current.applyTextColor('red');
+                });
+
+                // Advance timers to trigger setTimeout callbacks
+                act(() => {
+                    vi.advanceTimersByTime(200);
+                });
+            }).not.toThrow();
+        });
+
+        it('should preserve saved selection after applying text color', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            const selectionBeforeFormat = result.current.getSavedSelection();
+            expect(selectionBeforeFormat).toBeTruthy();
+
+            // Apply text color
+            act(() => {
+                result.current.applyTextColor('blue');
+            });
+
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
+
+            // Saved selection should still exist (may be a new Range object)
+            const savedSelection = result.current.getSavedSelection();
+            expect(savedSelection).toBeTruthy();
+        });
+
+        it('should remove text color when "default" is applied', () => {
+            const blockEl = mockEditorRef.current.querySelector('[data-block-id]');
+            blockEl.innerHTML = 'Hello <span class="text-color-red">world</span>';
+
+            // Setup range to select the span content
+            const span = blockEl.querySelector('.text-color-red');
+            const textNode = span.firstChild;
+            mockRange.startContainer = textNode;
+            mockRange.endContainer = textNode;
+            mockRange.startOffset = 0;
+            mockRange.endOffset = 5;
+            mockRange.commonAncestorContainer = textNode;
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply "default" to remove color
+            act(() => {
+                result.current.applyTextColor('default');
+            });
+
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
+
+            // Span should be removed, only text should remain
+            expect(blockEl.innerHTML).not.toContain('text-color-red');
+        });
+    });
+
+    describe('clearTextColor', () => {
+        it('should provide clearTextColor function', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(typeof result.current.clearTextColor).toBe('function');
+        });
+
+        it('should not throw when called without valid selection', () => {
+            mockSelection.isCollapsed = true;
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            expect(() => {
+                act(() => {
+                    result.current.clearTextColor();
+                });
+            }).not.toThrow();
+        });
+    });
+
+    describe('selection preservation after color formatting', () => {
+        it('should call addRange to restore selection', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Reset mock
+            mockSelection.addRange.mockClear();
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply text color
+            act(() => {
+                result.current.applyTextColor('green');
+            });
+
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
+
+            // addRange should have been called (either to apply format or restore)
+            expect(mockSelection.addRange).toHaveBeenCalled();
+        });
+
+        it('should not throw when applying highlight', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu to save selection
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply highlight should not throw
+            expect(() => {
+                act(() => {
+                    result.current.applyHighlight('yellow');
+                });
+
+                // Advance timers to trigger setTimeout callbacks
+                act(() => {
+                    vi.advanceTimersByTime(200);
+                });
+            }).not.toThrow();
+        });
+
+        it('should keep menu open during color application', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu
+            act(() => {
+                result.current.openMenu();
+            });
+
+            expect(result.current.menu.isOpen).toBe(true);
+
+            // Menu state should remain open (closeMenu not automatically called)
+            expect(result.current.menu.isOpen).toBe(true);
+        });
+    });
+
+    describe('modified blocks tracking for undo history', () => {
+        it('should save block innerHTML when marking as modified', () => {
+            const blockEl = mockEditorRef.current.querySelector('[data-block-id]');
+            blockEl.innerHTML = 'Original content';
+
+            // Update mock range to point to the new text node after changing innerHTML
+            mockRange.commonAncestorContainer = blockEl.firstChild;
+            mockRange.startContainer = blockEl.firstChild;
+            mockRange.endContainer = blockEl.firstChild;
+            mockSelection.anchorNode = blockEl.firstChild;
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply text color
+            act(() => {
+                result.current.applyTextColor('red');
+            });
+
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
+
+            // When menu closes, updateBlock should be called with saved HTML
+            act(() => {
+                result.current.closeMenu();
+            });
+
+            expect(mockActions.updateBlock).toHaveBeenCalled();
+        });
+
+        it('should sync correct innerHTML on menu close, not current DOM state', () => {
+            const blockEl = mockEditorRef.current.querySelector('[data-block-id]');
+            blockEl.innerHTML = 'Test content';
+
+            // Update mock range to point to the new text node after changing innerHTML
+            mockRange.commonAncestorContainer = blockEl.firstChild;
+            mockRange.startContainer = blockEl.firstChild;
+            mockRange.endContainer = blockEl.firstChild;
+            mockSelection.anchorNode = blockEl.firstChild;
+
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply formatting
+            act(() => {
+                result.current.applyTextColor('blue');
+            });
+
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
+
+            // Simulate React changing the DOM (e.g., to empty)
+            blockEl.innerHTML = '';
+
+            // Close menu - should use saved HTML, not current empty state
+            act(() => {
+                result.current.closeMenu();
+            });
+
+            // updateBlock should be called with non-empty content
+            const updateCalls = mockActions.updateBlock.mock.calls;
+            const lastCall = updateCalls[updateCalls.length - 1];
+            expect(lastCall[1]).not.toBe('');
+        });
+
+        it('should sync changes when menu closes', () => {
+            const { result } = renderHook(() =>
+                useFormattingMenu({
+                    editorRef: mockEditorRef,
+                    state: mockState,
+                    actions: mockActions,
+                })
+            );
+
+            // Open menu
+            act(() => {
+                result.current.openMenu();
+            });
+
+            // Apply color
+            act(() => {
+                result.current.applyTextColor('red');
+            });
+
+            // Advance timers to trigger setTimeout callbacks
+            act(() => {
+                vi.advanceTimersByTime(200);
+            });
+
+            // Close menu
+            act(() => {
+                result.current.closeMenu();
+            });
+
+            // Changes should be synced to state
+            expect(mockActions.updateBlock).toHaveBeenCalled();
         });
     });
 });

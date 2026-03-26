@@ -197,7 +197,7 @@ const EmojiPicker = ({
                     </div>
                     <div className="emoji-picker-search-actions">
                         <button
-                            className="emoji-picker-action-btn"
+                            className="icon-btn"
                             onClick={handleShuffle}
                             title="Random"
                             aria-label="Pick random emoji or icon"

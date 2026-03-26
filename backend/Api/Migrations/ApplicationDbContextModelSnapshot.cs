@@ -34,21 +34,20 @@ namespace Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("email");
-
                     b.Property<string>("FailureReason")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("failure_reason");
 
                     b.Property<IPAddress>("IpAddress")
-                        .IsRequired()
                         .HasColumnType("inet")
                         .HasColumnName("ip_address");
+
+                    b.Property<string>("LoginIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("login_identifier");
 
                     b.Property<bool>("Success")
                         .HasColumnType("boolean")
@@ -65,16 +64,16 @@ namespace Api.Migrations
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("ix_login_attempts_created_at");
 
-                    b.HasIndex("Email")
-                        .HasDatabaseName("ix_login_attempts_email");
-
                     b.HasIndex("IpAddress")
                         .HasDatabaseName("ix_login_attempts_ip_address");
 
-                    b.HasIndex("Email", "CreatedAt")
-                        .HasDatabaseName("ix_login_attempts_email_created_at");
+                    b.HasIndex("LoginIdentifier")
+                        .HasDatabaseName("ix_login_attempts_login_identifier");
 
-                    b.ToTable("login_attempts", (string)null);
+                    b.HasIndex("LoginIdentifier", "CreatedAt")
+                        .HasDatabaseName("ix_login_attempts_login_identifier_created_at");
+
+                    b.ToTable("login_attempts", "auth");
                 });
 
             modelBuilder.Entity("Api.Models.Organization", b =>
@@ -116,7 +115,56 @@ namespace Api.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_organizations_slug");
 
-                    b.ToTable("organizations", (string)null);
+                    b.ToTable("organizations", "core");
+                });
+
+            modelBuilder.Entity("Api.Models.OrganizationMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("OrganizationRole")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("organization_role");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_organization_members");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_organization_members_organization_id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_organization_members_user_id");
+
+                    b.HasIndex("OrganizationId", "OrganizationRole")
+                        .HasDatabaseName("ix_organization_members_org_role");
+
+                    b.ToTable("organization_members", "core");
                 });
 
             modelBuilder.Entity("Api.Models.RefreshToken", b =>
@@ -178,7 +226,7 @@ namespace Api.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_refresh_tokens_user_id");
 
-                    b.ToTable("refresh_tokens", (string)null);
+                    b.ToTable("refresh_tokens", "auth");
                 });
 
             modelBuilder.Entity("Api.Models.User", b =>
@@ -187,6 +235,19 @@ namespace Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<long?>("AvatarFileSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("avatar_file_size");
+
+                    b.Property<string>("AvatarStoragePath")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("avatar_storage_path");
+
+                    b.Property<DateTime?>("AvatarUploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("avatar_uploaded_at");
 
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(500)
@@ -221,6 +282,10 @@ namespace Api.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_login_at");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -234,10 +299,6 @@ namespace Api.Migrations
                     b.Property<bool>("MustChangePassword")
                         .HasColumnType("boolean")
                         .HasColumnName("must_change_password");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
 
                     b.Property<DateTime?>("PasswordChangedAt")
                         .HasColumnType("timestamp with time zone")
@@ -254,12 +315,6 @@ namespace Api.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("position");
 
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("role");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -273,6 +328,9 @@ namespace Api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_users");
 
+                    b.HasIndex("AvatarStoragePath")
+                        .HasDatabaseName("ix_users_avatar_storage_path");
+
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasDatabaseName("ix_users_email");
@@ -283,14 +341,32 @@ namespace Api.Migrations
                     b.HasIndex("LockoutUntil")
                         .HasDatabaseName("ix_users_lockout_until");
 
-                    b.HasIndex("OrganizationId")
-                        .HasDatabaseName("ix_users_organization_id");
-
                     b.HasIndex("Username")
                         .IsUnique()
                         .HasDatabaseName("ix_users_username");
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users", "auth");
+                });
+
+            modelBuilder.Entity("Api.Models.OrganizationMember", b =>
+                {
+                    b.HasOne("Api.Models.Organization", "Organization")
+                        .WithMany("Members")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_organization_members_organizations_organization_id");
+
+                    b.HasOne("Api.Models.User", "User")
+                        .WithMany("OrganizationMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_organization_members_users_user_id");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Api.Models.RefreshToken", b =>
@@ -305,25 +381,15 @@ namespace Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Api.Models.User", b =>
-                {
-                    b.HasOne("Api.Models.Organization", "Organization")
-                        .WithMany("Users")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_users_organizations_organization_id");
-
-                    b.Navigation("Organization");
-                });
-
             modelBuilder.Entity("Api.Models.Organization", b =>
                 {
-                    b.Navigation("Users");
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Api.Models.User", b =>
                 {
+                    b.Navigation("OrganizationMemberships");
+
                     b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618

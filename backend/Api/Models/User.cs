@@ -8,11 +8,6 @@ namespace Api.Models;
 public class User : AuditableEntity
 {
     /// <summary>
-    /// Organization this user belongs to
-    /// </summary>
-    public Guid OrganizationId { get; set; }
-
-    /// <summary>
     /// Unique email address
     /// </summary>
     [EmailAddress]
@@ -39,11 +34,6 @@ public class User : AuditableEntity
     public string LastName { get; set; } = string.Empty;
 
     /// <summary>
-    /// User role in the organization
-    /// </summary>
-    public UserRole Role { get; set; } = UserRole.User;
-
-    /// <summary>
     /// Job position/title
     /// </summary>
     public string? Position { get; set; }
@@ -57,6 +47,21 @@ public class User : AuditableEntity
     /// Avatar image URL
     /// </summary>
     public string? AvatarUrl { get; set; }
+
+    /// <summary>
+    /// Storage path for uploaded avatar (S3 key/path)
+    /// </summary>
+    public string? AvatarStoragePath { get; set; }
+
+    /// <summary>
+    /// Timestamp when avatar was uploaded
+    /// </summary>
+    public DateTime? AvatarUploadedAt { get; set; }
+
+    /// <summary>
+    /// Avatar file size in bytes
+    /// </summary>
+    public long? AvatarFileSize { get; set; }
 
     /// <summary>
     /// Whether the account is active (can be deactivated by admin)
@@ -83,12 +88,17 @@ public class User : AuditableEntity
     /// </summary>
     public DateTime? PasswordChangedAt { get; set; }
 
+    /// <summary>
+    /// Last successful login timestamp
+    /// </summary>
+    public DateTime? LastLoginAt { get; set; }
+
     // Navigation properties
 
     /// <summary>
-    /// Organization this user belongs to
+    /// User's organization memberships
     /// </summary>
-    public Organization Organization { get; set; } = null!;
+    public ICollection<OrganizationMember> OrganizationMemberships { get; set; } = new List<OrganizationMember>();
 
     /// <summary>
     /// User's active refresh tokens (multiple sessions)
