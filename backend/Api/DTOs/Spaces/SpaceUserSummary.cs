@@ -4,9 +4,9 @@ namespace Api.DTOs.Spaces;
 
 /// <summary>
 /// Nested object representing a user in space responses.
-/// Used for space owner and invitedBy in member responses.
+/// Used for space owner, invitedBy, and other user references.
 /// </summary>
-public sealed class SpaceOwnerInfo
+public sealed class SpaceUserSummary
 {
     /// <summary>
     /// User unique identifier.

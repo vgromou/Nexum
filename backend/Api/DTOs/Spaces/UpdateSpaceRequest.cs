@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Api.Models;
+using Api.Validation;
 
 namespace Api.DTOs.Spaces;
 
@@ -44,5 +45,6 @@ public sealed class UpdateSpaceRequest
     /// New default access level (private / viewer / editor).
     /// </summary>
     /// <example>Viewer</example>
+    [AllowedSpaceRoles(SpaceRole.Private, SpaceRole.Viewer, SpaceRole.Editor)]
     public SpaceRole? DefaultAccess { get; init; }
 }

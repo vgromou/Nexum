@@ -56,7 +56,7 @@ public sealed class SpaceResponse
     /// <summary>
     /// Space owner information.
     /// </summary>
-    public required SpaceOwnerInfo Owner { get; init; }
+    public required SpaceUserSummary Owner { get; init; }
 
     /// <summary>
     /// Current user's effective role in the space.
@@ -71,7 +71,7 @@ public sealed class SpaceResponse
     public required int MemberCount { get; init; }
 
     /// <summary>
-    /// Number of collections in the space (0 until implemented).
+    /// Number of collections in the space.
     /// </summary>
     /// <example>0</example>
     public required int CollectionsCount { get; init; }

@@ -55,5 +55,5 @@ public sealed class SpaceMemberResponse
     /// Who invited the member (id, displayName, avatarUrl).
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public SpaceOwnerInfo? InvitedBy { get; init; }
+    public SpaceUserSummary? InvitedBy { get; init; }
 }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Api.Models;
+using Api.Validation;
 
 namespace Api.DTOs.Spaces;
 
@@ -20,5 +21,6 @@ public sealed class AddSpaceMemberRequest
     /// </summary>
     /// <example>Editor</example>
     [Required(ErrorMessage = "Role is required")]
+    [AllowedSpaceRoles(SpaceRole.Administrator, SpaceRole.Editor, SpaceRole.Viewer)]
     public required SpaceRole Role { get; init; }
 }
