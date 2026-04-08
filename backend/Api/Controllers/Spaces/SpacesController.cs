@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Api.Common.Errors;
 using Api.Data;
 using Api.DTOs.Common;
@@ -48,7 +49,7 @@ public partial class SpacesController : ControllerBase
     /// **Filtering:**
     /// - `search`: partial match on space name (case-insensitive)
     /// - `owner`: partial match on owner display name (case-insensitive)
-    /// - `isArchived`: include archived spaces (default: false)
+    /// - `isArchived`: filter by archived status — true = only archived, false/null = only active (default)
     /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<SpaceResponse>), StatusCodes.Status200OK)]
@@ -63,6 +64,7 @@ public partial class SpacesController : ControllerBase
 
         // Base query: all spaces in user's organization
         var spacesQuery = _context.Spaces
+            .AsNoTracking()
             .Where(s => s.OrganizationId == orgId)
             .AsQueryable();
 
@@ -74,25 +76,27 @@ public partial class SpacesController : ControllerBase
                 s.Members.Any(m => m.UserId == userId));
         }
 
-        // Filter: isArchived
-        if (!query.IsArchived)
+        // Filter: isArchived (null/false = only active, true = only archived)
+        if (query.IsArchived == true)
+            spacesQuery = spacesQuery.Where(s => s.IsArchived);
+        else
             spacesQuery = spacesQuery.Where(s => !s.IsArchived);
 
         // Filter: search by name
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var searchLower = query.Search.ToLower();
-            spacesQuery = spacesQuery.Where(s => s.Name.ToLower().Contains(searchLower));
+            var searchPattern = $"%{query.Search}%";
+            spacesQuery = spacesQuery.Where(s => EF.Functions.ILike(s.Name, searchPattern));
         }
 
         // Filter: owner by display name
         if (!string.IsNullOrWhiteSpace(query.Owner))
         {
-            var ownerLower = query.Owner.ToLower();
+            var ownerPattern = $"%{query.Owner}%";
             spacesQuery = spacesQuery.Where(s =>
                 s.Members.Any(m =>
                     m.Role == SpaceRole.Owner &&
-                    (m.User.FirstName.ToLower() + " " + m.User.LastName.ToLower()).Contains(ownerLower)));
+                    EF.Functions.ILike(m.User.FirstName + " " + m.User.LastName, ownerPattern)));
         }
 
         // Total count before pagination
@@ -129,6 +133,7 @@ public partial class SpacesController : ControllerBase
         var orgId = HttpContext.GetValidatedOrganizationId();
 
         var space = await _context.Spaces
+            .AsNoTracking()
             .Include(s => s.Members)
                 .ThenInclude(m => m.User)
             .AsSplitQuery()
@@ -222,7 +227,7 @@ public partial class SpacesController : ControllerBase
         {
             await _context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             throw ConflictException.SlugExists(slug);
         }
@@ -424,6 +429,7 @@ public partial class SpacesController : ControllerBase
         var orgId = HttpContext.GetValidatedOrganizationId();
 
         var space = await _context.Spaces
+            .AsNoTracking()
             .Include(s => s.Members).ThenInclude(m => m.User)
             .Include(s => s.Members).ThenInclude(m => m.InvitedByUser)
             .AsSplitQuery()
@@ -550,7 +556,10 @@ public partial class SpacesController : ControllerBase
         await _context.Entry(member).Reference(m => m.User).LoadAsync(cancellationToken);
         await _context.Entry(member).Reference(m => m.InvitedByUser).LoadAsync(cancellationToken);
 
-        return StatusCode(StatusCodes.Status201Created, MapToSpaceMemberResponse(member));
+        return CreatedAtAction(
+            actionName: nameof(GetMembers),
+            routeValues: new { spaceId },
+            value: MapToSpaceMemberResponse(member));
     }
 
     /// <summary>
@@ -917,6 +926,11 @@ public partial class SpacesController : ControllerBase
         if (slug.Length == 0 || !char.IsLetter(slug[0]))
         {
             slug = "space-" + slug;
+        }
+
+        if (slug.Length > 100)
+        {
+            slug = slug[..100].TrimEnd('-');
         }
 
         return slug;

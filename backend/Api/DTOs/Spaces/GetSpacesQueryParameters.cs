@@ -36,8 +36,8 @@ public sealed class GetSpacesQueryParameters
     public string? Owner { get; init; }
 
     /// <summary>
-    /// Include archived spaces in the results.
+    /// Filter by archived status: true = only archived, false = only active, null = only active (default).
     /// </summary>
     /// <example>false</example>
-    public bool IsArchived { get; init; } = false;
+    public bool? IsArchived { get; init; }
 }
