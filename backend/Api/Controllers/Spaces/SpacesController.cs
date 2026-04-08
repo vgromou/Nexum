@@ -75,7 +75,7 @@ public partial class SpacesController : ControllerBase
         }
 
         // Filter: isArchived
-        if (!query.IncludeArchived)
+        if (!query.IsArchived)
             spacesQuery = spacesQuery.Where(s => !s.IsArchived);
 
         // Filter: search by name

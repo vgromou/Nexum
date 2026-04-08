@@ -39,5 +39,5 @@ public sealed class GetSpacesQueryParameters
     /// Include archived spaces in the results.
     /// </summary>
     /// <example>false</example>
-    public bool IncludeArchived { get; init; } = false;
+    public bool IsArchived { get; init; } = false;
 }
