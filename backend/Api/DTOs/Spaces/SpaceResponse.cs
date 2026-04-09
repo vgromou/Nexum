@@ -65,6 +65,14 @@ public sealed class SpaceResponse
     public required SpaceRole RoleInSpace { get; init; }
 
     /// <summary>
+    /// How the user got access to this space.
+    /// explicit = direct membership, orgAdmin = organization admin privilege,
+    /// defaultAccess = via space's default access level.
+    /// </summary>
+    /// <example>explicit</example>
+    public required string AccessSource { get; init; }
+
+    /// <summary>
     /// Number of explicit members in the space.
     /// </summary>
     /// <example>5</example>

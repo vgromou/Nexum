@@ -841,16 +841,19 @@ public partial class SpacesController : ControllerBase
     }
 
     /// <summary>
-    /// Compute the user's effective role in a space.
+    /// Compute the user's effective role and access source in a space.
     /// </summary>
-    private static SpaceRole GetEffectiveRole(Space space, Guid userId, bool isOrgAdmin)
+    private static (SpaceRole Role, string Source) GetEffectiveRoleWithSource(
+        Space space, Guid userId, bool isOrgAdmin)
     {
         var member = space.Members.FirstOrDefault(m => m.UserId == userId);
-        if (member != null) return member.Role;
+        if (member != null)
+            return (member.Role, "explicit");
 
-        if (isOrgAdmin) return SpaceRole.Administrator;
+        if (isOrgAdmin)
+            return (SpaceRole.Administrator, "orgAdmin");
 
-        return space.DefaultAccess;
+        return (space.DefaultAccess, "defaultAccess");
     }
 
     /// <summary>
@@ -859,6 +862,7 @@ public partial class SpacesController : ControllerBase
     private static SpaceResponse MapToSpaceResponse(Space space, Guid userId, bool isOrgAdmin)
     {
         var owner = space.Members.FirstOrDefault(m => m.Role == SpaceRole.Owner);
+        var (role, accessSource) = GetEffectiveRoleWithSource(space, userId, isOrgAdmin);
 
         return new SpaceResponse
         {
@@ -881,7 +885,8 @@ public partial class SpacesController : ControllerBase
                     Id = Guid.Empty,
                     DisplayName = "Unknown"
                 },
-            RoleInSpace = GetEffectiveRole(space, userId, isOrgAdmin),
+            RoleInSpace = role,
+            AccessSource = accessSource,
             MemberCount = space.Members.Count,
             CollectionsCount = 0, // TODO: implement when Collections feature is ready
             CreatedAt = space.CreatedAt,
