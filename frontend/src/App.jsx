@@ -7,6 +7,7 @@ import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 import LoginPage from './pages/LoginPage';
+import SpacesPage from './pages/SpacesPage/SpacesPage';
 import ErrorPage from './pages/ErrorPage';
 import AuthModal from './components/AuthModal';
 import PasswordChangeRequiredModal from './components/PasswordChangeRequiredModal';
@@ -77,7 +78,7 @@ function LoginPageWrapper() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/spaces" replace />;
   }
 
   return <LoginPage />;
@@ -93,13 +94,23 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPageWrapper />} />
         <Route path="/error" element={<ErrorPage />} />
         <Route
-          path="/*"
+          path="/spaces"
+          element={
+            <ProtectedRoute>
+              <SpacesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/spaces/:spaceId/*"
           element={
             <ProtectedRoute>
               <Layout />
             </ProtectedRoute>
           }
         />
+        <Route path="/" element={<Navigate to="/spaces" replace />} />
+        <Route path="*" element={<Navigate to="/spaces" replace />} />
       </Routes>
 
       {/* Session expired modal - always rendered at app level */}

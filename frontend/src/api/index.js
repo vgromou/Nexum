@@ -17,3 +17,4 @@ export {
   getMe,
   changePassword,
 } from './authApi';
+export { getSpaces } from './spacesApi';
