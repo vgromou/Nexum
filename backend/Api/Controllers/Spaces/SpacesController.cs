@@ -843,17 +843,17 @@ public partial class SpacesController : ControllerBase
     /// <summary>
     /// Compute the user's effective role and access source in a space.
     /// </summary>
-    private static (SpaceRole Role, string Source) GetEffectiveRoleWithSource(
+    private static (SpaceRole Role, AccessSource Source) GetEffectiveRoleWithSource(
         Space space, Guid userId, bool isOrgAdmin)
     {
         var member = space.Members.FirstOrDefault(m => m.UserId == userId);
         if (member != null)
-            return (member.Role, "explicit");
+            return (member.Role, AccessSource.Explicit);
 
         if (isOrgAdmin)
-            return (SpaceRole.Administrator, "orgAdmin");
+            return (SpaceRole.Administrator, AccessSource.OrgAdmin);
 
-        return (space.DefaultAccess, "defaultAccess");
+        return (space.DefaultAccess, AccessSource.DefaultAccess);
     }
 
     /// <summary>
