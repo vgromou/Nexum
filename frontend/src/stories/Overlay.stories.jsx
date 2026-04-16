@@ -125,7 +125,7 @@ export const Blur = {
     docs: {
       description: {
         story:
-          'White overlay with backdrop blur effect (rgba(255, 255, 255, 0.7) + backdrop-filter: blur(16px)).',
+          'White overlay with backdrop blur effect (rgba(255, 255, 255, 0.4) + backdrop-filter: blur(8px)).',
       },
     },
   },
@@ -364,7 +364,7 @@ export const AnimationBlur = {
   parameters: {
     docs: {
       description: {
-        story: 'Blur overlay with blur + fade animation (0.3s ease-out, blur from 0 to 16px).',
+        story: 'Blur overlay with blur + fade animation (0.3s ease-out, blur from 0 to 8px).',
       },
     },
   },
