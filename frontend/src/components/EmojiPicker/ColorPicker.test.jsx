@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ColorPicker from './ColorPicker';
-import { ICON_COLORS, COLOR_ORDER } from './constants';
+import { ICON_COLORS } from './constants';
 
 describe('ColorPicker', () => {
     const defaultProps = {
@@ -10,6 +10,8 @@ describe('ColorPicker', () => {
         onColorChange: vi.fn(),
         onClose: vi.fn(),
     };
+
+    const colorNames = Object.keys(ICON_COLORS);
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -21,18 +23,15 @@ describe('ColorPicker', () => {
             expect(container.querySelector('.color-picker-dropdown')).toBeInTheDocument();
         });
 
-        it('should render all color rows', () => {
+        it('should render color grid', () => {
             const { container } = render(<ColorPicker {...defaultProps} />);
-            const rows = container.querySelectorAll('.color-picker-row');
-            expect(rows.length).toBe(COLOR_ORDER.length);
+            expect(container.querySelector('.color-picker-grid')).toBeInTheDocument();
         });
 
         it('should render all color swatches', () => {
             const { container } = render(<ColorPicker {...defaultProps} />);
             const swatches = container.querySelectorAll('.color-picker-swatch');
-
-            const totalColors = COLOR_ORDER.flat().length;
-            expect(swatches.length).toBe(totalColors);
+            expect(swatches.length).toBe(colorNames.length);
         });
 
         it('should set correct background colors', () => {
@@ -68,6 +67,15 @@ describe('ColorPicker', () => {
             fireEvent.click(blueSwatch);
 
             expect(defaultProps.onClose).toHaveBeenCalled();
+        });
+
+        it('should work without onClose prop', () => {
+            render(<ColorPicker {...defaultProps} onClose={undefined} />);
+
+            const redSwatch = screen.getByTitle('Red');
+            fireEvent.click(redSwatch);
+
+            expect(defaultProps.onColorChange).toHaveBeenCalledWith('red');
         });
     });
 
@@ -109,17 +117,14 @@ describe('ColorPicker', () => {
     });
 
     describe('Color order', () => {
-        it('should render colors in correct order', () => {
+        it('should render colors in order from constants', () => {
             const { container } = render(<ColorPicker {...defaultProps} />);
-            const rows = container.querySelectorAll('.color-picker-row');
+            const swatches = container.querySelectorAll('.color-picker-swatch');
 
-            rows.forEach((row, rowIndex) => {
-                const swatches = row.querySelectorAll('.color-picker-swatch');
-                swatches.forEach((swatch, swatchIndex) => {
-                    const expectedColorName = COLOR_ORDER[rowIndex][swatchIndex];
-                    const expectedTitle = expectedColorName.charAt(0).toUpperCase() + expectedColorName.slice(1);
-                    expect(swatch).toHaveAttribute('title', expectedTitle);
-                });
+            swatches.forEach((swatch, index) => {
+                const expectedColorName = colorNames[index];
+                const expectedTitle = expectedColorName.charAt(0).toUpperCase() + expectedColorName.slice(1);
+                expect(swatch).toHaveAttribute('title', expectedTitle);
             });
         });
     });

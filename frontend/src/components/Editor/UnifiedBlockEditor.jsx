@@ -1,9 +1,9 @@
-import React, { useRef, useCallback, useEffect, useState, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
-import { GripVertical } from 'lucide-react';
+import React, { useRef, useCallback, useEffect, useState, useLayoutEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import SlashCommandMenu from './SlashCommandMenu';
 import FormattingMenu from './FormattingMenu';
 import LinkPopover from './LinkPopover';
-import { useBlockReducer } from './hooks/useBlockReducer';
+import { useBlockReducer, MAX_INDENT_LEVEL } from './hooks/useBlockReducer';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useClipboard } from './hooks/useClipboard';
 import { useSlashMenu } from './hooks/useSlashMenu';
@@ -14,17 +14,28 @@ import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { debounce } from '../../utils/debounce';
 import { isValidUrl, normalizeUrl } from '../../utils/urlUtils';
 import { getCursorState, restoreCursor } from './utils/cursor';
+// AST imports
+import { getPlainText } from './utils/ast';
+import { astToHTML, syncDOMToAST } from './utils/astConverters';
 import './BlockEditor.css';
+
+// Configure DOMPurify to allow safe tags for rich text
+const PURIFY_CONFIG = {
+    ALLOWED_TAGS: ['a', 'b', 'strong', 'i', 'em', 'u', 's', 'code', 'span'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    ALLOW_DATA_ATTR: false,
+};
 
 // Markdown shortcuts for quick block conversion
 const MARKDOWN_SHORTCUTS = {
     '# ': 'h1',
     '## ': 'h2',
     '### ': 'h3',
+    '#### ': 'h4',
     '- ': 'bulleted-list',
     '* ': 'bulleted-list',
     '1. ': 'numbered-list',
-    '> ': 'quote',
+    '" ': 'quote',
 };
 
 // Block type to HTML tag mapping
@@ -33,6 +44,7 @@ const BLOCK_TYPE_TAGS = {
     'h1': 'h1',
     'h2': 'h2',
     'h3': 'h3',
+    'h4': 'h4',
     'bulleted-list': 'div',
     'numbered-list': 'div',
     'quote': 'blockquote',
@@ -85,7 +97,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             if (blocks.length !== 1) return false;
 
             const firstBlock = blocks[0];
-            const textContent = firstBlock.content?.replace(/<[^>]*>/g, '').trim() || '';
+            // Use AST-based text extraction
+            const textContent = getPlainText(firstBlock.children || []).trim();
             if (textContent !== '') return false;
 
             // Focus the empty block
@@ -155,6 +168,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
         applyFormat,
         applyHighlight,
         clearHighlight,
+        applyTextColor,
+        clearTextColor,
         applyLinkToSelection,
         removeLink,
         changeBlockType: changeBlockTypeFromMenu,
@@ -189,42 +204,26 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
         readOnly,
     });
 
+    /**
+     * Calculate current block type for the slash menu.
+     * Memoized to avoid recalculation on every render.
+     */
+    const currentBlockType = useMemo(() => {
+        if (!slashMenu.isOpen) return null;
+        return state.blocks.find(b => b.id === slashMenu.blockId)?.type || 'paragraph';
+    }, [slashMenu.isOpen, slashMenu.blockId, state.blocks]);
 
     /**
-     * Updates the absolute positions of drag handles based on block elements.
+     * Handle positions are now managed inline with blocks (no separate layer).
+     * This is a no-op kept for backward compatibility.
      */
     const updateHandlePositions = useCallback(() => {
-        if (!editorRef.current) return;
-
-        const newPositions = {};
-        const blockElements = editorRef.current.querySelectorAll('[data-block-id]');
-
-        blockElements.forEach((el) => {
-            const blockId = el.getAttribute('data-block-id');
-            const style = window.getComputedStyle(el);
-            const lineHeight = parseInt(style.lineHeight) || 26; // Default to 26px if invalid
-            const paddingTop = parseInt(style.paddingTop) || 4;
-
-            // Calculate top position relative to the container
-            // We want to center the handle (24px) with the first line of text
-            // Handle Top = Block Top + Padding Top + (LineHeight / 2) - (HandleHeight / 2)
-            const handleHeight = 24;
-            const top = el.offsetTop + paddingTop + (lineHeight / 2) - (handleHeight / 2);
-
-            newPositions[blockId] = top;
-        });
-
-        // Only update if changed to avoid loops (simple shallow comparison)
-        setHandlePositions(prev => {
-            const isDifferent = Object.keys(newPositions).some(key => newPositions[key] !== prev[key]) ||
-                Object.keys(prev).length !== Object.keys(newPositions).length;
-            return isDifferent ? newPositions : prev;
-        });
+        // No-op: handles are now inside block-rows
     }, []);
 
     /**
      * Syncs the DOM content back to React state.
-     * Parses the contentEditable children as blocks.
+     * Parses the contentEditable children as blocks with AST structure.
      */
     const syncDOMToState = useCallback(() => {
         if (!editorRef.current || isUpdatingFromDOM.current) return;
@@ -237,40 +236,66 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
         blockElements.forEach((el) => {
             const blockId = el.getAttribute('data-block-id');
             const blockType = el.getAttribute('data-block-type') || 'paragraph';
-            const content = el.innerHTML;
             const indentLevel = parseInt(el.getAttribute('data-indent-level') || '0', 10);
+
+            // Convert DOM to AST children
+            const children = syncDOMToAST(el);
 
             newBlocks.push({
                 id: blockId,
                 type: blockType,
-                content,
-                indentLevel,
+                children,
+                metadata: { indentLevel },
             });
         });
 
         // Only update if content, type, or indentLevel actually changed
         const hasChanges = newBlocks.some((newBlock, i) => {
             const oldBlock = state.blocks[i];
-            return !oldBlock ||
-                oldBlock.content !== newBlock.content ||
+            if (!oldBlock) return true;
+
+            // Compare plain text content for change detection
+            const oldText = getPlainText(oldBlock.children || []);
+            const newText = getPlainText(newBlock.children || []);
+
+            return oldText !== newText ||
                 oldBlock.type !== newBlock.type ||
-                (oldBlock.indentLevel ?? 0) !== newBlock.indentLevel;
+                (oldBlock.metadata?.indentLevel ?? 0) !== newBlock.metadata.indentLevel;
         }) || newBlocks.length !== state.blocks.length;
 
         if (hasChanges && newBlocks.length > 0) {
             actions.setBlocks(newBlocks);
+            // Keep the flag true - it will be cleared by useEffect after render
+        } else {
+            isUpdatingFromDOM.current = false;
         }
-
-        isUpdatingFromDOM.current = false;
     }, [state.blocks, actions]);
 
+    // Clear the isUpdatingFromDOM flag after render cycle completes
+    useEffect(() => {
+        if (isUpdatingFromDOM.current) {
+            isUpdatingFromDOM.current = false;
+        }
+    });
+
     /**
-     * Debounced sync for performance
+     * Debounced sync for performance.
+     * Using useMemo to create stable debounced function that won't be recreated
+     * on every syncDOMToState change, preventing memory leaks and stale closures.
      */
-    const debouncedSync = useCallback(
-        debounce(syncDOMToState, 100),
-        [syncDOMToState]
-    );
+    const debouncedSync = useMemo(() => {
+        const debouncedFn = debounce(() => {
+            syncDOMToState();
+        }, 100);
+        return debouncedFn;
+    }, []); // Empty deps - syncDOMToState is called inside, always gets latest
+
+    // Cleanup debounced function on unmount
+    useEffect(() => {
+        return () => {
+            debouncedSync.cancel?.();
+        };
+    }, [debouncedSync]);
 
     /**
      * Updates the is-empty class on blocks based on their content.
@@ -389,6 +414,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
 
                             // Counter Reset Logic for Optimized Switch
                             if (newType === 'numbered-list') {
+                                // Set default indent level
+                                newEl.setAttribute('data-indent-level', '0');
                                 // If previous is NOT numbered list, we are the start.
                                 const prev = blockEl.previousElementSibling;
                                 const isPrevNumbered = prev && prev.getAttribute('data-block-type') === 'numbered-list';
@@ -460,9 +487,9 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                 // Find previous block to determine max allowed indent
                 const blockIndex = state.blocks.findIndex(b => b.id === blockId);
                 const prevBlock = blockIndex > 0 ? state.blocks[blockIndex - 1] : null;
-                const prevIndent = prevBlock?.indentLevel ?? 0;
-                // Can't be more than prev+1 and max is 2
-                const maxAllowedIndent = Math.min(prevIndent + 1, 2);
+                const prevIndent = prevBlock?.metadata?.indentLevel ?? 0;
+                // Can't be more than prev+1 and max is MAX_INDENT_LEVEL
+                const maxAllowedIndent = Math.min(prevIndent + 1, MAX_INDENT_LEVEL);
 
                 if (currentIndentLevel < maxAllowedIndent) {
                     actions.setIndentLevel(blockId, currentIndentLevel + 1);
@@ -586,16 +613,40 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             const newBlockTag = BLOCK_TYPE_TAGS[newBlockType];
             const newBlockId = `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-            // Create new block element
+            // Create new block-row wrapper
+            const newRowEl = document.createElement('div');
+            newRowEl.className = 'block-row';
+            newRowEl.setAttribute('data-row-for', newBlockId);
+
+            // Create grip handle (if not readOnly)
+            if (!readOnly) {
+                const handleEl = document.createElement('div');
+                handleEl.className = 'block-handle';
+                handleEl.contentEditable = 'false';
+                handleEl.innerHTML = '<svg class="grip-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="6" r="1.5" fill="currentColor"/><circle cx="7" cy="10" r="1.5" fill="currentColor"/><circle cx="7" cy="14" r="1.5" fill="currentColor"/><circle cx="13" cy="6" r="1.5" fill="currentColor"/><circle cx="13" cy="10" r="1.5" fill="currentColor"/><circle cx="13" cy="14" r="1.5" fill="currentColor"/></svg>';
+                newRowEl.appendChild(handleEl);
+            }
+
+            // Create new block content element
             const newBlockEl = document.createElement(newBlockTag);
             newBlockEl.className = 'block-content';
             newBlockEl.setAttribute('data-block-id', newBlockId);
             newBlockEl.setAttribute('data-block-type', newBlockType);
             newBlockEl.setAttribute('data-indent-level', currentIndentLevel); // Inherit indent level
-            newBlockEl.innerHTML = afterHtml; // Insert formatted HTML
+            newBlockEl.setAttribute('data-placeholder', 'Type / for commands');
+            // Sanitize HTML before inserting to prevent XSS
+            newBlockEl.innerHTML = DOMPurify.sanitize(afterHtml, PURIFY_CONFIG);
 
-            // Insert after current block
-            blockEl.parentNode.insertBefore(newBlockEl, blockEl.nextSibling);
+            newRowEl.appendChild(newBlockEl);
+
+            // Insert new row after current block's row
+            const currentRow = blockEl.closest('.block-row');
+            if (currentRow && currentRow.parentNode) {
+                currentRow.parentNode.insertBefore(newRowEl, currentRow.nextSibling);
+            } else {
+                // Fallback: insert into editor
+                editorRef.current.appendChild(newRowEl);
+            }
 
             // Move cursor to start of new block
             const newRange = document.createRange();
@@ -655,7 +706,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                         newEl.setAttribute('data-block-id', blockId);
                         newEl.setAttribute('data-block-type', 'paragraph');
                         newEl.setAttribute('data-indent-level', '0');
-                        newEl.innerHTML = blockEl.innerHTML;
+                        // Sanitize HTML to prevent XSS
+                        newEl.innerHTML = DOMPurify.sanitize(blockEl.innerHTML, PURIFY_CONFIG);
                         blockEl.replaceWith(newEl);
 
                         // Set cursor at start
@@ -673,9 +725,12 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                     return;
                 }
 
-                // Get previous block
-                const prevBlock = blockEl.previousElementSibling;
-                if (prevBlock && prevBlock.hasAttribute('data-block-id')) {
+                // Get previous block by finding previous block-row
+                const currentRow = blockEl.closest('.block-row');
+                const prevRow = currentRow?.previousElementSibling;
+                const prevBlock = prevRow?.querySelector('.block-content[data-block-id]');
+
+                if (prevBlock) {
                     const prevContent = prevBlock.textContent || '';
                     const curContent = textContent;
                     const cursorPosInMerged = prevContent.length;
@@ -683,8 +738,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                     // Merge content
                     prevBlock.textContent = prevContent + curContent;
 
-                    // Remove current block
-                    blockEl.remove();
+                    // Remove current block-row (entire row including grip)
+                    currentRow.remove();
 
                     // Set cursor at merge point
                     const newRange = document.createRange();
@@ -722,16 +777,20 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             if (e.key === 'Delete' && cursorPos === textContent.length) {
                 e.preventDefault();
 
-                const nextBlock = blockEl.nextElementSibling;
-                if (nextBlock && nextBlock.hasAttribute('data-block-id')) {
+                // Get next block by finding next block-row
+                const currentRow = blockEl.closest('.block-row');
+                const nextRow = currentRow?.nextElementSibling;
+                const nextBlock = nextRow?.querySelector('.block-content[data-block-id]');
+
+                if (nextBlock) {
                     const nextContent = nextBlock.textContent || '';
                     const cursorPosAfterMerge = textContent.length;
 
                     // Merge content
                     blockEl.textContent = textContent + nextContent;
 
-                    // Remove next block
-                    nextBlock.remove();
+                    // Remove next block-row (entire row)
+                    nextRow.remove();
 
                     // Set cursor at merge point
                     const newRange = document.createRange();
@@ -893,7 +952,11 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             return el.tagName.toLowerCase() !== expectedTag;
         });
 
-        if (structureChanged || typeChanged) {
+        // Check if handles are missing when they should exist (not in readOnly mode)
+        const existingHandles = editorRef.current.querySelectorAll('.block-handle');
+        const handlesMissing = !readOnly && existingBlocks.length > 0 && existingHandles.length === 0;
+
+        if (structureChanged || typeChanged || handlesMissing) {
             // Save current selection
             const sel = window.getSelection();
             let savedBlockId = null;
@@ -920,38 +983,51 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             let isPrevNumbered = false;
 
             state.blocks.forEach((block, index) => {
+                // Create block-row wrapper
+                const rowEl = document.createElement('div');
+                rowEl.className = `block-row${state.selectedBlockIds.includes(block.id) ? ' block-selected' : ''}`;
+                rowEl.setAttribute('data-row-for', block.id);
+                rowEl.setAttribute('data-block-index', index);
+
+                // Create grip handle (non-editable)
+                if (!readOnly) {
+                    const handleEl = document.createElement('div');
+                    handleEl.className = 'block-handle';
+                    handleEl.contentEditable = 'false';
+                    handleEl.innerHTML = '<svg class="grip-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="6" r="1.5" fill="currentColor"/><circle cx="7" cy="10" r="1.5" fill="currentColor"/><circle cx="7" cy="14" r="1.5" fill="currentColor"/><circle cx="13" cy="6" r="1.5" fill="currentColor"/><circle cx="13" cy="10" r="1.5" fill="currentColor"/><circle cx="13" cy="14" r="1.5" fill="currentColor"/></svg>';
+                    rowEl.appendChild(handleEl);
+                }
+
+                // Create block content
                 const Tag = BLOCK_TYPE_TAGS[block.type] || 'p';
                 const el = document.createElement(Tag);
                 el.className = 'block-content';
                 el.setAttribute('data-block-id', block.id);
                 el.setAttribute('data-block-type', block.type);
-                el.setAttribute('data-block-index', index);
-                el.setAttribute('data-indent-level', block.indentLevel ?? 0);
-                el.setAttribute('data-placeholder', 'Type / for commands');
-                el.innerHTML = block.content;
 
-                const indentLevel = block.indentLevel ?? 0;
+                // Get indent level from metadata (AST) or legacy field
+                const indentLevel = block.metadata?.indentLevel ?? block.indentLevel ?? 0;
+                el.setAttribute('data-indent-level', indentLevel);
+                el.setAttribute('data-placeholder', 'Type / for commands');
+
+                // Render AST children to HTML
+                el.innerHTML = astToHTML(block.children || []);
 
                 // Handle List Reset for numbered lists
                 if (block.type === 'numbered-list') {
+                    const prevBlock = state.blocks[index - 1];
+                    const prevLevel = prevBlock?.type === 'numbered-list'
+                        ? (prevBlock.metadata?.indentLevel ?? prevBlock.indentLevel ?? 0)
+                        : -1;
+
                     // Level 0 reset - only when previous block is NOT numbered-list
                     if (indentLevel === 0 && !isPrevNumbered) {
                         el.setAttribute('data-list-reset', 'true');
                     }
-                    // Level 1 reset - only when coming from level < 1 (i.e. level 0 or non-list)
-                    if (indentLevel === 1) {
-                        const prevBlock = state.blocks[index - 1];
-                        const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
-                        if (prevLevel < 1) {
-                            el.setAttribute('data-list-reset-1', 'true');
-                        }
-                    }
-                    // Level 2 reset - only when coming from level < 2
-                    if (indentLevel === 2) {
-                        const prevBlock = state.blocks[index - 1];
-                        const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
-                        if (prevLevel < 2) {
-                            el.setAttribute('data-list-reset-2', 'true');
+                    // Set reset for each indent level when coming from lower level
+                    for (let level = 1; level <= 10; level++) {
+                        if (indentLevel === level && prevLevel < level) {
+                            el.setAttribute(`data-list-reset-${level}`, 'true');
                         }
                     }
                     isPrevNumbered = true;
@@ -959,7 +1035,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                     isPrevNumbered = false;
                 }
 
-                editorRef.current.appendChild(el);
+                rowEl.appendChild(el);
+                editorRef.current.appendChild(rowEl);
             });
 
             // Restore cursor position
@@ -969,9 +1046,9 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
             // If we lost selection (e.g. clicked outside to menu), check if we have a focused block in state
             if (!targetBlockId && state.focusedBlockId) {
                 targetBlockId = state.focusedBlockId;
-                // Default to end of block content
+                // Default to end of block content (use AST text length)
                 const block = state.blocks.find(b => b.id === targetBlockId);
-                targetOffset = block ? block.content.length : 0;
+                targetOffset = block ? getPlainText(block.children || []).length : 0;
             }
 
             if (targetBlockId) {
@@ -991,10 +1068,13 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                 const block = state.blocks[i];
                 if (!block) return;
 
-                const indentLevel = block.indentLevel ?? 0;
+                // Get indent level from metadata (AST) or legacy field
+                const indentLevel = block.metadata?.indentLevel ?? block.indentLevel ?? 0;
 
-                if (el.innerHTML !== block.content) {
-                    el.innerHTML = block.content;
+                // Render AST to HTML for comparison and update
+                const blockHTML = astToHTML(block.children || []);
+                if (el.innerHTML !== blockHTML) {
+                    el.innerHTML = blockHTML;
                 }
                 if (el.getAttribute('data-block-type') !== block.type) {
                     el.setAttribute('data-block-type', block.type);
@@ -1009,29 +1089,27 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
 
                 // Handle List Reset Update for all levels
                 if (block.type === 'numbered-list') {
-                    // Level 0 reset
+                    // Level 0 reset - only first item in a list sequence
                     if (indentLevel === 0 && !isPrevNumbered) {
                         if (el.getAttribute('data-list-reset') !== 'true') {
                             el.setAttribute('data-list-reset', 'true');
                         }
-                    } else if (el.hasAttribute('data-list-reset') && indentLevel !== 0) {
+                    } else if (el.hasAttribute('data-list-reset')) {
+                        // Remove reset if this is NOT the first item or not at indent 0
                         el.removeAttribute('data-list-reset');
                     }
 
-                    // Level 1 reset - only when coming from level < 1
+                    // Level 1-10 reset - set/remove based on prev level
                     const prevBlock = state.blocks[i - 1];
-                    const prevLevel = prevBlock?.type === 'numbered-list' ? (prevBlock.indentLevel ?? 0) : -1;
-                    if (indentLevel === 1 && prevLevel < 1) {
-                        el.setAttribute('data-list-reset-1', 'true');
-                    } else {
-                        el.removeAttribute('data-list-reset-1');
-                    }
-
-                    // Level 2 reset - only when coming from level < 2
-                    if (indentLevel === 2 && prevLevel < 2) {
-                        el.setAttribute('data-list-reset-2', 'true');
-                    } else {
-                        el.removeAttribute('data-list-reset-2');
+                    const prevLevel = prevBlock?.type === 'numbered-list'
+                        ? (prevBlock.metadata?.indentLevel ?? prevBlock.indentLevel ?? 0)
+                        : -1;
+                    for (let level = 1; level <= 10; level++) {
+                        if (indentLevel === level && prevLevel < level) {
+                            el.setAttribute(`data-list-reset-${level}`, 'true');
+                        } else {
+                            el.removeAttribute(`data-list-reset-${level}`);
+                        }
                     }
 
                     if (el.hasAttribute('data-list-number')) {
@@ -1042,8 +1120,9 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                     isPrevNumbered = false;
                     // Clean up list reset attrs for non-list blocks
                     el.removeAttribute('data-list-reset');
-                    el.removeAttribute('data-list-reset-1');
-                    el.removeAttribute('data-list-reset-2');
+                    for (let level = 1; level <= 10; level++) {
+                        el.removeAttribute(`data-list-reset-${level}`);
+                    }
                 }
             });
         }
@@ -1052,7 +1131,33 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
         updateHandlePositions();
         // Update empty state for placeholders
         updateEmptyState();
-    }, [state.blocks, updateHandlePositions, updateEmptyState]);
+    }, [state.blocks, updateHandlePositions, updateEmptyState, readOnly]);
+
+    // Event delegation for block handle drag events
+    useEffect(() => {
+        if (!editorRef.current || readOnly) return;
+
+        const handleMouseDown = (e) => {
+            const handleEl = e.target.closest('.block-handle');
+            if (!handleEl) return;
+
+            const rowEl = handleEl.closest('.block-row');
+            if (!rowEl) return;
+
+            const blockId = rowEl.getAttribute('data-row-for');
+            const blockIndex = parseInt(rowEl.getAttribute('data-block-index') || '0', 10);
+
+            if (blockId) {
+                handleHandleMouseDown(e, blockId, blockIndex);
+            }
+        };
+
+        editorRef.current.addEventListener('mousedown', handleMouseDown);
+
+        return () => {
+            editorRef.current?.removeEventListener('mousedown', handleMouseDown);
+        };
+    }, [readOnly, handleHandleMouseDown]);
 
     // Restore cursor position after undo/redo
     useEffect(() => {
@@ -1323,28 +1428,7 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
 
     return (
         <div className={editorClassName}>
-            {/* Block handles layer - hidden in read-only mode */}
-            {!readOnly && (
-                <div className="block-handles-layer">
-                    {state.blocks.map((block, index) => (
-                        <div
-                            key={block.id}
-                            className={`block-handle-wrapper ${state.selectedBlockIds.includes(block.id) ? 'selected' : ''} ${hoveredBlockId === block.id ? 'hovered' : ''}`}
-                            data-handle-for={block.id}
-                            style={{ top: handlePositions[block.id] ?? 0, display: handlePositions[block.id] !== undefined ? 'block' : 'none' }}
-                        >
-                            <div
-                                className="block-handle"
-                                onMouseDown={(e) => handleHandleMouseDown(e, block.id, index)}
-                            >
-                                <GripVertical size={16} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Main contentEditable area */}
+            {/* Main contentEditable area with integrated block rows */}
             <div
                 ref={editorRef}
                 className="unified-content-area"
@@ -1372,19 +1456,13 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                     // Clear block selection when clicking inside editor text/empty space
                     // Only if not holding modifiers (which might be for selection extension)
                     if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
-                        // We check if we clicked a handle in the handle layer via event bubbling, 
-                        // but handles are outside this div usually. 
-                        // Wait, handles are in 'block-handles-layer' which is a sibling, not child.
-                        // So any click in 'unified-content-area' is definitely not on a handle.
-                        // However, we should be careful not to interfere with text selection start.
-                        // Clearing block selection is fine.
                         actions.clearSelection();
                     }
                 }}
                 onMouseMove={readOnly ? undefined : (e) => {
-                    const blockEl = e.target.closest?.('[data-block-id]');
-                    if (blockEl) {
-                        const blockId = blockEl.getAttribute('data-block-id');
+                    const blockRow = e.target.closest?.('.block-row');
+                    if (blockRow) {
+                        const blockId = blockRow.getAttribute('data-row-for');
                         if (blockId !== hoveredBlockId) {
                             setHoveredBlockId(blockId);
                         }
@@ -1417,7 +1495,7 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                         <div key={block.id} className="drag-preview-item">
                             <div
                                 className={`drag-preview-content block-type-${block.type}`}
-                                dangerouslySetInnerHTML={{ __html: block.content || 'Empty block' }}
+                                dangerouslySetInnerHTML={{ __html: astToHTML(block.children || []) || 'Empty block' }}
                             />
                         </div>
                     ))}
@@ -1434,6 +1512,7 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                 <SlashCommandMenu
                     position={slashMenu.position}
                     filter={slashMenu.filter}
+                    currentBlockType={currentBlockType}
                     onSelect={handleSlashSelect}
                     onClose={closeSlashMenu}
                 />
@@ -1450,6 +1529,8 @@ const UnifiedBlockEditor = forwardRef(({ readOnly = false }, ref) => {
                     onFormat={applyFormat}
                     onHighlight={applyHighlight}
                     onClearHighlight={clearHighlight}
+                    onTextColor={applyTextColor}
+                    onClearTextColor={clearTextColor}
                     onOpenLinkPopover={() => {
                         const menuPos = getMenuPosition();
                         openLinkPopoverForSelection(menuPos);

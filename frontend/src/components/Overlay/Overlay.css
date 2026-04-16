@@ -1,0 +1,39 @@
+/**
+ * Overlay Component Styles
+ *
+ * Two variants:
+ * - dim: Semi-transparent dark background
+ * - blur: Blurred white background
+ */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-index-modal);
+}
+
+/* Dim variant - semi-transparent dark */
+.overlay--dim {
+    background: var(--surface-overlay);
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+
+.overlay--dim.overlay--active {
+    opacity: 1;
+}
+
+/* Blur variant - white with backdrop blur */
+.overlay--blur {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    opacity: 0;
+    transition: opacity 0.3s ease-out, backdrop-filter 0.3s ease-out, -webkit-backdrop-filter 0.3s ease-out;
+}
+
+.overlay--blur.overlay--active {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 1;
+}

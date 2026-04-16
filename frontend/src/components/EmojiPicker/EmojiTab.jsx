@@ -1,13 +1,15 @@
 import React, { useMemo } from 'react';
 import * as LucideIcons from 'lucide-react';
-import { EMOJI_CATEGORIES, STORAGE_KEYS, MAX_RECENT_EMOJIS } from './constants';
-import { EMOJI_DATA } from './emojiData';
-import './EmojiPicker.css';
+import { EMOJI_CATEGORIES, STORAGE_KEYS } from './constants';
+import { getAllEmojis, getEmojisByCategory } from './emojiData';
 
 /**
- * EmojiTab - Emoji grid with tabbed categories (one page = one category)
- * Category tabs at bottom, category name header at top of emoji grid
- * First tab is "Recent" showing recently used emojis
+ * EmojiTab - Displays emoji grid with category navigation
+ * 
+ * Features:
+ * - Category tabs at bottom (Recent, Smileys, People, Nature, Food, Activities, Travel, Objects, Symbols)
+ * - Searchable emoji grid
+ * - Recent emojis stored in localStorage
  */
 const EmojiTab = ({
     searchQuery,
@@ -26,59 +28,36 @@ const EmojiTab = ({
         }
     }, []);
 
-    // Get category info
-    const categoryInfo = EMOJI_CATEGORIES.find(c => c.id === activeCategory);
-    const categoryName = categoryInfo?.name || activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1);
-
-    // Get emojis for current category
-    const categoryEmojis = useMemo(() => {
-        if (activeCategory === 'recent') {
-            // Return recent emojis as emoji objects
-            return recentEmojis.map(e => ({ e, n: '', k: [] }));
-        }
-        return EMOJI_DATA[activeCategory] || [];
-    }, [activeCategory, recentEmojis]);
-
     // Filter emojis based on search query
     const filteredEmojis = useMemo(() => {
-        if (!searchQuery.trim()) {
-            return categoryEmojis;
-        }
-
-        const query = searchQuery.toLowerCase().trim();
-        return categoryEmojis.filter(item =>
-            item.n.toLowerCase().includes(query) ||
-            item.k.some(k => k.toLowerCase().includes(query))
-        );
-    }, [searchQuery, categoryEmojis]);
-
-    // Search across all categories when there's a search query
-    const searchResults = useMemo(() => {
-        if (!searchQuery.trim()) return null;
-
-        const query = searchQuery.toLowerCase().trim();
-        const results = [];
-
-        for (const [category, emojis] of Object.entries(EMOJI_DATA)) {
-            const matches = emojis.filter(item =>
-                item.n.toLowerCase().includes(query) ||
-                item.k.some(k => k.toLowerCase().includes(query))
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            return getAllEmojis().filter(emoji =>
+                // Search by name (n is a string)
+                emoji.n.toLowerCase().includes(query) ||
+                // Search by keywords (k is an array)
+                emoji.k?.some(keyword => keyword.toLowerCase().includes(query))
             );
-            results.push(...matches);
         }
 
-        return results;
-    }, [searchQuery]);
+        if (activeCategory === 'recent') {
+            return recentEmojis.map(e => ({ e, n: e }));
+        }
 
+        return getEmojisByCategory(activeCategory);
+    }, [searchQuery, activeCategory, recentEmojis]);
+
+    // Handle emoji selection
     const handleSelect = (emoji) => {
-        // Add to recent emojis
+        // Save to recent emojis
         try {
-            const recent = [...recentEmojis];
-            const index = recent.indexOf(emoji);
-            if (index > -1) recent.splice(index, 1);
-            recent.unshift(emoji);
-            const trimmed = recent.slice(0, MAX_RECENT_EMOJIS);
-            localStorage.setItem(STORAGE_KEYS.RECENT_EMOJIS, JSON.stringify(trimmed));
+            const recent = [emoji];
+            const stored = localStorage.getItem(STORAGE_KEYS.RECENT_EMOJIS);
+            if (stored) {
+                const existing = JSON.parse(stored).filter(e => e !== emoji);
+                recent.push(...existing.slice(0, 35)); // Keep 36 total
+            }
+            localStorage.setItem(STORAGE_KEYS.RECENT_EMOJIS, JSON.stringify(recent));
         } catch {
             // Ignore storage errors
         }
@@ -86,97 +65,73 @@ const EmojiTab = ({
         onSelect({ type: 'emoji', value: emoji });
     };
 
-    // Use search results when searching, otherwise use category emojis
-    const emojisToShow = searchQuery.trim() ? searchResults : filteredEmojis;
-    const isSearching = searchQuery.trim().length > 0;
+    // Check if recent is empty
+    const hasRecentEmojis = recentEmojis.length > 0;
 
-    // Category tabs component
+    // Category tabs component - appears at bottom
     const CategoryTabs = () => (
         <div className="emoji-category-tabs">
             {EMOJI_CATEGORIES.map((category) => {
                 const IconComponent = LucideIcons[category.icon];
+                const isDisabled = category.id === 'recent' && !hasRecentEmojis;
                 return (
                     <button
                         key={category.id}
                         className={`emoji-category-tab ${activeCategory === category.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(category.id)}
                         title={category.name}
+                        aria-label={category.name}
+                        aria-pressed={activeCategory === category.id}
+                        disabled={isDisabled}
                     >
-                        {IconComponent && <IconComponent size={16} strokeWidth={1.5} />}
+                        {IconComponent && <IconComponent size={20} strokeWidth={1.5} />}
                     </button>
                 );
             })}
         </div>
     );
 
-    // Empty state for recent category
-    if (activeCategory === 'recent' && recentEmojis.length === 0 && !isSearching) {
-        return (
-            <div className="emoji-tab-container">
-                <div className="emoji-grid-container">
-                    <div className="emoji-category-header">
-                        {categoryName}
-                    </div>
-                    <div className="emoji-grid-empty">
-                        <span>No recent emojis</span>
-                    </div>
-                </div>
-                <CategoryTabs />
-            </div>
-        );
-    }
-
-    if (!emojisToShow || emojisToShow.length === 0) {
-        return (
-            <div className="emoji-tab-container">
-                <div className="emoji-grid-container">
-                    <div className="emoji-grid-empty">
-                        <span>No emojis found</span>
-                    </div>
-                </div>
-                {!isSearching && <CategoryTabs />}
-            </div>
-        );
-    }
+    // Get display title
+    const getTitle = () => {
+        if (searchQuery) return 'Search Results';
+        const category = EMOJI_CATEGORIES.find(c => c.id === activeCategory);
+        return category ? category.name : 'Emojis';
+    };
 
     return (
         <div className="emoji-tab-container">
-            {/* Emoji grid with category header */}
             <div className="emoji-grid-container">
-                {!isSearching && (
-                    <div className="emoji-category-header">
-                        {categoryName}
+                <div className="emoji-category-section">
+                    <div className="emoji-category-header">{getTitle()}</div>
+                    <div className="emoji-grid">
+                        {filteredEmojis.length > 0 ? (
+                            filteredEmojis.map((emoji) => {
+                                const isSelected = currentEmoji === emoji.e;
+                                const emojiName = typeof emoji.n === 'string' ? emoji.n : (emoji.n?.[0] || emoji.e);
+                                return (
+                                    <button
+                                        key={emoji.e}
+                                        className={`emoji-grid-item ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => handleSelect(emoji.e)}
+                                        title={emojiName}
+                                        aria-label={emojiName}
+                                        aria-pressed={isSelected}
+                                    >
+                                        <span className="emoji-char" aria-hidden="true">{emoji.e}</span>
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="emoji-grid-empty">
+                                {activeCategory === 'recent' ? 'No recent emojis' : 'No emojis found'}
+                            </div>
+                        )}
                     </div>
-                )}
-                {isSearching && (
-                    <div className="emoji-category-header">
-                        Search Results
-                    </div>
-                )}
-                <div className="emoji-grid">
-                    {emojisToShow.map((item, index) => {
-                        const emoji = item.e;
-                        const isSelected = currentEmoji === emoji;
-                        return (
-                            <button
-                                key={`${activeCategory}-${index}`}
-                                className={`emoji-grid-item ${isSelected ? 'selected' : ''}`}
-                                onClick={() => handleSelect(emoji)}
-                                title={item.n || emoji}
-                            >
-                                {emoji}
-                            </button>
-                        );
-                    })}
                 </div>
             </div>
-
-            {/* Category tabs at bottom */}
-            {!isSearching && <CategoryTabs />}
+            <CategoryTabs />
         </div>
     );
 };
-
-EmojiTab.displayName = 'EmojiTab';
 
 export default EmojiTab;

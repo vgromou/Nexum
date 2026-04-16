@@ -1,21 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 @import './styles/variables.css';
-
-:root {
-  /* Gradient Background Colors */
-  --bg-gradient-start: #ffe8d6;
-  --bg-gradient-40: #ffd4c8;
-  --bg-gradient-70: #ffc4d0;
-  --bg-gradient-end: #ffb8c8;
-
-  /* UI Colors */
-  --border-light: #ffe8e0;
-  --color-text-primary: #000000;
-  --color-bg-white: #ffffff;
-
-  /* Font Family */
-  --font-family-sans: 'Inter', sans-serif;
-}
+@import './styles/button-utilities.css';
 
 * {
   box-sizing: border-box;
@@ -23,21 +9,150 @@
   padding: 0;
 }
 
-body {
-  font-family: var(--font-family-sans);
-  color: var(--color-text-primary);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  /* Apply the gradient to the body or a main wrapper, but let's keep body neutral for now and apply to layout */
-  background-color: var(--bg-gradient-start);
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  color: var(--color-text-primary);
-  font-weight: 600;
+body {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--text-primary);
+  background-color: var(--background-tertiary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography defaults */
+h1 {
+  font-size: var(--font-size-h1);
+  line-height: var(--line-height-h1);
+  font-weight: var(--font-weight-h1);
+  letter-spacing: var(--letter-spacing-h1);
+  color: var(--text-primary);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  line-height: var(--line-height-h2);
+  font-weight: var(--font-weight-h2);
+  letter-spacing: var(--letter-spacing-h2);
+  color: var(--text-primary);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+  line-height: var(--line-height-h3);
+  font-weight: var(--font-weight-h3);
+  letter-spacing: var(--letter-spacing-h3);
+  color: var(--text-primary);
+}
+
+h4 {
+  font-size: var(--font-size-h4);
+  line-height: var(--line-height-h4);
+  font-weight: var(--font-weight-h4);
+  letter-spacing: var(--letter-spacing-h4);
+  color: var(--text-primary);
+}
+
+/* Link styles */
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--text-link-hover);
+}
+
+/* Code styles */
+code {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-code-inline);
+  line-height: var(--line-height-code-inline);
+  background-color: var(--code-inline-background);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--code-text);
+}
+
+pre {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-code-block);
+  line-height: var(--line-height-code-block);
+  background-color: var(--code-background);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--code-border);
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Selection styles */
+::selection {
+  background-color: var(--accent-primary-light);
+  color: var(--text-primary);
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-medium);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-strong);
+}
+
+/* Button reset */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Input reset */
+input,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+/* List reset */
+ul,
+ol {
+  list-style: none;
 }

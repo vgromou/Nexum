@@ -1,5 +1,14 @@
 import { renderHook, act } from '@testing-library/react';
 import { useCrossBlockSelection } from './useCrossBlockSelection';
+import { createTextNode } from '../utils/ast';
+
+// Helper to create AST block
+const createASTBlock = (id, type, text, indentLevel = 0) => ({
+    id,
+    type,
+    children: [createTextNode(text)],
+    metadata: { indentLevel },
+});
 
 describe('useCrossBlockSelection', () => {
     let mockState;
@@ -9,9 +18,9 @@ describe('useCrossBlockSelection', () => {
     beforeEach(() => {
         mockState = {
             blocks: [
-                { id: 'block-1', type: 'paragraph', content: 'First block content', indentLevel: 0 },
-                { id: 'block-2', type: 'bulleted-list', content: 'List item', indentLevel: 1 },
-                { id: 'block-3', type: 'paragraph', content: 'Third block content', indentLevel: 0 },
+                createASTBlock('block-1', 'paragraph', 'First block content', 0),
+                createASTBlock('block-2', 'bulleted-list', 'List item', 1),
+                createASTBlock('block-3', 'paragraph', 'Third block content', 0),
             ],
             focusedBlockId: 'block-1',
             textSelectionBlockIds: [],

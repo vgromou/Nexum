@@ -4,25 +4,77 @@ import {
     Heading1,
     Heading2,
     Heading3,
+    Heading4,
     List,
     ListOrdered,
     Quote
 } from 'lucide-react';
 
+// Delay before hiding scrollbar after scrolling stops
+const SCROLL_HIDE_DELAY_MS = 1000;
+
 const MENU_ITEMS = [
-    { type: 'paragraph', label: 'Normal Text', icon: Type, description: 'Plain text paragraph' },
-    { type: 'h1', label: 'Heading 1', icon: Heading1, description: 'Large section heading' },
-    { type: 'h2', label: 'Heading 2', icon: Heading2, description: 'Medium section heading' },
-    { type: 'h3', label: 'Heading 3', icon: Heading3, description: 'Small section heading' },
-    { type: 'bulleted-list', label: 'Bulleted List', icon: List, description: 'Unordered list item' },
-    { type: 'numbered-list', label: 'Numbered List', icon: ListOrdered, description: 'Ordered list item' },
-    { type: 'quote', label: 'Quote', icon: Quote, description: 'Block quote' },
+    { type: 'paragraph', label: 'Normal Text', icon: Type, description: 'Plain text paragraph', shortcut: null },
+    { type: 'h1', label: 'Heading 1', icon: Heading1, description: 'Large section heading', shortcut: '#' },
+    { type: 'h2', label: 'Heading 2', icon: Heading2, description: 'Medium section heading', shortcut: '##' },
+    { type: 'h3', label: 'Heading 3', icon: Heading3, description: 'Small section heading', shortcut: '###' },
+    { type: 'h4', label: 'Heading 4', icon: Heading4, description: 'Smallest heading', shortcut: '####' },
+    { type: 'bulleted-list', label: 'Bulleted List', icon: List, description: 'Unordered list item', shortcut: '-' },
+    { type: 'numbered-list', label: 'Numbered List', icon: ListOrdered, description: 'Ordered list item', shortcut: '1.' },
+    { type: 'quote', label: 'Quote', icon: Quote, description: 'Block quote', shortcut: '"' },
 ];
 
-const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
-    const [selectedIndex, setSelectedIndex] = useState(0);
+const SlashCommandMenu = ({ position, filter, currentBlockType, onSelect, onClose }) => {
+    // Filter menu items based on search - computed first so safeInitialIndex can use it
+    const filteredItems = useMemo(() =>
+        MENU_ITEMS.filter(item =>
+            item.label.toLowerCase().includes(filter.toLowerCase()) ||
+            item.description.toLowerCase().includes(filter.toLowerCase())
+        ), [filter]
+    );
+
+    // Compute safe initial index within filteredItems
+    const safeInitialIndex = useMemo(() => {
+        const index = filteredItems.findIndex(item => item.type === currentBlockType);
+        return index !== -1 ? index : 0;
+    }, [filteredItems, currentBlockType]);
+
+    // Initialize with callback to get correct initial value
+    const [selectedIndex, setSelectedIndex] = useState(() => {
+        const initialFilteredItems = MENU_ITEMS.filter(item =>
+            item.label.toLowerCase().includes(filter.toLowerCase()) ||
+            item.description.toLowerCase().includes(filter.toLowerCase())
+        );
+        const index = initialFilteredItems.findIndex(item => item.type === currentBlockType);
+        return index !== -1 ? index : 0;
+    });
     const [adjustedPosition, setAdjustedPosition] = useState(null);
+    const [isScrolling, setIsScrolling] = useState(false);
+    const [isMouseHovering, setIsMouseHovering] = useState(false);
     const menuRef = useRef(null);
+    const scrollTimeoutRef = useRef(null);
+
+    // Handle scroll - show scrollbar while scrolling
+    const handleScroll = () => {
+        setIsScrolling(true);
+        // Clear existing timeout
+        if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+        }
+        // Hide scrollbar after delay
+        scrollTimeoutRef.current = setTimeout(() => {
+            setIsScrolling(false);
+        }, SCROLL_HIDE_DELAY_MS);
+    };
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Adjust position if menu doesn't fit below cursor
     useLayoutEffect(() => {
@@ -68,26 +120,25 @@ const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
         setAdjustedPosition({ top: newTop, left: newLeft });
     }, [position]);
 
-    // Filter menu items based on search - memoized to avoid recalculation
-    const filteredItems = useMemo(() =>
-        MENU_ITEMS.filter(item =>
-            item.label.toLowerCase().includes(filter.toLowerCase()) ||
-            item.description.toLowerCase().includes(filter.toLowerCase())
-        ), [filter]
-    );
-
-    // Reset selection when filter changes
+    // Sync selection when filter or currentBlockType changes
     const prevFilterRef = useRef(filter);
+    const prevBlockTypeRef = useRef(currentBlockType);
     useEffect(() => {
-        if (prevFilterRef.current !== filter) {
+        if (prevFilterRef.current !== filter || prevBlockTypeRef.current !== currentBlockType) {
             prevFilterRef.current = filter;
-            setSelectedIndex(0);
+            prevBlockTypeRef.current = currentBlockType;
+            setSelectedIndex(safeInitialIndex);
         }
-    }, [filter]);
+    }, [filter, currentBlockType, safeInitialIndex]);
 
     // Handle keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e) => {
+            // Skip arrow navigation if mouse is hovering
+            if (isMouseHovering && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                return;
+            }
+
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 setSelectedIndex(prev =>
@@ -108,7 +159,7 @@ const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [filteredItems, selectedIndex, onSelect, onClose]);
+    }, [filteredItems, selectedIndex, onSelect, onClose, isMouseHovering]);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -124,7 +175,7 @@ const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
 
     // Scroll selected item into view
     useEffect(() => {
-        const selectedEl = menuRef.current?.querySelector('.slash-menu-item.selected');
+        const selectedEl = menuRef.current?.querySelector('.slash-menu-item.highlighted');
         if (selectedEl) {
             selectedEl.scrollIntoView({ block: 'nearest' });
         }
@@ -147,31 +198,49 @@ const SlashCommandMenu = ({ position, filter, onSelect, onClose }) => {
 
     return (
         <div
-            className="slash-command-menu"
+            className={`slash-command-menu ${isScrolling ? 'scrolling' : ''}`}
             ref={menuRef}
             style={{ top: displayPosition.top, left: displayPosition.left }}
         >
-            <div className="slash-menu-header">Basic blocks</div>
-            <div className="slash-menu-items">
-                {filteredItems.map((item, index) => {
-                    const Icon = item.icon;
-                    return (
-                        <div
-                            key={item.type}
-                            className={`slash-menu-item ${index === selectedIndex ? 'selected' : ''}`}
-                            onClick={() => onSelect(item.type)}
-                            onMouseEnter={() => setSelectedIndex(index)}
-                        >
-                            <div className="slash-menu-item-icon">
-                                <Icon size={20} />
+            <div className="slash-menu-scroll-wrapper" onScroll={handleScroll}>
+                <div className="slash-menu-header">
+                    <span className="slash-menu-header-line-left"></span>
+                    <span>Basic blocks</span>
+                    <span className="slash-menu-header-line-right"></span>
+                </div>
+                <div
+                    className="slash-menu-items"
+                    onMouseEnter={() => setIsMouseHovering(true)}
+                    onMouseLeave={() => {
+                        setIsMouseHovering(false);
+                        // Reset keyboard navigation to safe index within filteredItems
+                        setSelectedIndex(safeInitialIndex);
+                    }}
+                >
+                    {filteredItems.map((item, index) => {
+                        const Icon = item.icon;
+                        const isCurrentType = item.type === currentBlockType;
+                        const isHighlighted = index === selectedIndex;
+                        return (
+                            <div
+                                key={item.type}
+                                className={`slash-menu-item ${isCurrentType ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+                                onClick={() => onSelect(item.type)}
+                                onMouseEnter={() => setSelectedIndex(index)}
+                            >
+                                <div className="slash-menu-item-left">
+                                    <div className="slash-menu-item-icon">
+                                        <Icon size={18} />
+                                    </div>
+                                    <div className="slash-menu-item-label">{item.label}</div>
+                                </div>
+                                {item.shortcut && (
+                                    <div className="slash-menu-item-shortcut">{item.shortcut}</div>
+                                )}
                             </div>
-                            <div className="slash-menu-item-content">
-                                <div className="slash-menu-item-label">{item.label}</div>
-                                <div className="slash-menu-item-description">{item.description}</div>
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

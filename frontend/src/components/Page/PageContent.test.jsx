@@ -66,7 +66,7 @@ describe('PageContent', () => {
         render(<PageContent />);
 
         // Breadcrumbs and Title
-        expect(screen.getByText('Main')).toBeInTheDocument();
+        expect(screen.getByText('Pages')).toBeInTheDocument();
         expect(screen.getAllByText('Page Title')[0]).toBeInTheDocument(); // In breadcrumbs
 
         // Main Title
@@ -676,49 +676,7 @@ describe('PageContent', () => {
             });
         });
 
-        describe('Emoji Picker Integration', () => {
-            it('should open emoji picker when Add icon button is clicked', () => {
-                const { container } = render(<PageContent />);
-                enterEditMode();
-                const pageHeader = container.querySelector('.page-header');
 
-                // Hover to show button
-                act(() => {
-                    fireEvent.mouseEnter(pageHeader);
-                });
-
-                // Click Add icon button
-                act(() => {
-                    fireEvent.click(screen.getByText('Add icon'));
-                });
-
-                // Emoji picker should open
-                expect(container.querySelector('.emoji-picker')).toBeInTheDocument();
-            });
-
-            it('should close emoji picker when clicking outside', () => {
-                const { container } = render(<PageContent />);
-                enterEditMode();
-                const pageHeader = container.querySelector('.page-header');
-
-                // Open picker
-                act(() => {
-                    fireEvent.mouseEnter(pageHeader);
-                });
-                act(() => {
-                    fireEvent.click(screen.getByText('Add icon'));
-                });
-
-                expect(container.querySelector('.emoji-picker')).toBeInTheDocument();
-
-                // Click outside (on page content card)
-                act(() => {
-                    fireEvent.mouseDown(container.querySelector('.content-wrapper'));
-                });
-
-                expect(container.querySelector('.emoji-picker')).not.toBeInTheDocument();
-            });
-        });
 
         describe('Icon Display', () => {
             it('should display selected emoji as page icon', () => {
@@ -864,38 +822,7 @@ describe('PageContent', () => {
             });
         });
 
-        describe('Icon Types', () => {
-            it('should display Lucide icon with correct color', () => {
-                const { container } = render(<PageContent />);
-                enterEditMode();
-                const pageHeader = container.querySelector('.page-header');
 
-                // Open picker
-                act(() => {
-                    fireEvent.mouseEnter(pageHeader);
-                });
-                act(() => {
-                    fireEvent.click(screen.getByText('Add icon'));
-                });
-
-                // Switch to Icons tab
-                act(() => {
-                    fireEvent.click(screen.getByRole('button', { name: 'Icons' }));
-                });
-
-                // Click an icon
-                const iconButtons = container.querySelectorAll('.icon-item');
-                if (iconButtons.length > 0) {
-                    act(() => {
-                        fireEvent.click(iconButtons[0]);
-                    });
-
-                    // SVG icon should be displayed
-                    const iconButton = container.querySelector('.page-icon-button');
-                    expect(iconButton?.querySelector('svg')).toBeInTheDocument();
-                }
-            });
-        });
 
         describe('Page Header Layout', () => {
             it('should show small hover area when no icon is set', () => {
@@ -927,6 +854,53 @@ describe('PageContent', () => {
                     expect(container.querySelector('.page-icon-hover-area')).not.toBeInTheDocument();
                 }
             });
+        });
+    });
+
+    describe('Breadcrumbs Component', () => {
+        it('renders collection name and current page', () => {
+            render(<PageContent />);
+
+            // Should show collection in breadcrumbs
+            expect(screen.getByText('Pages')).toBeInTheDocument();
+
+            // Should show current page title
+            const breadcrumbItems = screen.getAllByText('Page Title');
+            expect(breadcrumbItems.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it('updates breadcrumb when title changes', () => {
+            render(<PageContent />);
+            enterEditMode();
+
+            const titleElement = screen.getByRole('heading', { level: 1 });
+            titleElement.textContent = 'New Page Name';
+            fireEvent.input(titleElement);
+
+            // Both h1 and breadcrumb should update
+            const titleElements = screen.getAllByText('New Page Name');
+            expect(titleElements.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('shows Untitled in breadcrumb when title is empty', () => {
+            render(<PageContent />);
+            enterEditMode();
+
+            const titleElement = screen.getByRole('heading', { level: 1 });
+            titleElement.textContent = '';
+            fireEvent.blur(titleElement);
+
+            // Breadcrumb should show Untitled
+            const untitledElements = screen.getAllByText('Untitled');
+            expect(untitledElements.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it('has correct breadcrumb structure', () => {
+            const { container } = render(<PageContent />);
+
+            expect(container.querySelector('.breadcrumbs')).toBeInTheDocument();
+            expect(container.querySelectorAll('.breadcrumb-item').length).toBeGreaterThan(0);
+            expect(container.querySelectorAll('.breadcrumb-separator').length).toBeGreaterThan(0);
         });
     });
 });

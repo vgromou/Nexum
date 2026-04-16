@@ -1,6 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import UnifiedBlockEditor from './UnifiedBlockEditor';
+import { createTextNode, createLinkNode, getPlainText } from './utils/ast';
+
+// Helper to create mock blocks in AST format
+const createMockBlock = (id, type, content = '') => ({
+    id,
+    type,
+    children: [createTextNode(content)],
+    metadata: {},
+});
 
 // Mock dependencies
 const mockActions = {
@@ -20,8 +29,8 @@ const mockActions = {
 };
 
 let mockBlocks = [
-    { id: '1', type: 'paragraph', content: 'Block 1' },
-    { id: '2', type: 'h1', content: 'Heading 1' },
+    createMockBlock('1', 'paragraph', 'Block 1'),
+    createMockBlock('2', 'h1', 'Heading 1'),
 ];
 
 const getMockState = () => ({
@@ -113,8 +122,8 @@ describe('UnifiedBlockEditor', () => {
         vi.clearAllMocks();
         // Reset blocks to default
         mockBlocks = [
-            { id: '1', type: 'paragraph', content: 'Block 1' },
-            { id: '2', type: 'h1', content: 'Heading 1' },
+            createMockBlock('1', 'paragraph', 'Block 1'),
+            createMockBlock('2', 'h1', 'Heading 1'),
         ];
 
         // Setup default document.createRange mock
@@ -243,13 +252,13 @@ describe('UnifiedBlockEditor', () => {
         // Should trigger setBlocks with type change
         expect(mockActions.setBlocks).toHaveBeenCalled();
         const callArgs = mockActions.setBlocks.mock.calls[0][0];
-        // Block 1 should now be h1 type. 
+        // Block 1 should now be h1 type.
         // Logic: '# ' removed. content 'Block 1'. type 'h1'.
         // Note: It creates a new Element in DOM, then syncs.
         // It uses existing blockId '1'.
         expect(callArgs[0].id).toBe('1');
         expect(callArgs[0].type).toBe('h1');
-        expect(callArgs[0].content).toBe('Block 1');
+        expect(getPlainText(callArgs[0].children)).toBe('Block 1');
     });
 
     it('syncs DOM changes to state', () => {
@@ -281,7 +290,7 @@ describe('UnifiedBlockEditor', () => {
 
         expect(mockActions.setBlocks).toHaveBeenCalled();
         const callArgs = mockActions.setBlocks.mock.calls[0][0];
-        expect(callArgs[0].content).toBe('Block 1 Changed');
+        expect(getPlainText(callArgs[0].children)).toBe('Block 1 Changed');
     });
     it('applies data-placeholder attribute to blocks', () => {
         render(<UnifiedBlockEditor />);
@@ -293,8 +302,8 @@ describe('UnifiedBlockEditor', () => {
         it('adds is-empty class to blocks with no content', () => {
             // Override mockBlocks to include an empty block
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '' },
-                { id: '2', type: 'h1', content: 'Heading 1' },
+                createMockBlock('1', 'paragraph', ''),
+                createMockBlock('2', 'h1', 'Heading 1'),
             ];
 
             const { container } = render(<UnifiedBlockEditor />);
@@ -308,8 +317,8 @@ describe('UnifiedBlockEditor', () => {
 
         it('adds is-empty class to blocks with only whitespace', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '   ' },
-                { id: '2', type: 'h1', content: 'Heading 1' },
+                createMockBlock('1', 'paragraph', '   '),
+                createMockBlock('2', 'h1', 'Heading 1'),
             ];
 
             const { container } = render(<UnifiedBlockEditor />);
@@ -321,7 +330,7 @@ describe('UnifiedBlockEditor', () => {
 
         it('removes is-empty class when block receives content', async () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '' },
+                createMockBlock('1', 'paragraph', ''),
             ];
 
             const { container } = render(<UnifiedBlockEditor />);
@@ -466,7 +475,7 @@ describe('UnifiedBlockEditor', () => {
     describe('Auto-focus on Mount', () => {
         it('focuses the first block on mount', async () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '' },
+                createMockBlock('1', 'paragraph', ''),
             ];
 
             // Mock requestAnimationFrame
@@ -499,7 +508,7 @@ describe('UnifiedBlockEditor', () => {
 
         it('sets cursor at the beginning of the first block', async () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: 'Some text' },
+                createMockBlock('1', 'paragraph', 'Some text'),
             ];
 
             const originalRAF = window.requestAnimationFrame;
@@ -534,8 +543,8 @@ describe('UnifiedBlockEditor', () => {
     describe('Placeholder Visibility Conditions', () => {
         it('shows placeholder only on empty focused blocks', async () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '' },
-                { id: '2', type: 'paragraph', content: '' },
+                createMockBlock('1', 'paragraph', ''),
+                createMockBlock('2', 'paragraph', ''),
             ];
 
             const { container } = render(<UnifiedBlockEditor />);
@@ -574,7 +583,12 @@ describe('UnifiedBlockEditor', () => {
         });
         it('clears formatting when block content becomes empty', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '<b>Bold Text</b>' },
+                {
+                    id: '1',
+                    type: 'paragraph',
+                    children: [createTextNode('Bold Text', [{ type: 'bold' }])],
+                    metadata: {},
+                },
             ];
 
             const { container } = render(<UnifiedBlockEditor />);
@@ -635,14 +649,14 @@ describe('UnifiedBlockEditor', () => {
 
         it('hides block handles in read-only mode', () => {
             const { container } = render(<UnifiedBlockEditor readOnly={true} />);
-            const handlesLayer = container.querySelector('.block-handles-layer');
-            expect(handlesLayer).not.toBeInTheDocument();
+            const handles = container.querySelectorAll('.block-handle');
+            expect(handles.length).toBe(0);
         });
 
         it('shows block handles when not in read-only mode', () => {
             const { container } = render(<UnifiedBlockEditor readOnly={false} />);
-            const handlesLayer = container.querySelector('.block-handles-layer');
-            expect(handlesLayer).toBeInTheDocument();
+            const handles = container.querySelectorAll('.block-row .block-handle');
+            expect(handles.length).toBeGreaterThan(0);
         });
 
         it('has empty placeholder in read-only mode', () => {
@@ -659,7 +673,12 @@ describe('UnifiedBlockEditor', () => {
 
         it('opens link in new window when clicked in read-only mode', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '<a href="https://example.com">Link Text</a>' },
+                {
+                    id: '1',
+                    type: 'paragraph',
+                    children: [createLinkNode('https://example.com', [createTextNode('Link Text')])],
+                    metadata: {},
+                },
             ];
 
             const mockWindowOpen = vi.fn();
@@ -680,7 +699,12 @@ describe('UnifiedBlockEditor', () => {
 
         it('does not open link on click when not in read-only mode', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '<a href="https://example.com">Link Text</a>' },
+                {
+                    id: '1',
+                    type: 'paragraph',
+                    children: [createLinkNode('https://example.com', [createTextNode('Link Text')])],
+                    metadata: {},
+                },
             ];
 
             const mockWindowOpen = vi.fn();
@@ -726,7 +750,7 @@ describe('UnifiedBlockEditor', () => {
     describe('focusFirstEmptyBlock', () => {
         it('focuses single empty block and returns true', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '' },
+                createMockBlock('1', 'paragraph', ''),
             ];
 
             const originalRAF = window.requestAnimationFrame;
@@ -760,8 +784,8 @@ describe('UnifiedBlockEditor', () => {
 
         it('returns false when there are multiple blocks', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '' },
-                { id: '2', type: 'paragraph', content: '' },
+                createMockBlock('1', 'paragraph', ''),
+                createMockBlock('2', 'paragraph', ''),
             ];
 
             const ref = React.createRef();
@@ -774,7 +798,7 @@ describe('UnifiedBlockEditor', () => {
 
         it('returns false when single block has content', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: 'Some text' },
+                createMockBlock('1', 'paragraph', 'Some text'),
             ];
 
             const ref = React.createRef();
@@ -787,7 +811,12 @@ describe('UnifiedBlockEditor', () => {
 
         it('returns false when single block has HTML content', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '<b>Bold text</b>' },
+                {
+                    id: '1',
+                    type: 'paragraph',
+                    children: [createTextNode('Bold text', [{ type: 'bold' }])],
+                    metadata: {},
+                },
             ];
 
             const ref = React.createRef();
@@ -800,7 +829,7 @@ describe('UnifiedBlockEditor', () => {
 
         it('returns true when single block has only HTML tags with no text', () => {
             mockBlocks = [
-                { id: '1', type: 'paragraph', content: '<br>' },
+                createMockBlock('1', 'paragraph', ''),
             ];
 
             const originalRAF = window.requestAnimationFrame;

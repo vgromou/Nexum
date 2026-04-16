@@ -15,12 +15,18 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             italic: false,
             underline: false,
             strikeThrough: false,
+            inlineCode: false,
             link: false,
         },
     });
 
     const selectionRef = useRef(null);
     const isMouseDownRef = useRef(false);
+    const isApplyingFormatRef = useRef(false);
+
+    // Set of block elements that were modified during this formatting session
+    // Each entry is { blockEl, innerHTML } to capture state at modification time
+    const modifiedBlocksRef = useRef(new Map());
 
     /**
      * Gets block element from a node.
@@ -70,8 +76,12 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         const endBlockEl = getBlockFromNode(range.endContainer);
 
         // Both must be within blocks contained in the editor
-        if (!startBlockEl || !editorRef.current.contains(startBlockEl)) return null;
-        if (!endBlockEl || !editorRef.current.contains(endBlockEl)) return null;
+        if (!startBlockEl || !editorRef.current.contains(startBlockEl)) {
+            return null;
+        }
+        if (!endBlockEl || !editorRef.current.contains(endBlockEl)) {
+            return null;
+        }
 
         // For cross-block selections, use the topmost block for positioning
         // Compare vertical positions to find the block that is higher on the page
@@ -87,7 +97,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Gets the active formatting states for the current selection.
-     * Uses document.queryCommandState for standard formats and checks for links, highlights, and tags.
+     * Uses document.queryCommandState for standard formats and checks for links, highlights, and inline code.
      */
     const getActiveFormats = useCallback(() => {
         const formats = {
@@ -95,9 +105,10 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             italic: false,
             underline: false,
             strikeThrough: false,
+            inlineCode: false,
             link: false,
-            highlightColor: null, // e.g., 'purple', 'blue', etc.
-            tagColor: null,       // e.g., 'purple', 'blue', etc.
+            highlightColor: null, // background color, e.g., 'purple', 'blue', etc.
+            textColor: null,      // text color, e.g., 'purple', 'blue', etc.
         };
 
         try {
@@ -106,7 +117,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             formats.underline = document.queryCommandState('underline');
             formats.strikeThrough = document.queryCommandState('strikeThrough');
 
-            // Check if selection contains a link, highlight, or tag
+            // Check if selection contains a link, highlight, or inline code
             const sel = window.getSelection();
             if (sel.rangeCount > 0) {
                 const range = sel.getRangeAt(0);
@@ -116,9 +127,10 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     : container;
 
                 formats.link = !!node?.closest('a');
+                formats.inlineCode = !!node?.closest('code');
 
-                // Check for highlight colors
-                const highlightColors = ['gray', 'purple', 'blue', 'green', 'orange', 'red'];
+                // Check for highlight (background) colors
+                const highlightColors = ['default', 'gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'magenta', 'red'];
                 for (const color of highlightColors) {
                     if (node?.closest(`.highlight-${color}`)) {
                         formats.highlightColor = color;
@@ -126,10 +138,10 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     }
                 }
 
-                // Check for tag colors
+                // Check for text colors
                 for (const color of highlightColors) {
-                    if (node?.closest(`.tag-${color}`)) {
-                        formats.tagColor = color;
+                    if (node?.closest(`.text-color-${color}`)) {
+                        formats.textColor = color;
                         break;
                     }
                 }
@@ -187,10 +199,24 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Closes the formatting menu.
+     * Syncs all modified blocks to state for undo/redo history before closing.
      */
     const closeMenu = useCallback(() => {
+        // Sync all modified blocks to state for undo/redo history
+        if (modifiedBlocksRef.current.size > 0) {
+            modifiedBlocksRef.current.forEach((savedHTML, blockEl) => {
+                if (blockEl && blockEl.isConnected) {
+                    const blockId = blockEl.getAttribute('data-block-id');
+                    if (blockId && savedHTML) {
+                        actions.updateBlock(blockId, savedHTML);
+                    }
+                }
+            });
+            modifiedBlocksRef.current.clear();
+        }
+
         setMenu(prev => ({ ...prev, isOpen: false, activeSubmenu: null }));
-    }, []);
+    }, [actions]);
 
     /**
      * Toggles a submenu open/closed.
@@ -210,22 +236,47 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     }, []);
 
     /**
-     * Restores the saved selection before applying formatting.
+     * Updates only the active formats in the menu without causing re-renders.
      */
-    const restoreSelection = useCallback(() => {
-        if (!selectionRef.current) return false;
+    const updateActiveFormats = useCallback(() => {
+        const newFormats = getActiveFormats();
+        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+    }, [getActiveFormats]);
 
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(selectionRef.current);
-        return true;
+    /**
+     * Marks a block as modified by saving its current innerHTML.
+     * The saved HTML will be synced to state when menu closes.
+     */
+    const markBlockModified = useCallback((blockEl) => {
+        if (blockEl && blockEl.isConnected) {
+            const innerHTML = blockEl.innerHTML;
+            modifiedBlocksRef.current.set(blockEl, innerHTML);
+        }
     }, []);
 
     /**
-     * Removes highlight/tag spans from the selection.
-     * @param {string|null} type - 'highlight', 'tag', or null for both
+     * Restores the saved selection before applying formatting.
      */
-    const removeExistingHighlights = useCallback((type = null) => {
+    const restoreSelection = useCallback(() => {
+        if (!selectionRef.current) {
+            return false;
+        }
+
+        try {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            // Clone the range before adding it to avoid mutation issues
+            sel.addRange(selectionRef.current.cloneRange());
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }, []);
+
+    /**
+     * Removes highlight spans from the selection.
+     */
+    const removeExistingHighlights = useCallback(() => {
         const sel = window.getSelection();
         if (!sel.rangeCount) return;
 
@@ -237,29 +288,16 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
         if (!blockEl) return;
 
-        // Define classes based on type
-        const highlightOnlyClasses = [
-            'highlight-gray', 'highlight-purple', 'highlight-blue', 'highlight-green',
-            'highlight-orange', 'highlight-red',
+        const highlightClasses = [
+            'highlight-default', 'highlight-gray', 'highlight-brown', 'highlight-orange',
+            'highlight-yellow', 'highlight-green', 'highlight-blue', 'highlight-purple',
+            'highlight-magenta', 'highlight-red',
         ];
-        const tagOnlyClasses = [
-            'tag-gray', 'tag-purple', 'tag-blue', 'tag-green',
-            'tag-orange', 'tag-red',
-        ];
-
-        let classesToRemove;
-        if (type === 'highlight') {
-            classesToRemove = highlightOnlyClasses;
-        } else if (type === 'tag') {
-            classesToRemove = tagOnlyClasses;
-        } else {
-            classesToRemove = [...highlightOnlyClasses, ...tagOnlyClasses];
-        }
 
         const spans = blockEl.querySelectorAll('span');
         spans.forEach(span => {
-            const hasTargetClass = classesToRemove.some(cls => span.classList.contains(cls));
-            if (hasTargetClass && range.intersectsNode(span)) {
+            const hasHighlightClass = highlightClasses.some(cls => span.classList.contains(cls));
+            if (hasHighlightClass && range.intersectsNode(span)) {
                 // Replace span with its text content
                 const text = document.createTextNode(span.textContent);
                 span.parentNode.replaceChild(text, span);
@@ -272,79 +310,569 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Applies inline formatting (bold, italic, etc.).
+     * For 'inlineCode', uses custom wrapping since execCommand doesn't support it.
      */
     const applyFormat = useCallback((command) => {
-        if (!restoreSelection()) return;
-        document.execCommand(command, false, null);
-
-        // Re-save the current selection after formatting to prevent jump
         const sel = window.getSelection();
-        if (sel.rangeCount > 0) {
-            selectionRef.current = sel.getRangeAt(0).cloneRange();
+
+        // For inline code, try to use current selection if it's valid
+        // because after multiple execCommands the saved range may become invalid
+        const useCurrentSelection = command === 'inlineCode' &&
+                                   sel.rangeCount > 0 &&
+                                   !sel.isCollapsed &&
+                                   sel.toString().trim() !== '';
+
+        if (!useCurrentSelection && !restoreSelection()) {
+            return;
         }
 
-        // Sync formatting changes to state for undo history
-        syncBlockToState();
+        // Set flag to prevent menu from closing during format application
+        isApplyingFormatRef.current = true;
 
-        // Update active formats after applying formatting
-        const newFormats = getActiveFormats();
-        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
-    }, [restoreSelection, getActiveFormats, syncBlockToState]);
+        try {
+            // Handle inline code specially since execCommand doesn't support it
+            if (command === 'inlineCode') {
+                // Use current selection (already validated above)
+                if (!sel.rangeCount || sel.isCollapsed) {
+                    return;
+                }
+
+                const range = sel.getRangeAt(0);
+                const selectedText = range.toString();
+                if (!selectedText) return;
+
+                const container = range.commonAncestorContainer;
+                const blockEl = container.nodeType === Node.TEXT_NODE
+                    ? container.parentElement?.closest('[data-block-id]')
+                    : container.closest?.('[data-block-id]');
+
+                if (!blockEl) return;
+
+                // Check if already inside a code element
+                const node = container.nodeType === Node.TEXT_NODE
+                    ? container.parentElement
+                    : container;
+                const existingCode = node?.closest('code');
+
+                if (existingCode) {
+                    // Remove the code wrapper (toggle off)
+                    const parent = existingCode.parentNode;
+                    while (existingCode.firstChild) {
+                        parent.insertBefore(existingCode.firstChild, existingCode);
+                    }
+                    parent.removeChild(existingCode);
+                    blockEl.normalize();
+
+                    // Mark block as modified for undo history
+                    markBlockModified(blockEl);
+
+                    // Need to recreate selection after removing code element
+                    const textContent = blockEl.textContent || '';
+                    const textIndex = textContent.indexOf(selectedText);
+
+                    if (textIndex !== -1) {
+                        let currentPos = 0;
+                        const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_TEXT);
+                        let node;
+
+                        while ((node = walker.nextNode())) {
+                            const nodeLen = node.textContent.length;
+                            if (currentPos + nodeLen > textIndex) {
+                                const startOffset = textIndex - currentPos;
+                                const endOffset = startOffset + selectedText.length;
+
+                                if (endOffset <= nodeLen) {
+                                    // Selection is within this single text node
+                                    const newRange = document.createRange();
+                                    newRange.setStart(node, startOffset);
+                                    newRange.setEnd(node, endOffset);
+
+                                    sel.removeAllRanges();
+                                    sel.addRange(newRange);
+                                    selectionRef.current = newRange.cloneRange();
+                                }
+                                break;
+                            }
+                            currentPos += nodeLen;
+                        }
+                    }
+                } else {
+                    // Wrap selection in <code>
+                    const codeEl = document.createElement('code');
+                    try {
+                        const contents = range.extractContents();
+                        codeEl.appendChild(contents);
+                        range.insertNode(codeEl);
+
+                        // Select the new code element contents
+                        const newRange = document.createRange();
+                        newRange.selectNodeContents(codeEl);
+                        sel.removeAllRanges();
+                        sel.addRange(newRange);
+                        selectionRef.current = newRange.cloneRange();
+                    } catch (e) {
+                        // Fallback
+                        codeEl.textContent = selectedText;
+                        range.deleteContents();
+                        range.insertNode(codeEl);
+                    }
+
+                    // Mark block as modified for undo history
+                    markBlockModified(blockEl);
+                }
+
+                // DON'T sync or update state immediately - it causes re-render which loses selection
+                return;
+            }
+
+            // Standard execCommand for other formats
+            document.execCommand(command, false, null);
+
+            // Save the updated selection after execCommand changes the DOM
+            const updatedSel = window.getSelection();
+            if (updatedSel.rangeCount > 0 && !updatedSel.isCollapsed) {
+                selectionRef.current = updatedSel.getRangeAt(0).cloneRange();
+
+                // Mark block as modified for undo history
+                const blockEl = getBlockFromNode(updatedSel.anchorNode);
+                if (blockEl) {
+                    markBlockModified(blockEl);
+                }
+            }
+
+            // DON'T sync or update state immediately - delays will handle it
+        } finally {
+            // Reset flag and update active formats after a delay
+            setTimeout(() => {
+                isApplyingFormatRef.current = false;
+                updateActiveFormats();
+
+                // Schedule selection restoration in next event loop tick
+                setTimeout(() => {
+                    const sel2 = window.getSelection();
+
+                    if ((!sel2.rangeCount || sel2.isCollapsed) && selectionRef.current) {
+                        try {
+                            sel2.removeAllRanges();
+                            sel2.addRange(selectionRef.current.cloneRange());
+                        } catch (e) {
+                            // Selection restoration failed
+                        }
+                    }
+                }, 0);
+            }, 100);
+        }
+    }, [restoreSelection, getActiveFormats, syncBlockToState, updateActiveFormats]);
 
     /**
-     * Applies a highlight or tag to the selected text.
+     * Applies a highlight to the selected text.
      * Supports cross-block selections.
+     * When colorName is 'default', removes existing highlights without adding new span.
      */
-    const applyHighlight = useCallback((colorName, isTag = false) => {
+    const applyHighlight = useCallback((colorName) => {
+        if (!restoreSelection()) {
+            return;
+        }
+
+        // Set flag to prevent menu from closing during highlight application
+        isApplyingFormatRef.current = true;
+
+        try {
+            const sel = window.getSelection();
+            if (!sel.rangeCount || sel.isCollapsed) {
+                return;
+            }
+
+            const range = sel.getRangeAt(0);
+            const selectedText = range.toString();
+
+            if (!selectedText) {
+                return;
+            }
+
+            const className = `highlight-${colorName}`;
+
+            const highlightClasses = [
+                'highlight-default', 'highlight-gray', 'highlight-brown', 'highlight-orange',
+                'highlight-yellow', 'highlight-green', 'highlight-blue', 'highlight-purple',
+                'highlight-magenta', 'highlight-red',
+            ];
+
+            // Get all blocks that intersect with the selection
+            const editorEl = editorRef.current;
+            if (!editorEl) return;
+
+            const allBlocks = editorEl.querySelectorAll('[data-block-id]');
+            const intersectingBlocks = Array.from(allBlocks).filter(block =>
+                range.intersectsNode(block)
+            );
+
+            if (intersectingBlocks.length === 0) return;
+
+            // For single block selection
+            if (intersectingBlocks.length === 1) {
+                const blockEl = intersectingBlocks[0];
+
+                // Remove existing highlight spans in selection
+                const spans = Array.from(blockEl.querySelectorAll('span'));
+                const intersectingSpans = spans.filter(span => {
+                    const hasHighlightClass = highlightClasses.some(cls => span.classList.contains(cls));
+                    return hasHighlightClass && range.intersectsNode(span);
+                });
+
+                intersectingSpans.forEach(span => {
+                    const parent = span.parentNode;
+                    while (span.firstChild) {
+                        parent.insertBefore(span.firstChild, span);
+                    }
+                    parent.removeChild(span);
+                });
+
+                blockEl.normalize();
+
+                // If colorName is 'default', we're done - just removing existing highlights
+                if (colorName === 'default') {
+                    // Mark block as modified for undo history
+                    markBlockModified(blockEl);
+
+                    // Need to recreate selection after removing spans
+                    const textContent = blockEl.textContent || '';
+                    const textIndex = textContent.indexOf(selectedText);
+
+                    let selectionRecreated = false;
+
+                    if (textIndex !== -1) {
+                        let currentPos = 0;
+                        const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_TEXT);
+                        let node;
+
+                        while ((node = walker.nextNode())) {
+                            const nodeLen = node.textContent.length;
+                            if (currentPos + nodeLen > textIndex) {
+                                const startOffset = textIndex - currentPos;
+                                const endOffset = startOffset + selectedText.length;
+
+                                if (endOffset <= nodeLen) {
+                                    // Selection is within this single text node
+                                    const newRange = document.createRange();
+                                    newRange.setStart(node, startOffset);
+                                    newRange.setEnd(node, endOffset);
+
+                                    sel.removeAllRanges();
+                                    sel.addRange(newRange);
+                                    selectionRef.current = newRange.cloneRange();
+                                    selectionRecreated = true;
+                                }
+                                break;
+                            }
+                            currentPos += nodeLen;
+                        }
+                    }
+
+                    // If we couldn't recreate selection, try to restore the saved one
+                    if (!selectionRecreated) {
+                        restoreSelection();
+                    }
+
+                    // DON'T sync or update state immediately - it causes re-render which loses selection
+                    return;
+                }
+
+                // Try to restore selection
+                restoreSelection();
+
+                const newSel = window.getSelection();
+
+                // If selection was lost after removing spans, use fallback with saved text
+                if (!newSel.rangeCount || newSel.isCollapsed) {
+                    // Find position in block text and insert there
+                    const textContent = blockEl.textContent || '';
+                    const textIndex = textContent.indexOf(selectedText);
+
+                    if (textIndex !== -1) {
+                        // Create a tree walker to find the text node and position
+                        let currentPos = 0;
+                        const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_TEXT);
+                        let node;
+
+                        while ((node = walker.nextNode())) {
+                            const nodeLen = node.textContent.length;
+                            if (currentPos + nodeLen > textIndex) {
+                                // Found the node containing start of selection
+                                const startOffset = textIndex - currentPos;
+                                const endOffset = startOffset + selectedText.length;
+
+                                if (endOffset <= nodeLen) {
+                                    // Selection is within this single text node
+                                    const newRange = document.createRange();
+                                    newRange.setStart(node, startOffset);
+                                    newRange.setEnd(node, endOffset);
+
+                                    // Create span and extract contents into it
+                                    const span = document.createElement('span');
+                                    span.className = className;
+                                    const contents = newRange.extractContents();
+                                    span.appendChild(contents);
+                                    newRange.insertNode(span);
+
+                                    const finalRange = document.createRange();
+                                    finalRange.selectNodeContents(span);
+                                    newSel.removeAllRanges();
+                                    newSel.addRange(finalRange);
+                                    selectionRef.current = finalRange.cloneRange();
+
+                                    // Mark block as modified for undo history
+                                    markBlockModified(blockEl);
+                                }
+                                break;
+                            }
+                            currentPos += nodeLen;
+                        }
+                    }
+
+                    return;
+                }
+
+                const newRange = newSel.getRangeAt(0);
+
+                // Get the contents first
+                let contents;
+                try {
+                    contents = newRange.extractContents();
+                } catch (e) {
+                    // Fallback if extraction fails
+                    const span = document.createElement('span');
+                    span.className = className;
+                    span.textContent = selectedText;
+                    newRange.deleteContents();
+                    newRange.insertNode(span);
+
+                    const finalRange = document.createRange();
+                    finalRange.selectNodeContents(span);
+                    newSel.removeAllRanges();
+                    newSel.addRange(finalRange);
+                    selectionRef.current = finalRange.cloneRange();
+
+                    // Mark block as modified for undo history
+                    markBlockModified(blockEl);
+
+                    return;
+                }
+
+                const span = document.createElement('span');
+                span.className = className;
+                span.appendChild(contents);
+                newRange.insertNode(span);
+
+                const finalRange = document.createRange();
+                finalRange.selectNodeContents(span);
+                newSel.removeAllRanges();
+                newSel.addRange(finalRange);
+                selectionRef.current = finalRange.cloneRange();
+
+                // Mark block as modified for undo history
+                markBlockModified(blockEl);
+
+                return;
+            }
+
+            // For multi-block selection, process each block separately
+            intersectingBlocks.forEach((blockEl, index) => {
+                // Create a range for just this block's portion of the selection
+                const blockRange = document.createRange();
+
+                if (index === 0) {
+                    // First block: from selection start to end of block
+                    blockRange.setStart(range.startContainer, range.startOffset);
+                    blockRange.setEndAfter(blockEl.lastChild || blockEl);
+                } else if (index === intersectingBlocks.length - 1) {
+                    // Last block: from start of block to selection end
+                    blockRange.setStartBefore(blockEl.firstChild || blockEl);
+                    blockRange.setEnd(range.endContainer, range.endOffset);
+                } else {
+                    // Middle block: entire block content
+                    blockRange.selectNodeContents(blockEl);
+                }
+
+                const blockText = blockRange.toString();
+                if (!blockText) return;
+
+                // Remove existing highlight spans in this block's range
+                const spans = Array.from(blockEl.querySelectorAll('span'));
+                spans.forEach(span => {
+                    const hasHighlightClass = highlightClasses.some(cls => span.classList.contains(cls));
+                    if (hasHighlightClass && blockRange.intersectsNode(span)) {
+                        const parent = span.parentNode;
+                        while (span.firstChild) {
+                            parent.insertBefore(span.firstChild, span);
+                        }
+                        parent.removeChild(span);
+                    }
+                });
+
+                blockEl.normalize();
+
+                // Mark block as modified (for both adding and removing highlights)
+                markBlockModified(blockEl);
+
+                // If colorName is 'default', don't add new spans
+                if (colorName === 'default') {
+                    return;
+                }
+
+                // Re-create the block range after DOM changes
+                const newBlockRange = document.createRange();
+                try {
+                    if (index === 0) {
+                        newBlockRange.setStart(range.startContainer, range.startOffset);
+                        newBlockRange.setEndAfter(blockEl.lastChild || blockEl);
+                    } else if (index === intersectingBlocks.length - 1) {
+                        newBlockRange.setStartBefore(blockEl.firstChild || blockEl);
+                        newBlockRange.setEnd(range.endContainer, range.endOffset);
+                    } else {
+                        newBlockRange.selectNodeContents(blockEl);
+                    }
+
+                    const span = document.createElement('span');
+                    span.className = className;
+                    const contents = newBlockRange.extractContents();
+                    span.appendChild(contents);
+                    newBlockRange.insertNode(span);
+                } catch (e) {
+                    // Skip this block if there's an error applying highlight
+                }
+            });
+
+            // Clear selection after multi-block operation
+            sel.removeAllRanges();
+            selectionRef.current = null;
+        } finally {
+            // Reset flag and update active formats after a delay
+            setTimeout(() => {
+                isApplyingFormatRef.current = false;
+                updateActiveFormats();
+
+                // Schedule selection restoration in next event loop tick
+                setTimeout(() => {
+                    const sel2 = window.getSelection();
+
+                    if ((!sel2.rangeCount || sel2.isCollapsed) && selectionRef.current) {
+                        try {
+                            sel2.removeAllRanges();
+                            sel2.addRange(selectionRef.current.cloneRange());
+                        } catch (e) {
+                            // Selection restoration failed
+                        }
+                    }
+                }, 0);
+            }, 100);
+        }
+    }, [restoreSelection, editorRef, getActiveFormats, syncBlockToState, updateActiveFormats]);
+
+    /**
+     * Clears highlights from the selection.
+     */
+    const clearHighlight = useCallback(() => {
         if (!restoreSelection()) return;
 
+        // Get the affected block before clearing
         const sel = window.getSelection();
-        if (!sel.rangeCount || sel.isCollapsed) {
-            return;
-        }
+        const blockEl = sel.anchorNode?.nodeType === Node.TEXT_NODE
+            ? sel.anchorNode.parentElement?.closest('[data-block-id]')
+            : sel.anchorNode?.closest?.('[data-block-id]');
+
+        removeExistingHighlights();
+
+        // Sync clearing to state for undo history
+        syncBlockToState(blockEl);
+
+        // Update active formats after clearing
+        const newFormats = getActiveFormats();
+        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+    }, [restoreSelection, removeExistingHighlights, getActiveFormats, syncBlockToState]);
+
+    /**
+     * Removes existing text color spans from the selection.
+     */
+    const removeExistingTextColors = useCallback(() => {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
 
         const range = sel.getRangeAt(0);
-        const selectedText = range.toString();
+        const container = range.commonAncestorContainer;
+        const blockEl = container.nodeType === Node.TEXT_NODE
+            ? container.parentElement?.closest('[data-block-id]')
+            : container.closest?.('[data-block-id]');
 
-        if (!selectedText) {
+        if (!blockEl) return;
+
+        const textColorClasses = [
+            'text-color-default', 'text-color-gray', 'text-color-brown', 'text-color-orange',
+            'text-color-yellow', 'text-color-green', 'text-color-blue', 'text-color-purple',
+            'text-color-magenta', 'text-color-red',
+        ];
+
+        const spans = blockEl.querySelectorAll('span');
+        spans.forEach(span => {
+            const hasTextColorClass = textColorClasses.some(cls => span.classList.contains(cls));
+            if (hasTextColorClass && range.intersectsNode(span)) {
+                // Replace span with its text content
+                const text = document.createTextNode(span.textContent);
+                span.parentNode.replaceChild(text, span);
+            }
+        });
+
+        // Normalize to merge adjacent text nodes
+        blockEl.normalize();
+    }, []);
+
+    /**
+     * Applies a text color to the selected text.
+     * Handles removal of existing text-color spans and 'default' case.
+     */
+    const applyTextColor = useCallback((colorName) => {
+        if (!restoreSelection()) {
             return;
         }
 
-        const className = isTag ? `tag-${colorName}` : `highlight-${colorName}`;
+        // Set flag to prevent menu from closing during text color application
+        isApplyingFormatRef.current = true;
 
-        // Separate classes for highlights and tags - only remove same type
-        const highlightOnlyClasses = [
-            'highlight-gray', 'highlight-purple', 'highlight-blue', 'highlight-green',
-            'highlight-orange', 'highlight-red',
-        ];
-        const tagOnlyClasses = [
-            'tag-gray', 'tag-purple', 'tag-blue', 'tag-green',
-            'tag-orange', 'tag-red',
-        ];
+        try {
+            const sel = window.getSelection();
 
-        // Only remove spans of the same type (highlight or tag)
-        const classesToRemove = isTag ? tagOnlyClasses : highlightOnlyClasses;
+            if (!sel.rangeCount || sel.isCollapsed) {
+                return;
+            }
 
-        // Get all blocks that intersect with the selection
-        const editorEl = editorRef.current;
-        if (!editorEl) return;
+            const range = sel.getRangeAt(0);
+            const selectedText = range.toString();
 
-        const allBlocks = editorEl.querySelectorAll('[data-block-id]');
-        const intersectingBlocks = Array.from(allBlocks).filter(block =>
-            range.intersectsNode(block)
-        );
+            if (!selectedText) {
+                return;
+            }
 
-        if (intersectingBlocks.length === 0) return;
+            // Get the block element
+            const container = range.commonAncestorContainer;
+            const blockEl = container.nodeType === Node.TEXT_NODE
+                ? container.parentElement?.closest('[data-block-id]')
+                : container.closest?.('[data-block-id]');
 
-        // For single block selection
-        if (intersectingBlocks.length === 1) {
-            const blockEl = intersectingBlocks[0];
+            if (!blockEl) {
+                return;
+            }
 
-            // Remove only existing spans of same type (highlight or tag) in selection
+            const textColorClasses = [
+                'text-color-default', 'text-color-gray', 'text-color-brown', 'text-color-orange',
+                'text-color-yellow', 'text-color-green', 'text-color-blue', 'text-color-purple',
+                'text-color-magenta', 'text-color-red',
+            ];
+
+            // Remove existing text-color spans that intersect with selection
             const spans = Array.from(blockEl.querySelectorAll('span'));
             const intersectingSpans = spans.filter(span => {
-                const hasSameType = classesToRemove.some(cls => span.classList.contains(cls));
-                return hasSameType && range.intersectsNode(span);
+                const hasTextColorClass = textColorClasses.some(cls => span.classList.contains(cls));
+                return hasTextColorClass && range.intersectsNode(span);
             });
 
             intersectingSpans.forEach(span => {
@@ -357,19 +885,18 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
             blockEl.normalize();
 
-            // Try to restore selection
-            restoreSelection();
+            // If colorName is 'default', we're done - just removing existing colors
+            if (colorName === 'default') {
+                // Mark block as modified for undo history
+                markBlockModified(blockEl);
 
-            const newSel = window.getSelection();
-
-            // If selection was lost after removing spans, use fallback with saved text
-            if (!newSel.rangeCount || newSel.isCollapsed) {
-                // Find position in block text and insert there
+                // Need to recreate selection after removing spans
                 const textContent = blockEl.textContent || '';
                 const textIndex = textContent.indexOf(selectedText);
 
+                let selectionRecreated = false;
+
                 if (textIndex !== -1) {
-                    // Create a tree walker to find the text node and position
                     let currentPos = 0;
                     const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_TEXT);
                     let node;
@@ -377,7 +904,6 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     while ((node = walker.nextNode())) {
                         const nodeLen = node.textContent.length;
                         if (currentPos + nodeLen > textIndex) {
-                            // Found the node containing start of selection
                             const startOffset = textIndex - currentPos;
                             const endOffset = startOffset + selectedText.length;
 
@@ -387,9 +913,54 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                                 newRange.setStart(node, startOffset);
                                 newRange.setEnd(node, endOffset);
 
-                                // Create span and extract contents into it
+                                const sel = window.getSelection();
+                                sel.removeAllRanges();
+                                sel.addRange(newRange);
+                                selectionRef.current = newRange.cloneRange();
+                                selectionRecreated = true;
+                            }
+                            break;
+                        }
+                        currentPos += nodeLen;
+                    }
+                }
+
+                // If we couldn't recreate selection, try to restore the saved one
+                if (!selectionRecreated) {
+                    restoreSelection();
+                }
+
+                // DON'T sync or update state immediately - it causes re-render which loses selection
+                return;
+            }
+
+            // Try to restore selection after removing spans
+            restoreSelection();
+
+            const newSel = window.getSelection();
+            if (!newSel.rangeCount || newSel.isCollapsed) {
+                // Selection was lost, try to find the text in the block
+                const textContent = blockEl.textContent || '';
+                const textIndex = textContent.indexOf(selectedText);
+
+                if (textIndex !== -1) {
+                    let currentPos = 0;
+                    const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_TEXT);
+                    let node;
+
+                    while ((node = walker.nextNode())) {
+                        const nodeLen = node.textContent.length;
+                        if (currentPos + nodeLen > textIndex) {
+                            const startOffset = textIndex - currentPos;
+                            const endOffset = startOffset + selectedText.length;
+
+                            if (endOffset <= nodeLen) {
+                                const newRange = document.createRange();
+                                newRange.setStart(node, startOffset);
+                                newRange.setEnd(node, endOffset);
+
                                 const span = document.createElement('span');
-                                span.className = className;
+                                span.className = `text-color-${colorName}`;
                                 const contents = newRange.extractContents();
                                 span.appendChild(contents);
                                 newRange.insertNode(span);
@@ -399,6 +970,9 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                                 newSel.removeAllRanges();
                                 newSel.addRange(finalRange);
                                 selectionRef.current = finalRange.cloneRange();
+
+                                // Mark block as modified for undo history
+                                markBlockModified(blockEl);
                             }
                             break;
                         }
@@ -406,15 +980,13 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                     }
                 }
 
-                // Update active formats
-                const newFormats = getActiveFormats();
-                setMenu(prev => ({ ...prev, activeFormats: newFormats }));
                 return;
             }
 
             const newRange = newSel.getRangeAt(0);
+            const className = `text-color-${colorName}`;
 
-            // Get the contents first
+            // Wrap the selection in a span with the text color class
             let contents;
             try {
                 contents = newRange.extractContents();
@@ -432,201 +1004,53 @@ export function useFormattingMenu({ editorRef, state, actions }) {
                 newSel.addRange(finalRange);
                 selectionRef.current = finalRange.cloneRange();
 
-                // Update active formats
-                const newFormats = getActiveFormats();
-                setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+                // Mark block as modified for undo history
+                markBlockModified(blockEl);
+
                 return;
             }
 
             const span = document.createElement('span');
             span.className = className;
+            span.appendChild(contents);
+            newRange.insertNode(span);
 
-            if (isTag) {
-                // When applying tag, check if selected text was inside a highlight span
-                // We need to keep the tag INSIDE the highlight
-                // Check if parent of insertion point is a highlight
-                const insertionParent = newRange.commonAncestorContainer;
-                const parentHighlight = insertionParent.nodeType === Node.TEXT_NODE
-                    ? insertionParent.parentElement?.closest('[class^="highlight-"]')
-                    : insertionParent.closest?.('[class^="highlight-"]');
-
-                // Check if contents contain a highlight span that we need to preserve
-                const highlightInContents = contents.querySelector &&
-                    highlightOnlyClasses.some(cls => contents.querySelector(`.${cls}`));
-                const firstChildIsHighlight = contents.firstChild &&
-                    contents.firstChild.nodeType === Node.ELEMENT_NODE &&
-                    highlightOnlyClasses.some(cls => contents.firstChild.classList?.contains(cls));
-
-                if (firstChildIsHighlight && contents.childNodes.length === 1) {
-                    // The entire selection is a highlight span - insert tag inside it
-                    const highlightSpan = contents.firstChild;
-                    const tagSpan = document.createElement('span');
-                    tagSpan.className = className;
-                    // Move all children of highlight into tag
-                    while (highlightSpan.firstChild) {
-                        tagSpan.appendChild(highlightSpan.firstChild);
-                    }
-                    highlightSpan.appendChild(tagSpan);
-                    newRange.insertNode(contents);
-
-                    const finalRange = document.createRange();
-                    finalRange.selectNodeContents(tagSpan);
-                    newSel.removeAllRanges();
-                    newSel.addRange(finalRange);
-                    selectionRef.current = finalRange.cloneRange();
-                    return;
-                } else {
-                    // No highlight wrapper, just apply tag
-                    span.appendChild(contents);
-                    newRange.insertNode(span);
-                }
-            } else {
-                // When applying highlight, check if we're inside a tag span
-                // We need the final structure to be: highlight outside, tag inside
-
-                // Check if insertion point is inside a tag span
-                const insertionParent = newRange.commonAncestorContainer;
-                let parentTagSpan = null;
-
-                if (insertionParent.nodeType === Node.TEXT_NODE) {
-                    parentTagSpan = insertionParent.parentElement;
-                    if (parentTagSpan && !tagOnlyClasses.some(cls => parentTagSpan.classList?.contains(cls))) {
-                        parentTagSpan = parentTagSpan.closest('[class^="tag-"]');
-                    }
-                } else if (insertionParent.nodeType === Node.ELEMENT_NODE) {
-                    if (tagOnlyClasses.some(cls => insertionParent.classList?.contains(cls))) {
-                        parentTagSpan = insertionParent;
-                    } else {
-                        parentTagSpan = insertionParent.closest?.('[class^="tag-"]');
-                    }
-                }
-
-                // Also check if contents contain a tag span
-                const firstChildIsTag = contents.firstChild &&
-                    contents.firstChild.nodeType === Node.ELEMENT_NODE &&
-                    tagOnlyClasses.some(cls => contents.firstChild.classList?.contains(cls));
-
-                if (parentTagSpan && blockEl.contains(parentTagSpan)) {
-                    // We are inside a tag span - we need to restructure:
-                    // Current: <tag>text</tag>
-                    // Target: <highlight><tag>text</tag></highlight>
-
-                    // First, put contents back
-                    newRange.insertNode(contents);
-                    blockEl.normalize();
-
-                    // Now wrap the entire tag span with highlight
-                    const highlightSpan = document.createElement('span');
-                    highlightSpan.className = className;
-
-                    // Clone the tag span content and structure
-                    parentTagSpan.parentNode.insertBefore(highlightSpan, parentTagSpan);
-                    highlightSpan.appendChild(parentTagSpan);
-
-                    const finalRange = document.createRange();
-                    finalRange.selectNodeContents(parentTagSpan);
-                    newSel.removeAllRanges();
-                    newSel.addRange(finalRange);
-                    selectionRef.current = finalRange.cloneRange();
-                    return;
-                } else if (firstChildIsTag && contents.childNodes.length === 1) {
-                    // The entire selection is a tag span - wrap highlight around it
-                    span.appendChild(contents);
-                    newRange.insertNode(span);
-                } else {
-                    // No tag inside or mixed content, just apply highlight normally
-                    span.appendChild(contents);
-                    newRange.insertNode(span);
-                }
-            }
-
+            // Update selection to include the new span
             const finalRange = document.createRange();
             finalRange.selectNodeContents(span);
             newSel.removeAllRanges();
             newSel.addRange(finalRange);
             selectionRef.current = finalRange.cloneRange();
 
-            // Sync formatting changes to state for undo history
-            syncBlockToState(blockEl);
+            // Mark block as modified for undo history
+            markBlockModified(blockEl);
+        } finally {
+            // Reset flag and update active formats after a delay
+            setTimeout(() => {
+                isApplyingFormatRef.current = false;
+                updateActiveFormats();
 
-            // Update active formats after applying highlight
-            const newFormats = getActiveFormats();
-            setMenu(prev => ({ ...prev, activeFormats: newFormats }));
-            return;
-        }
+                // Schedule selection restoration in next event loop tick
+                setTimeout(() => {
+                    const sel2 = window.getSelection();
 
-        // For multi-block selection, process each block separately
-        intersectingBlocks.forEach((blockEl, index) => {
-            // Create a range for just this block's portion of the selection
-            const blockRange = document.createRange();
-
-            if (index === 0) {
-                // First block: from selection start to end of block
-                blockRange.setStart(range.startContainer, range.startOffset);
-                blockRange.setEndAfter(blockEl.lastChild || blockEl);
-            } else if (index === intersectingBlocks.length - 1) {
-                // Last block: from start of block to selection end
-                blockRange.setStartBefore(blockEl.firstChild || blockEl);
-                blockRange.setEnd(range.endContainer, range.endOffset);
-            } else {
-                // Middle block: entire block content
-                blockRange.selectNodeContents(blockEl);
-            }
-
-            const blockText = blockRange.toString();
-            if (!blockText) return;
-
-            // Remove existing spans of same type in this block's range
-            const spans = Array.from(blockEl.querySelectorAll('span'));
-            spans.forEach(span => {
-                const hasSameType = classesToRemove.some(cls => span.classList.contains(cls));
-                if (hasSameType && blockRange.intersectsNode(span)) {
-                    const parent = span.parentNode;
-                    while (span.firstChild) {
-                        parent.insertBefore(span.firstChild, span);
+                    if ((!sel2.rangeCount || sel2.isCollapsed) && selectionRef.current) {
+                        try {
+                            sel2.removeAllRanges();
+                            sel2.addRange(selectionRef.current.cloneRange());
+                        } catch (e) {
+                            // Selection restoration failed
+                        }
                     }
-                    parent.removeChild(span);
-                }
-            });
-
-            blockEl.normalize();
-
-            // Re-create the block range after DOM changes
-            const newBlockRange = document.createRange();
-            try {
-                if (index === 0) {
-                    newBlockRange.setStart(range.startContainer, range.startOffset);
-                    newBlockRange.setEndAfter(blockEl.lastChild || blockEl);
-                } else if (index === intersectingBlocks.length - 1) {
-                    newBlockRange.setStartBefore(blockEl.firstChild || blockEl);
-                    newBlockRange.setEnd(range.endContainer, range.endOffset);
-                } else {
-                    newBlockRange.selectNodeContents(blockEl);
-                }
-
-                const span = document.createElement('span');
-                span.className = className;
-                const contents = newBlockRange.extractContents();
-                span.appendChild(contents);
-                newBlockRange.insertNode(span);
-            } catch (e) {
-                // Skip this block if there's an error applying highlight
-            }
-        });
-
-        // Sync formatting changes to state for all affected blocks
-        intersectingBlocks.forEach(blockEl => syncBlockToState(blockEl));
-
-        // Clear selection after multi-block operation
-        sel.removeAllRanges();
-        selectionRef.current = null;
-    }, [restoreSelection, editorRef, getActiveFormats, syncBlockToState]);
+                }, 0);
+            }, 100);
+        }
+    }, [restoreSelection, getActiveFormats, syncBlockToState, updateActiveFormats]);
 
     /**
-     * Clears highlights or tags from the selection.
-     * @param {string|null} type - 'highlight', 'tag', or null for both
+     * Clears text color from the selection.
      */
-    const clearHighlight = useCallback((type = null) => {
+    const clearTextColor = useCallback(() => {
         if (!restoreSelection()) return;
 
         // Get the affected block before clearing
@@ -635,7 +1059,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
             ? sel.anchorNode.parentElement?.closest('[data-block-id]')
             : sel.anchorNode?.closest?.('[data-block-id]');
 
-        removeExistingHighlights(type);
+        removeExistingTextColors();
 
         // Sync clearing to state for undo history
         syncBlockToState(blockEl);
@@ -643,7 +1067,7 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         // Update active formats after clearing
         const newFormats = getActiveFormats();
         setMenu(prev => ({ ...prev, activeFormats: newFormats }));
-    }, [restoreSelection, removeExistingHighlights, getActiveFormats, syncBlockToState]);
+    }, [restoreSelection, removeExistingTextColors, getActiveFormats, syncBlockToState]);
 
     /**
      * Applies a link to the selected text with the given URL.
@@ -652,15 +1076,35 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     const applyLinkToSelection = useCallback((url) => {
         if (!url || !url.trim()) return;
         if (!restoreSelection()) return;
-        document.execCommand('createLink', false, url);
 
-        // Sync link changes to state for undo history
-        syncBlockToState();
+        isApplyingFormatRef.current = true;
 
-        // Update active formats
-        const newFormats = getActiveFormats();
-        setMenu(prev => ({ ...prev, activeFormats: newFormats }));
-    }, [restoreSelection, getActiveFormats, syncBlockToState]);
+        try {
+            document.execCommand('createLink', false, url);
+
+            // Save the updated selection after execCommand changes the DOM
+            const updatedSel = window.getSelection();
+            if (updatedSel.rangeCount > 0 && !updatedSel.isCollapsed) {
+                selectionRef.current = updatedSel.getRangeAt(0).cloneRange();
+
+                // Mark block as modified for undo history
+                const blockEl = getBlockFromNode(updatedSel.anchorNode);
+                if (blockEl) {
+                    markBlockModified(blockEl);
+                }
+            }
+
+            // DON'T sync or update state immediately - it causes re-render which loses selection
+            // syncBlockToState();
+            // const newFormats = getActiveFormats();
+            // setMenu(prev => ({ ...prev, activeFormats: newFormats }));
+        } finally {
+            setTimeout(() => {
+                isApplyingFormatRef.current = false;
+                updateActiveFormats();
+            }, 100);
+        }
+    }, [restoreSelection, getActiveFormats, syncBlockToState, updateActiveFormats]);
 
     /**
      * Gets the current menu position for LinkPopover positioning.
@@ -683,30 +1127,50 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     const removeLink = useCallback(() => {
         if (!restoreSelection()) return;
 
-        const sel = window.getSelection();
-        if (!sel.rangeCount) return;
+        isApplyingFormatRef.current = true;
 
-        const range = sel.getRangeAt(0);
+        try {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
 
-        // If selection is collapsed (just cursor), check if inside a link
-        if (range.collapsed) {
-            const node = sel.anchorNode;
-            const linkEl = node?.nodeType === Node.TEXT_NODE
-                ? node.parentElement?.closest('a')
-                : node?.closest?.('a');
+            const range = sel.getRangeAt(0);
 
-            if (linkEl) {
-                // Select the entire link content
-                const linkRange = document.createRange();
-                linkRange.selectNodeContents(linkEl);
-                sel.removeAllRanges();
-                sel.addRange(linkRange);
+            // If selection is collapsed (just cursor), check if inside a link
+            if (range.collapsed) {
+                const node = sel.anchorNode;
+                const linkEl = node?.nodeType === Node.TEXT_NODE
+                    ? node.parentElement?.closest('a')
+                    : node?.closest?.('a');
+
+                if (linkEl) {
+                    // Select the entire link content
+                    const linkRange = document.createRange();
+                    linkRange.selectNodeContents(linkEl);
+                    sel.removeAllRanges();
+                    sel.addRange(linkRange);
+                }
             }
-        }
 
-        document.execCommand('unlink', false, null);
-        // Menu stays open
-    }, [restoreSelection]);
+            document.execCommand('unlink', false, null);
+
+            // Save the updated selection after execCommand changes the DOM
+            const updatedSel = window.getSelection();
+            if (updatedSel.rangeCount > 0 && !updatedSel.isCollapsed) {
+                selectionRef.current = updatedSel.getRangeAt(0).cloneRange();
+
+                // Mark block as modified for undo history
+                const blockEl = getBlockFromNode(updatedSel.anchorNode);
+                if (blockEl) {
+                    markBlockModified(blockEl);
+                }
+            }
+        } finally {
+            setTimeout(() => {
+                isApplyingFormatRef.current = false;
+                updateActiveFormats();
+            }, 100);
+        }
+    }, [restoreSelection, updateActiveFormats]);
 
     /**
      * Changes the block type of all blocks in the current selection.
@@ -754,12 +1218,23 @@ export function useFormattingMenu({ editorRef, state, actions }) {
     }, [restoreSelection, editorRef, actions, closeMenu]);
 
     /**
+     * Helper to check if an element is inside a menu-related UI.
+     */
+    const isInsideMenuUI = (target) => {
+        return target.closest('.formatting-menu') ||
+               target.closest('.formatting-popup') ||
+               target.closest('.turn-into-menu') ||
+               target.closest('.color-picker') ||
+               target.closest('.link-popover');
+    };
+
+    /**
      * Track mouse down to prevent menu from opening during text selection drag.
      */
     useEffect(() => {
         const handleMouseDown = (e) => {
-            // Ignore clicks inside the formatting menu or popups
-            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup')) {
+            // Ignore clicks inside menu-related UI elements (including link popover)
+            if (isInsideMenuUI(e.target)) {
                 return;
             }
 
@@ -771,8 +1246,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         };
 
         const handleMouseUp = (e) => {
-            // Ignore mouse up inside the formatting menu or popups
-            if (e.target.closest('.formatting-menu') || e.target.closest('.formatting-popup')) {
+            // Ignore mouse up inside menu-related UI elements (including link popover)
+            if (isInsideMenuUI(e.target)) {
                 return;
             }
 
@@ -802,7 +1277,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
      */
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (menu.isOpen && !e.target.closest('.formatting-menu') && !e.target.closest('.formatting-popup')) {
+            // Don't close if clicking inside menu-related UI elements (including link popover)
+            if (menu.isOpen && !isInsideMenuUI(e.target)) {
                 closeMenu();
             }
         };
@@ -813,12 +1289,25 @@ export function useFormattingMenu({ editorRef, state, actions }) {
 
     /**
      * Close menu when selection becomes empty (e.g., user deletes text).
+     * But not when the focus is inside the link popover input.
      */
     useEffect(() => {
         if (!menu.isOpen) return;
 
         const handleSelectionChange = () => {
+            // Don't close the menu if we're currently applying formatting
+            if (isApplyingFormatRef.current) {
+                return;
+            }
+
+            // Don't close the menu if focus is inside the link popover
+            const activeElement = document.activeElement;
+            if (activeElement?.closest('.link-popover')) {
+                return;
+            }
+
             const sel = window.getSelection();
+
             // If selection is collapsed (no text selected) or empty, close the menu
             if (!sel.rangeCount || sel.isCollapsed || sel.toString().trim() === '') {
                 closeMenu();
@@ -843,6 +1332,30 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [menu.isOpen, closeMenu]);
 
+    /**
+     * Update active formats when user does undo/redo while menu is open.
+     */
+    useEffect(() => {
+        if (!menu.isOpen) return;
+
+        const handleKeyDown = (e) => {
+            // Check for Cmd+Z (undo) or Cmd+Shift+Z (redo) on Mac, Ctrl+Z/Ctrl+Y on Windows
+            const isUndo = (e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey;
+            const isRedo = ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) ||
+                          ((e.ctrlKey) && e.key === 'y');
+
+            if (isUndo || isRedo) {
+                // Update active formats after a short delay to let the DOM update
+                setTimeout(() => {
+                    updateActiveFormats();
+                }, 50);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [menu.isOpen, updateActiveFormats]);
+
     return {
         menu,
         openMenu,
@@ -851,6 +1364,8 @@ export function useFormattingMenu({ editorRef, state, actions }) {
         applyFormat,
         applyHighlight,
         clearHighlight,
+        applyTextColor,
+        clearTextColor,
         applyLinkToSelection,
         removeLink,
         changeBlockType,

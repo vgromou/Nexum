@@ -1,0 +1,205 @@
+/* ===== TOAST COMPONENT ===== */
+
+/* Container */
+.toast {
+    position: relative;
+    width: 440px;
+    max-width: calc(100vw - 2 * var(--space-lg));
+    height: 72px;
+    background: transparent;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-xl);
+    --toast-duration: 10000ms;
+}
+
+/* ===== LAYER 1: SVG FRAME ===== */
+
+.toast__frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 440px;
+    height: 72px;
+    z-index: 0;
+}
+
+/* Gray background frame */
+.toast__frame-bg {
+    fill: var(--background-tertiary);
+}
+
+/* Colored frame (masked for progress) */
+.toast__frame-color {
+    fill: currentColor;
+}
+
+/* Variant colors */
+.toast--success .toast__frame-color {
+    color: var(--semantic-success);
+}
+
+.toast--error .toast__frame-color {
+    color: var(--semantic-error);
+}
+
+.toast--warning .toast__frame-color {
+    color: var(--semantic-warning);
+}
+
+.toast--info .toast__frame-color {
+    color: var(--semantic-info);
+}
+
+/* Mask animation - stroke traces U-path to hide colored frame */
+.toast__mask-path {
+    /* Path length: 440 + 72 + 440 = 952px */
+    stroke-dasharray: 952;
+    stroke-dashoffset: 952;
+    animation: mask-progress var(--toast-duration) linear forwards;
+}
+
+.toast--paused .toast__mask-path {
+    animation-play-state: paused;
+}
+
+@keyframes mask-progress {
+    0% {
+        stroke-dashoffset: 952;
+    }
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* ===== LAYER 2: WHITE CONTENT ===== */
+/* Larger block on top, covers most of the frame */
+
+.toast__content {
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    right: 0;
+    bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 0 var(--space-lg);
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* ===== ICON ===== */
+
+.toast__icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+/* Icon sizes */
+.toast__icon--md {
+    width: 32px;
+    height: 32px;
+}
+
+.toast__icon--sm {
+    width: 28px;
+    height: 28px;
+}
+
+/* Icon SVG size */
+.toast__icon--md .toast__icon-svg {
+    width: 24px;
+    height: 24px;
+}
+
+.toast__icon--sm .toast__icon-svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Icon variant colors */
+.toast--success .toast__icon {
+    background: var(--semantic-success-light);
+}
+.toast--success .toast__icon-svg {
+    color: var(--semantic-success);
+}
+
+.toast--error .toast__icon {
+    background: var(--semantic-error-light);
+}
+.toast--error .toast__icon-svg {
+    color: var(--semantic-error);
+}
+
+.toast--warning .toast__icon {
+    background: var(--semantic-warning-light);
+}
+.toast--warning .toast__icon-svg {
+    color: var(--semantic-warning);
+}
+
+.toast--info .toast__icon {
+    background: var(--semantic-info-light);
+}
+.toast--info .toast__icon-svg {
+    color: var(--semantic-info);
+}
+
+/* ===== MESSAGE ===== */
+
+.toast__message {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-family-sans);
+    font-size: var(--typography-body-small-size);
+    font-weight: var(--typography-body-small-weight);
+    line-height: var(--typography-body-small-line-height);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* ===== CLOSE BUTTON ===== */
+
+.toast__close {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: var(--space-xs);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--icons-default);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.toast__close:hover {
+    background: var(--background-hover);
+    color: var(--icons-hover);
+}
+
+.toast__close:active {
+    background: var(--background-active);
+}
+
+.toast__close:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+}
+
+/* ===== ACCESSIBILITY ===== */
+
+@media (prefers-reduced-motion: reduce) {
+    .toast__mask-path {
+        animation: none;
+    }
+}

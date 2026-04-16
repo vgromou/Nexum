@@ -1,174 +1,504 @@
+/*
+ * NEXUM DESIGN SYSTEM VARIABLES
+ * Updated with Figma design tokens
+ * Last updated: 2026-01-21
+ */
+
 :root {
-  /* Colors */
+  /* ===== SPACING ===== */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
 
-  /* Highlight Colors - Background (85% alpha from Figma) */
-  --color-highlight-purple-bg: rgba(220, 197, 255, 0.85);
-  --color-highlight-blue-bg: rgba(196, 224, 255, 0.85);
-  --color-highlight-green-bg: rgba(184, 245, 216, 0.85);
-  --color-highlight-orange-bg: rgba(255, 201, 153, 0.85);
-  --color-highlight-red-bg: rgba(255, 184, 184, 0.85);
-  --color-highlight-gray-bg: rgba(209, 213, 219, 0.85);
+  /* Block Spacing (from Figma design system) */
+  --spacing-block-paragraph-top: 0px;
+  --spacing-block-paragraph-bottom: 16px;
+  --spacing-block-h1-top: 32px;
+  --spacing-block-h1-bottom: 16px;
+  --spacing-block-h2-top: 24px;
+  --spacing-block-h2-bottom: 12px;
+  --spacing-block-h3-top: 20px;
+  --spacing-block-h3-bottom: 8px;
+  --spacing-block-h4-top: 16px;
+  --spacing-block-h4-bottom: 8px;
+  --spacing-block-list-top: 6px;
+  --spacing-block-list-bottom: 6px;
+  --spacing-block-quote-top: 16px;
+  --spacing-block-quote-bottom: 16px;
 
-  /* Highlight Colors - Text (from Figma) */
-  --color-highlight-purple-text: #6B21E0;
-  --color-highlight-blue-text: #1D4ED8;
-  --color-highlight-green-text: #047857;
+  /* ===== BORDER RADIUS ===== */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* ===== COLORS ===== */
+
+  /* Background */
+  --background-primary: #FFFFFF;
+  --background-secondary: #FAFBFC;
+  --background-tertiary: #F6F8FA;
+  --background-hover: #F3F4F6;
+  --background-active: #E5E7EB;
+
+  /* Text */
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  --text-placeholder: #D1D5DB;
+  --text-disabled: #E5E7EB;
+  --text-inverse: #FFFFFF;
+  --text-link: #5E6AD2;
+  --text-link-hover: #4C5CC0;
+
+  /* Border */
+  --border-default: #E5E7EB;
+  --border-light: #F3F4F6;
+  --border-medium: #D1D5DB;
+  --border-strong: #9CA3AF;
+  --border-focus: #5E6AD2;
+
+  /* Field (Default) */
+  --field-background: #FFFFFF;
+  --field-border: #E5E7EB;
+  --field-text: #1F2937;
+  --field-placeholder: #D1D5DB;
+  --field-icon: #9CA3AF;
+  --field-label: #6B7280;
+  --field-helper: #9CA3AF;
+
+  /* Field (Read-only) */
+  --field-readonly-background: transparent;
+  --field-readonly-border: transparent;
+  --field-readonly-text: #1F2937;
+  --field-readonly-placeholder: transparent;
+  --field-readonly-icon: transparent;
+  --field-readonly-label: #6B7280;
+  --field-readonly-helper: #9CA3AF;
+
+  /* Accent (Linear-style purple) */
+  --accent-primary: #5E6AD2;
+  --accent-primary-hover: #4C5CC0;
+  --accent-primary-active: #3D4DB0;
+  --accent-primary-light: #ECEEFF;
+  --accent-secondary: #3B82F6;
+  --accent-secondary-light: #DBEAFE;
+  --accent-current: #E85454;
+
+  /* Semantic */
+  --semantic-success: #10B981;
+  --semantic-success-light: #D1FAE5;
+  --semantic-success-dark: #059669;
+  --semantic-error: #EF4444;
+  --semantic-error-light: #FEE2E2;
+  --semantic-error-dark: #DC2626;
+  --semantic-warning: #F59E0B;
+  --semantic-warning-light: #FEF3C7;
+  --semantic-warning-dark: #D97706;
+  --semantic-info: #3B82F6;
+  --semantic-info-light: #DBEAFE;
+  --semantic-info-dark: #2563EB;
+
+  /* Icons */
+  --icons-default: #9CA3AF;
+  --icons-hover: #6B7280;
+  --icons-active: #5E6AD2;
+  --icons-inverse: #FFFFFF;
+  --icons-disabled: #E5E7EB;
+
+  /* Interactive */
+  --interactive-default: #E5E7EB;
+  --interactive-hover: #D1D5DB;
+  --interactive-active: #9CA3AF;
+  --interactive-disabled: #F3F4F6;
+  --interactive-focus: #5E6AD2;
+
+  /* Surface */
+  --surface-default: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-sidebar: #FAFBFC;
+  --surface-card: #FFFFFF;
+  --surface-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Comments */
+  --comments-background: #FFFBEB;
+  --comments-border: #FDE68A;
+  --comments-highlight: #FEF3C7;
+  --comments-resolved: #E5E7EB;
+
+  /* Code */
+  --code-background: #F3F4F6;
+  --code-inline-background: #E5E7EB;
+  --code-border: #D1D5DB;
+  --code-text: #1F2937;
+  --code-comment: #6B7280;
+  --code-keyword: #5E6AD2;
+  --code-string: #10B981;
+  --code-number: #F59E0B;
+
+  /* Property Colors */
+  --property-text: #6B7280;
+  --property-number: #3B82F6;
+  --property-select: #8B5CF6;
+  --property-date: #10B981;
+  --property-person: #F59E0B;
+  --property-checkbox: #EC4899;
+  --property-url: #06B6D4;
+
+  /* Collection Colors */
+  --collection-key-1: #EF4444;
+  --collection-key-2: #F59E0B;
+  --collection-key-3: #10B981;
+  --collection-key-4: #3B82F6;
+  --collection-key-5: #8B5CF6;
+  --collection-key-6: #EC4899;
+
+  /* Legacy color mappings (for backward compatibility) */
+  --color-gray-100: #F3F4F6;
+  --color-gray-300: #D1D5DB;
+  --color-gray-400: #9CA3AF;
+  --color-gray-500: #6B7280;
+  --color-gray-800: #1F2937;
+  --color-danger: #EF4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
+
+  /* Highlight Colors - Background */
+  --color-highlight-default-bg: transparent;
+  --color-highlight-gray-bg: #F3F4F6;
+  --color-highlight-brown-bg: #FEF3C7;
+  --color-highlight-orange-bg: #FFEDD5;
+  --color-highlight-yellow-bg: #FEF3C7;
+  --color-highlight-green-bg: #D1FAE5;
+  --color-highlight-blue-bg: #DBEAFE;
+  --color-highlight-purple-bg: #EDE9FE;
+  --color-highlight-magenta-bg: #FCE7F3;
+  --color-highlight-red-bg: #FEE2E2;
+
+  /* Highlight Colors - Text */
+  --color-highlight-default-text: #1F2937;
+  --color-highlight-gray-text: #6B7280;
+  --color-highlight-brown-text: #92400E;
   --color-highlight-orange-text: #C2410C;
-  --color-highlight-red-text: #B91C1C;
-  --color-highlight-gray-text: #374151;
-  --color-accent-light: #ffb3ab;
-  --color-icon: #000000;
-  --color-text-muted: #b89b91;
-  --color-text-tertiary: #9b7b6f;
-  --color-bg-white: #ffffff;
-  --color-shadow-small: #ff968214;
-  --color-border-light: #ffe8e0;
-  --color-sidebar-bg-alpha: #fff8f5cc;
-  --color-bg-gradient-start: #ffe8d6;
-  --color-bg-gradient-40: #ffd4c8;
-  --color-bg-gradient-70: #ffc4d0;
-  --color-bg-gradient-end: #ffb8c8;
-  --color-text-primary: #000000;
-  /* Assumed based on design context */
-  --color-text-secondary: #666666;
-  --color-border-demo: #eeeeee;
+  --color-highlight-yellow-text: #A16207;
+  --color-highlight-green-text: #166534;
+  --color-highlight-blue-text: #1E40AF;
+  --color-highlight-purple-text: #7C3AED;
+  --color-highlight-magenta-text: #DB2777;
+  --color-highlight-red-text: #DC2626;
 
-  /* Workspace Colors */
-  --color-workspace-purple: #8b3dff;
-  --color-workspace-orange: #f06a1d;
-  --color-workspace-red: #ed4043;
+  /* Missing shadow variables (now defined) */
+  --color-shadow-menu: rgba(0, 0, 0, 0.1);
+  --color-shadow-drag: rgba(94, 106, 210, 0.15);
 
-  /* Layout Sizing */
-  --activity-bar-width: 60px;
-  --space-hierarchy-width: 240px;
-  --properties-bar-width: 260px;
+  /* ===== SHADOWS ===== */
+  /* Default shadows (black) */
+  --shadow-default: rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 
-  /* Gray Scale (for PageContent) */
-  --color-gray-100: #f3f4f6;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-800: #1f2937;
+  /* Accent shadows (purple) */
+  --shadow-sm-accent: 0 1px 3px rgba(94, 106, 210, 0.1);
+  --shadow-md-accent: 0 4px 8px rgba(94, 106, 210, 0.12);
+  --shadow-lg-accent: 0 8px 24px rgba(94, 106, 210, 0.15);
 
-  /* Editor Colors */
-  --color-selection-blue: #2383e2;
-  --color-selection-blue-light: rgba(35, 131, 226, 0.1);
-  --color-selection-blue-hover: rgba(35, 131, 226, 0.15);
-  --color-selection-blue-transparent: rgba(35, 131, 226, 0.08);
-  --color-selection-blue-pulse: rgba(35, 131, 226, 0.2);
-  --color-selection-blue-highlight: rgba(35, 131, 226, 0.3);
-  --color-drag-bg: rgba(0, 0, 0, 0.02);
-  --color-drag-active-bg: rgba(35, 131, 226, 0.05);
-  --color-code-bg: rgba(135, 131, 120, 0.15);
-  --color-code-text: #eb5757;
-  --color-shadow-menu: rgba(0, 0, 0, 0.12);
-  --color-shadow-drag: rgba(0, 0, 0, 0.15);
+  /* ===== BUTTON STYLES ===== */
 
-  /* Typography */
-  --font-family-sans: 'Inter', sans-serif;
-  --font-family-mono: 'JetBrains Mono', monospace;
+  /* Primary Button */
+  --button-primary-bg-default: #5E6AD2;
+  --button-primary-bg-hover: #4C5CC0;
+  --button-primary-bg-active: #3D4DB0;
+  --button-primary-bg-disabled: #FAFBFC;
+  --button-primary-text-default: #FFFFFF;
+  --button-primary-text-hover: #FFFFFF;
+  --button-primary-text-active: #FFFFFF;
+  --button-primary-text-disabled: #9CA3AF;
+  --button-primary-border-default: transparent;
+  --button-primary-border-hover: transparent;
+  --button-primary-border-active: transparent;
+  --button-primary-border-disabled: transparent;
 
-  /* Page Title */
-  --font-size-page-title: 40px;
-  --line-height-page-title: 1.2;
-  --font-weight-page-title: 700;
-  --letter-spacing-page-title: -0.005em;
+  /* Ghost Button */
+  --button-ghost-bg-default: transparent;
+  --button-ghost-bg-hover: #F3F4F6;
+  --button-ghost-bg-active: #E5E7EB;
+  --button-ghost-bg-disabled: transparent;
+  --button-ghost-text-default: #6B7280;
+  --button-ghost-text-hover: #1F2937;
+  --button-ghost-text-active: #1F2937;
+  --button-ghost-text-disabled: #D1D5DB;
+  --button-ghost-border-default: transparent;
+  --button-ghost-border-hover: transparent;
+  --button-ghost-border-active: transparent;
+  --button-ghost-border-disabled: transparent;
 
-  /* Heading/H1 */
-  --font-size-h1: 32px;
-  --line-height-h1: 1.25;
-  --font-weight-h1: 700;
-  --letter-spacing-h1: -0.004em;
+  /* Outline Button */
+  --button-outline-bg-default: transparent;
+  --button-outline-bg-hover: #F3F4F6;
+  --button-outline-bg-active: #E5E7EB;
+  --button-outline-bg-disabled: transparent;
+  --button-outline-text-default: #6B7280;
+  --button-outline-text-hover: #1F2937;
+  --button-outline-text-active: #1F2937;
+  --button-outline-text-disabled: #E5E7EB;
+  --button-outline-border-default: #D1D5DB;
+  --button-outline-border-hover: #9CA3AF;
+  --button-outline-border-active: #9CA3AF;
+  --button-outline-border-disabled: #E5E7EB;
 
-  /* Heading/H2 */
-  --font-size-h2: 24px;
-  --line-height-h2: 1.33;
-  --font-weight-h2: 600;
-  --letter-spacing-h2: -0.002em;
+  /* Destructive Button */
+  --button-destructive-bg-default: #EF4444;
+  --button-destructive-bg-hover: #DC2626;
+  --button-destructive-bg-active: #DC2626;
+  --button-destructive-bg-disabled: #FAFBFC;
+  --button-destructive-text-default: #FFFFFF;
+  --button-destructive-text-hover: #FFFFFF;
+  --button-destructive-text-active: #FFFFFF;
+  --button-destructive-text-disabled: #9CA3AF;
+  --button-destructive-border-default: transparent;
+  --button-destructive-border-hover: transparent;
+  --button-destructive-border-active: transparent;
+  --button-destructive-border-disabled: transparent;
 
-  /* Heading/H3 */
-  --font-size-h3: 20px;
-  --line-height-h3: 1.4;
-  --font-weight-h3: 600;
-  --letter-spacing-h3: 0;
+  /* Destructive Ghost Button */
+  --button-destructive-ghost-bg-default: transparent;
+  --button-destructive-ghost-bg-hover: #FEE2E2;
+  --button-destructive-ghost-bg-active: #FEE2E2;
+  --button-destructive-ghost-bg-disabled: transparent;
+  --button-destructive-ghost-text-default: #EF4444;
+  --button-destructive-ghost-text-hover: #DC2626;
+  --button-destructive-ghost-text-active: #DC2626;
+  --button-destructive-ghost-text-disabled: #D1D5DB;
+  --button-destructive-ghost-border-default: transparent;
+  --button-destructive-ghost-border-hover: transparent;
+  --button-destructive-ghost-border-active: transparent;
+  --button-destructive-ghost-border-disabled: transparent;
 
-  /* Body/Regular */
-  --font-size-body: 16px;
-  --line-height-body: 1.625;
-  --font-weight-body: 400;
-  --letter-spacing-body: 0;
+  /* Destructive Outline Button */
+  --button-destructive-outline-bg-default: transparent;
+  --button-destructive-outline-bg-hover: #FEE2E2;
+  --button-destructive-outline-bg-active: #FEE2E2;
+  --button-destructive-outline-bg-disabled: transparent;
+  --button-destructive-outline-text-default: #EF4444;
+  --button-destructive-outline-text-hover: #DC2626;
+  --button-destructive-outline-text-active: #DC2626;
+  --button-destructive-outline-text-disabled: #D1D5DB;
+  --button-destructive-outline-border-default: #EF4444;
+  --button-destructive-outline-border-hover: #DC2626;
+  --button-destructive-outline-border-active: #DC2626;
+  --button-destructive-outline-border-disabled: #E5E7EB;
 
-  /* Breadcrumbs */
-  --font-size-breadcrumbs: 13px;
-  --line-height-breadcrumbs: 1.38;
-  --font-weight-breadcrumbs: 400;
-  --letter-spacing-breadcrumbs: 0;
+  /* Success Button */
+  --button-success-bg-default: #10B981;
+  --button-success-bg-hover: #059669;
+  --button-success-bg-active: #059669;
+  --button-success-bg-disabled: #FAFBFC;
+  --button-success-text-default: #FFFFFF;
+  --button-success-text-hover: #FFFFFF;
+  --button-success-text-active: #FFFFFF;
+  --button-success-text-disabled: #9CA3AF;
+  --button-success-border-default: transparent;
+  --button-success-border-hover: transparent;
+  --button-success-border-active: transparent;
+  --button-success-border-disabled: transparent;
 
-  /* Caption */
-  --font-size-caption: 12px;
-  --line-height-caption: 1.5;
-  --font-weight-caption: 400;
-  --letter-spacing-caption: 0;
+  /* Success Ghost Button */
+  --button-success-ghost-bg-default: transparent;
+  --button-success-ghost-bg-hover: #D1FAE5;
+  --button-success-ghost-bg-active: #D1FAE5;
+  --button-success-ghost-bg-disabled: transparent;
+  --button-success-ghost-text-default: #10B981;
+  --button-success-ghost-text-hover: #059669;
+  --button-success-ghost-text-active: #059669;
+  --button-success-ghost-text-disabled: #D1D5DB;
+  --button-success-ghost-border-default: transparent;
+  --button-success-ghost-border-hover: transparent;
+  --button-success-ghost-border-active: transparent;
+  --button-success-ghost-border-disabled: transparent;
 
-  /* Label */
-  --font-size-label: 13px;
-  --line-height-label: 1.38;
-  --font-weight-label: 500;
-  --letter-spacing-label: 0;
+  /* Success Outline Button */
+  --button-success-outline-bg-default: transparent;
+  --button-success-outline-bg-hover: #D1FAE5;
+  --button-success-outline-bg-active: #D1FAE5;
+  --button-success-outline-bg-disabled: transparent;
+  --button-success-outline-text-default: #10B981;
+  --button-success-outline-text-hover: #059669;
+  --button-success-outline-text-active: #059669;
+  --button-success-outline-text-disabled: #D1D5DB;
+  --button-success-outline-border-default: #10B981;
+  --button-success-outline-border-hover: #059669;
+  --button-success-outline-border-active: #059669;
+  --button-success-outline-border-disabled: #E5E7EB;
 
-  /* Code Inline */
-  --font-size-code-inline: 14px;
-  --line-height-code-inline: 1.5;
-  --font-weight-code-inline: 400;
-  --letter-spacing-code-inline: 0;
+  /* ===== LAYOUT ===== */
+  --left-sidebar-width: 280px;
+  --sidebar-button-width: 264px;
+  --content-width: 640px;
+  --right-sidebar-width: 320px;
+  --header-height: 50px;
+  --footer-height: 64px;
 
-  /* Sidebar/Item */
-  --font-size-sidebar-item: 14px;
-  --line-height-sidebar-item: 1.5;
-  --font-weight-sidebar-item: 400;
-  --letter-spacing-sidebar-item: 0;
+  /* ===== TYPOGRAPHY ===== */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Monaco', 'Courier New', monospace;
 
-  /* Sidebar/Item Active */
-  --font-size-sidebar-item-active: 14px;
-  --line-height-sidebar-item-active: 1.5;
-  --font-weight-sidebar-item-active: 500;
-  --letter-spacing-sidebar-item-active: 0;
+  /* --- Breadcrumbs --- */
+  --typography-breadcrumbs-size: 13px;
+  --typography-breadcrumbs-line-height: 18px;
+  --typography-breadcrumbs-weight: 400;
+  --typography-breadcrumbs-letter-spacing: 0;
 
-  /* Highlight/Body */
-  --font-size-highlight-body: 14px;
-  --line-height-highlight-body: 1.5;
-  --font-weight-highlight-body: 500;
-  --letter-spacing-highlight-body: 0;
+  /* --- Heading/Page-Title --- */
+  --typography-page-title-size: 40px;
+  --typography-page-title-line-height: 48px;
+  --typography-page-title-weight: 700;
+  --typography-page-title-letter-spacing: -0.005em;
 
-  /* Highlight/H1 */
-  --font-size-highlight-h1: 28px;
-  --line-height-highlight-h1: 1.25;
-  --font-weight-highlight-h1: 700;
-  --letter-spacing-highlight-h1: -0.004em;
+  /* --- Heading/H1 --- */
+  --typography-h1-size: 32px;
+  --typography-h1-line-height: 40px;
+  --typography-h1-weight: 700;
+  --typography-h1-letter-spacing: -0.004em;
 
-  /* Highlight/H2 */
-  --font-size-highlight-h2: 22px;
-  --line-height-highlight-h2: 1.33;
-  --font-weight-highlight-h2: 600;
-  --letter-spacing-highlight-h2: -0.002em;
+  /* --- Heading/H2 --- */
+  --typography-h2-size: 24px;
+  --typography-h2-line-height: 32px;
+  --typography-h2-weight: 600;
+  --typography-h2-letter-spacing: -0.00048em;
 
-  /* Highlight/H3 */
-  --font-size-highlight-h3: 18px;
-  --line-height-highlight-h3: 1.4;
-  --font-weight-highlight-h3: 600;
-  --letter-spacing-highlight-h3: 0;
+  /* --- Heading/H3 --- */
+  --typography-h3-size: 20px;
+  --typography-h3-line-height: 28px;
+  --typography-h3-weight: 600;
+  --typography-h3-letter-spacing: 0;
 
-  /* Tag (for highlight tags) */
-  --font-size-tag: 13px;
-  --line-height-tag: 1.38;
-  --border-radius-tag: 4px;
+  /* --- Heading/H4 --- */
+  --typography-h4-size: 18px;
+  --typography-h4-line-height: 26px;
+  --typography-h4-weight: 600;
+  --typography-h4-letter-spacing: 0;
 
-  /* Z-index layers */
+  /* --- Body/Default --- */
+  --typography-body-size: 16px;
+  --typography-body-line-height: 26px;
+  --typography-body-weight: 400;
+  --typography-body-letter-spacing: 0;
+
+  /* --- Body/Default-Bold --- */
+  --typography-body-bold-weight: 600;
+
+  /* --- Body/Small --- */
+  --typography-body-small-size: 14px;
+  --typography-body-small-line-height: 22px;
+  --typography-body-small-weight: 400;
+
+  /* --- Body/Small-Medium --- */
+  --typography-body-small-medium-weight: 500;
+
+  /* --- UI/Button-Large --- */
+  --typography-button-large-size: 16px;
+  --typography-button-large-line-height: 24px;
+  --typography-button-large-weight: 500;
+
+  /* --- UI/Button-Default --- */
+  --typography-button-default-size: 14px;
+  --typography-button-default-line-height: 20px;
+  --typography-button-default-weight: 500;
+
+  /* --- UI/Button-Small --- */
+  --typography-button-small-size: 13px;
+  --typography-button-small-line-height: 18px;
+  --typography-button-small-weight: 500;
+
+  /* --- UI/Label --- */
+  --typography-label-size: 13px;
+  --typography-label-line-height: 18px;
+  --typography-label-weight: 500;
+
+  /* --- UI/Input --- */
+  --typography-input-size: 14px;
+  --typography-input-line-height: 20px;
+  --typography-input-weight: 400;
+
+  /* --- UI/Input-Placeholder --- */
+  --typography-input-placeholder-size: 14px;
+  --typography-input-placeholder-line-height: 20px;
+  --typography-input-placeholder-weight: 400;
+
+  /* --- UI/Badge --- */
+  --typography-badge-size: 12px;
+  --typography-badge-line-height: 16px;
+  --typography-badge-weight: 500;
+
+  /* --- UI/Tooltip --- */
+  --typography-tooltip-size: 12px;
+  --typography-tooltip-line-height: 18px;
+  --typography-tooltip-weight: 400;
+
+  /* --- Caption/Default --- */
+  --typography-caption-size: 13px;
+  --typography-caption-line-height: 18px;
+  --typography-caption-weight: 400;
+
+  /* --- Caption/Small --- */
+  --typography-caption-small-size: 12px;
+  --typography-caption-small-line-height: 16px;
+  --typography-caption-small-weight: 400;
+
+  /* --- Caption/Uppercase --- */
+  --typography-caption-uppercase-size: 11px;
+  --typography-caption-uppercase-line-height: 16px;
+  --typography-caption-uppercase-weight: 600;
+  --typography-caption-uppercase-letter-spacing: 0;
+
+  /* --- Link/Default --- */
+  --typography-link-size: 16px;
+  --typography-link-line-height: 26px;
+  --typography-link-weight: 400;
+
+  /* --- Link/Small --- */
+  --typography-link-small-size: 14px;
+  --typography-link-small-line-height: 22px;
+  --typography-link-small-weight: 400;
+
+  /* --- Code/Inline --- */
+  --typography-code-inline-size: 14px;
+  --typography-code-inline-line-height: 20px;
+  --typography-code-inline-weight: 400;
+
+  /* --- Code/Block --- */
+  --typography-code-block-size: 14px;
+  --typography-code-block-line-height: 22px;
+  --typography-code-block-weight: 400;
+
+  /* --- Code/Comment --- */
+  --typography-code-comment-size: 14px;
+  --typography-code-comment-line-height: 22px;
+  --typography-code-comment-weight: 400;
+
+  /* --- Sidebar Item (uses Body/Small) --- */
+  --typography-sidebar-item-size: 14px;
+  --typography-sidebar-item-line-height: 22px;
+  --typography-sidebar-item-weight: 400;
+  --typography-sidebar-item-active-weight: 500;
+
+  /* ===== TRANSITIONS ===== */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ===== Z-INDEX ===== */
+  --z-index-sticky: 100;
   --z-index-menu: 1100;
   --z-index-popover: 1110;
-  --z-index-link-popover: 1120;
-
-  /* Danger/Error colors */
-  --color-danger: #ef4444;
-  --color-danger-bg: rgba(239, 68, 68, 0.1);
+  --z-index-dropdown: 1150;
+  --z-index-modal: 1200;
+  --z-index-toast: 1300;
 }

@@ -6,7 +6,12 @@ import './LinkPopover.css';
 
 /**
  * LinkPopover - A floating popover for editing links.
- * Appears above selected text or above FormattingMenu when opened.
+ * 
+ * Design based on Figma:
+ * - 320px width, 12px padding, 8px gap
+ * - Input field with placeholder "Paste or type a link"
+ * - 3 buttons always visible: check, unlink, external-link
+ * - Buttons are disabled (gray) when empty, enabled when URL present
  */
 const LinkPopover = ({
     isOpen,
@@ -17,12 +22,14 @@ const LinkPopover = ({
     onApply,
     onUnlink,
     onClose,
-    formattingMenuHeight = 40,
 }) => {
     const [url, setUrl] = useState(currentUrl);
     const inputRef = useRef(null);
     const popoverRef = useRef(null);
     const closeTimeoutRef = useRef(null);
+
+    // Determine if URL is valid (has content)
+    const hasUrl = url.trim().length > 0;
 
     // Sync internal state with prop changes
     useEffect(() => {
@@ -126,46 +133,53 @@ const LinkPopover = ({
                 left: position.left,
             }}
         >
-            <div className="link-popover-content">
+            {/* Input field wrapper */}
+            <div className="link-popover-input-wrapper">
                 <input
                     ref={inputRef}
                     type="text"
                     className="link-popover-input"
-                    placeholder="Paste or type a link..."
+                    placeholder="Paste or type a link"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={handleKeyDown}
                 />
-                <div className="link-popover-actions">
-                    <button
-                        className="link-popover-button link-popover-apply"
-                        onClick={handleApply}
-                        onMouseDown={(e) => e.preventDefault()}
-                        title="Apply link"
-                    >
-                        <Check size={16} />
-                    </button>
-                    {isEditing && (
-                        <button
-                            className="link-popover-button link-popover-unlink"
-                            onClick={handleUnlink}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title="Remove link"
-                        >
-                            <Unlink size={16} />
-                        </button>
-                    )}
-                    {isEditing && url.trim() && (
-                        <button
-                            className="link-popover-button link-popover-open"
-                            onClick={handleOpen}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title="Open in new tab"
-                        >
-                            <ExternalLink size={16} />
-                        </button>
-                    )}
-                </div>
+            </div>
+
+            {/* Button group - always shows all 3 buttons */}
+            <div className="link-popover-button-group">
+                {/* Apply/Check button */}
+                <button
+                    className={`icon-btn link-popover-apply ${hasUrl ? '' : 'disabled'}`}
+                    onClick={hasUrl ? handleApply : undefined}
+                    onMouseDown={(e) => e.preventDefault()}
+                    title="Apply link"
+                    disabled={!hasUrl}
+                >
+                    <Check size={18} />
+                </button>
+
+                {/* Unlink button */}
+                <button
+                    className={`icon-btn link-popover-unlink ${isEditing ? '' : 'disabled'}`}
+                    onClick={isEditing ? handleUnlink : undefined}
+                    onMouseDown={(e) => e.preventDefault()}
+                    title="Remove link"
+                    disabled={!isEditing}
+                >
+                    <Unlink size={18} />
+                </button>
+
+                {/* Open in new tab button */}
+                <button
+                    className={`icon-btn link-popover-open ${hasUrl ? '' : 'disabled'}`}
+                    onClick={hasUrl ? handleOpen : undefined}
+                    onMouseDown={(e) => e.preventDefault()}
+                    title="Open in new tab"
+                    disabled={!hasUrl}
+                >
+                    <ExternalLink size={18} />
+                </button>
             </div>
         </div>
     );
@@ -183,8 +197,6 @@ LinkPopover.propTypes = {
     onApply: PropTypes.func.isRequired,
     onUnlink: PropTypes.func,
     onClose: PropTypes.func.isRequired,
-    formattingMenuHeight: PropTypes.number,
 };
 
 export default LinkPopover;
-

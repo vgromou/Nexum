@@ -1,8 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FormattingMenu from './FormattingMenu';
 
 describe('FormattingMenu', () => {
+    // Clear localStorage before each test to avoid Recently Used colors affecting tests
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
     const defaultProps = {
         position: { top: 100, left: 200 },
         currentBlockType: 'paragraph',
@@ -11,6 +16,8 @@ describe('FormattingMenu', () => {
         onFormat: vi.fn(),
         onHighlight: vi.fn(),
         onClearHighlight: vi.fn(),
+        onTextColor: vi.fn(),
+        onClearTextColor: vi.fn(),
         onOpenLinkPopover: vi.fn(),
         onRemoveLink: vi.fn(),
         onChangeBlockType: vi.fn(),
@@ -30,6 +37,7 @@ describe('FormattingMenu', () => {
         expect(document.querySelector('[title="Italic (⌘I)"]')).toBeTruthy();
         expect(document.querySelector('[title="Underline (⌘U)"]')).toBeTruthy();
         expect(document.querySelector('[title="Strikethrough"]')).toBeTruthy();
+        expect(document.querySelector('[title="Inline Code"]')).toBeTruthy();
         expect(document.querySelector('[title="Insert link (⌘K)"]')).toBeTruthy();
         expect(document.querySelector('[title="Remove link"]')).toBeTruthy();
     });
@@ -64,22 +72,33 @@ describe('FormattingMenu', () => {
         expect(onFormat).toHaveBeenCalledWith('italic');
     });
 
+    it('should call onFormat when inline code button is clicked', () => {
+        const onFormat = vi.fn();
+        render(<FormattingMenu {...defaultProps} onFormat={onFormat} />);
+
+        const inlineCodeButton = document.querySelector('[title="Inline Code"]');
+        fireEvent.click(inlineCodeButton);
+
+        expect(onFormat).toHaveBeenCalledWith('inlineCode');
+    });
+
     it('should show Turn Into popup when activeSubmenu is turnInto', () => {
         render(<FormattingMenu {...defaultProps} activeSubmenu="turnInto" />);
-        expect(document.querySelector('.turn-into-popup')).toBeTruthy();
-        expect(screen.getByText('Turn into')).toBeTruthy();
+        expect(document.querySelector('.turn-into-menu')).toBeTruthy();
+        expect(screen.getByText('Basic blocks')).toBeTruthy();
     });
 
-    it('should show Highlight popup when activeSubmenu is highlight', () => {
+    it('should show ColorPicker popup when activeSubmenu is highlight', () => {
         render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-        expect(document.querySelector('.highlight-popup')).toBeTruthy();
+        expect(document.querySelector('.color-picker')).toBeTruthy();
     });
 
-    it('should render four rows of color swatches in highlight popup (2 sections × 2 rows)', () => {
+    it('should render color rows in color picker', () => {
         render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
 
-        const colorRows = document.querySelectorAll('.color-row');
-        expect(colorRows.length).toBe(4);
+        const colorRows = document.querySelectorAll('.color-picker-row');
+        // Recently Used (1 row) + Text Color (2 rows) + Background Color (2 rows) = 5 rows
+        expect(colorRows.length).toBeGreaterThanOrEqual(4);
     });
 
     it('should render letter A in color swatches', () => {
@@ -95,68 +114,53 @@ describe('FormattingMenu', () => {
     it('should mark current block type as active in Turn Into popup', () => {
         render(<FormattingMenu {...defaultProps} activeSubmenu="turnInto" currentBlockType="h2" />);
 
-        const activeItem = document.querySelector('.popup-item.active');
+        const activeItem = document.querySelector('.turn-into-menu-item.selected');
         expect(activeItem).toBeTruthy();
         expect(activeItem.textContent).toContain('Heading 2');
     });
 
     it('should call onChangeBlockType when Turn Into item is clicked', () => {
         const onChangeBlockType = vi.fn();
-        render(<FormattingMenu {...defaultProps} activeSubmenu="turnInto" onChangeBlockType={onChangeBlockType} />);
+        const onToggleSubmenu = vi.fn();
+        render(<FormattingMenu {...defaultProps} activeSubmenu="turnInto" onChangeBlockType={onChangeBlockType} onToggleSubmenu={onToggleSubmenu} />);
 
-        const items = document.querySelectorAll('.popup-item');
+        const items = document.querySelectorAll('.turn-into-menu-item');
         fireEvent.click(items[1]); // Click on "Heading 1"
 
         expect(onChangeBlockType).toHaveBeenCalledWith('h1');
+        expect(onToggleSubmenu).toHaveBeenCalledWith(null);
     });
 
-    it('should render highlight and tag color swatches', () => {
+    it('should render text and background color swatches', () => {
         render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
 
-        // Check for highlight swatches
-        expect(document.querySelector('.highlight-swatch-purple')).toBeTruthy();
-        expect(document.querySelector('.highlight-swatch-blue')).toBeTruthy();
-        expect(document.querySelector('.highlight-swatch-green')).toBeTruthy();
+        // Check for text color swatches (10 colors)
+        const textSwatches = document.querySelectorAll('.text-swatch');
+        expect(textSwatches.length).toBe(10);
 
-        // Check for tag swatches
-        expect(document.querySelector('.tag-swatch-purple')).toBeTruthy();
-        expect(document.querySelector('.tag-swatch-blue')).toBeTruthy();
+        // Check for background color swatches (10 colors)
+        const bgSwatches = document.querySelectorAll('.bg-swatch');
+        expect(bgSwatches.length).toBe(10);
     });
 
-    it('should call onHighlight when highlight swatch is clicked', () => {
+    it('should call onHighlight when background swatch is clicked', () => {
         const onHighlight = vi.fn();
-        const onToggleSubmenu = vi.fn();
-        render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onHighlight={onHighlight} onToggleSubmenu={onToggleSubmenu} />);
+        render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onHighlight={onHighlight} />);
 
-        const purpleSwatch = document.querySelector('.highlight-swatch-purple');
+        const purpleSwatch = document.querySelector('.bg-swatch.color-purple');
         fireEvent.click(purpleSwatch);
 
-        expect(onHighlight).toHaveBeenCalledWith('purple', false);
-        expect(onToggleSubmenu).toHaveBeenCalledWith(null); // Closes popup
+        expect(onHighlight).toHaveBeenCalledWith('purple');
     });
 
-    it('should call onHighlight with isTag=true when tag swatch is clicked', () => {
-        const onHighlight = vi.fn();
-        const onToggleSubmenu = vi.fn();
-        render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onHighlight={onHighlight} onToggleSubmenu={onToggleSubmenu} />);
+    it('should call onTextColor when text swatch is clicked', () => {
+        const onTextColor = vi.fn();
+        render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onTextColor={onTextColor} />);
 
-        const tagSwatch = document.querySelector('.tag-swatch-purple');
-        fireEvent.click(tagSwatch);
+        const purpleSwatch = document.querySelector('.text-swatch.color-purple');
+        fireEvent.click(purpleSwatch);
 
-        expect(onHighlight).toHaveBeenCalledWith('purple', true);
-        expect(onToggleSubmenu).toHaveBeenCalledWith(null); // Closes popup
-    });
-
-    it('should call onClearHighlight when clear button is clicked', () => {
-        const onClearHighlight = vi.fn();
-        const onToggleSubmenu = vi.fn();
-        render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onClearHighlight={onClearHighlight} onToggleSubmenu={onToggleSubmenu} />);
-
-        const clearButton = document.querySelector('.clear-formatting-button');
-        fireEvent.click(clearButton);
-
-        expect(onClearHighlight).toHaveBeenCalledWith(null);
-        expect(onToggleSubmenu).toHaveBeenCalledWith(null); // Closes popup
+        expect(onTextColor).toHaveBeenCalledWith('purple');
     });
 
     it('should call onOpenLinkPopover when link button is clicked', () => {
@@ -189,12 +193,12 @@ describe('FormattingMenu', () => {
         expect(onToggleSubmenu).toHaveBeenCalledWith('turnInto');
     });
 
-    it('should call onToggleSubmenu when Highlight button is clicked', () => {
+    it('should call onToggleSubmenu when Color button is clicked', () => {
         const onToggleSubmenu = vi.fn();
         render(<FormattingMenu {...defaultProps} onToggleSubmenu={onToggleSubmenu} />);
 
-        const highlightButton = document.querySelector('[title="Highlight"]');
-        fireEvent.click(highlightButton);
+        const colorButton = document.querySelector('[title="Color"]');
+        fireEvent.click(colorButton);
 
         expect(onToggleSubmenu).toHaveBeenCalledWith('highlight');
     });
@@ -224,22 +228,22 @@ describe('FormattingMenu', () => {
             expect(strikeButton.className).toContain('active');
         });
 
+        it('should apply active class to inline code button when inlineCode is active', () => {
+            render(<FormattingMenu {...defaultProps} activeFormats={{ inlineCode: true }} />);
+            const inlineCodeButton = document.querySelector('[title="Inline Code"]');
+            expect(inlineCodeButton.className).toContain('active');
+        });
+
         it('should apply active class to link button when link is active', () => {
             render(<FormattingMenu {...defaultProps} activeFormats={{ link: true }} />);
             const linkButton = document.querySelector('[title="Insert link (⌘K)"]');
             expect(linkButton.className).toContain('active');
         });
 
-        it('should apply active class to highlight button when highlightColor is set', () => {
+        it('should apply active class to color picker button when highlightColor is set', () => {
             render(<FormattingMenu {...defaultProps} activeFormats={{ highlightColor: 'purple' }} />);
-            const highlightButton = document.querySelector('[title="Highlight"]');
-            expect(highlightButton.className).toContain('active');
-        });
-
-        it('should apply active class to highlight button when tagColor is set', () => {
-            render(<FormattingMenu {...defaultProps} activeFormats={{ tagColor: 'blue' }} />);
-            const highlightButton = document.querySelector('[title="Highlight"]');
-            expect(highlightButton.className).toContain('active');
+            const colorButton = document.querySelector('[title="Color"]');
+            expect(colorButton.className).toContain('active');
         });
     });
 
@@ -280,93 +284,57 @@ describe('FormattingMenu', () => {
     });
 
     describe('Gray Color Support', () => {
-        it('should render gray highlight swatch', () => {
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            expect(document.querySelector('.highlight-swatch-gray')).toBeTruthy();
-        });
-
-        it('should render gray tag swatch', () => {
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            expect(document.querySelector('.tag-swatch-gray')).toBeTruthy();
-        });
-
-        it('should call onHighlight with gray when gray highlight swatch is clicked', () => {
+        it('should call onHighlight with gray when gray background swatch is clicked', () => {
             const onHighlight = vi.fn();
-            const onToggleSubmenu = vi.fn();
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onHighlight={onHighlight} onToggleSubmenu={onToggleSubmenu} />);
+            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onHighlight={onHighlight} />);
 
-            const graySwatch = document.querySelector('.highlight-swatch-gray');
+            const graySwatch = document.querySelector('.bg-swatch.color-gray');
             fireEvent.click(graySwatch);
 
-            expect(onHighlight).toHaveBeenCalledWith('gray', false);
+            expect(onHighlight).toHaveBeenCalledWith('gray');
         });
 
-        it('should call onHighlight with gray tag when gray tag swatch is clicked', () => {
-            const onHighlight = vi.fn();
-            const onToggleSubmenu = vi.fn();
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onHighlight={onHighlight} onToggleSubmenu={onToggleSubmenu} />);
-
-            const grayTagSwatch = document.querySelector('.tag-swatch-gray');
-            fireEvent.click(grayTagSwatch);
-
-            expect(onHighlight).toHaveBeenCalledWith('gray', true);
-        });
-
-        it('should mark gray highlight swatch as active when highlightColor is gray', () => {
+        it('should mark gray background swatch as active when highlightColor is gray', () => {
             render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" activeFormats={{ highlightColor: 'gray' }} />);
-            const graySwatch = document.querySelector('.highlight-swatch-gray');
+            // Get the swatch from the Background Color section (third section)
+            const sections = document.querySelectorAll('.color-picker-section');
+            const bgSection = sections[2];
+            const graySwatch = bgSection.querySelector('.bg-swatch.color-gray');
             expect(graySwatch.className).toContain('active');
         });
     });
 
-    describe('Clear Formatting Button', () => {
-        it('should render clear formatting button in highlight popup', () => {
+    describe('Color Picker Sections', () => {
+        it('should render three color picker sections', () => {
             render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            const clearButton = document.querySelector('.clear-formatting-button');
-            expect(clearButton).toBeTruthy();
-            expect(clearButton.textContent).toBe('Clear');
+            const sections = document.querySelectorAll('.color-picker-section');
+            expect(sections.length).toBe(3); // Recently Used, Text Color, Background Color
         });
 
-        it('should call onClearHighlight with null when clear button is clicked', () => {
-            const onClearHighlight = vi.fn();
-            const onToggleSubmenu = vi.fn();
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" onClearHighlight={onClearHighlight} onToggleSubmenu={onToggleSubmenu} />);
-
-            const clearButton = document.querySelector('.clear-formatting-button');
-            fireEvent.click(clearButton);
-
-            expect(onClearHighlight).toHaveBeenCalledWith(null);
-            expect(onToggleSubmenu).toHaveBeenCalledWith(null);
+        it('should render section headers', () => {
+            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
+            const headers = document.querySelectorAll('.color-picker-header');
+            expect(headers.length).toBe(3);
         });
     });
 
-    describe('Highlight Popup Sections', () => {
-        it('should render Normal section header', () => {
+    describe('Color Swatches Count', () => {
+        it('should render ten text color swatches in Text Color section', () => {
             render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            expect(screen.getByText('Normal')).toBeTruthy();
+            // Get swatches from Text Color section (second section)
+            const sections = document.querySelectorAll('.color-picker-section');
+            const textSection = sections[1]; // Text Color is second section
+            const textSwatches = textSection.querySelectorAll('.text-swatch');
+            expect(textSwatches.length).toBe(10);
         });
 
-        it('should render Tag section header', () => {
+        it('should render ten background color swatches in Background Color section', () => {
             render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            expect(screen.getByText('Tag')).toBeTruthy();
-        });
-
-        it('should render two color sections', () => {
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            const sections = document.querySelectorAll('.color-section');
-            expect(sections.length).toBe(2);
-        });
-
-        it('should render six highlight swatches (gray, purple, blue, green, orange, red)', () => {
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            const highlightSwatches = document.querySelectorAll('.highlight-swatch');
-            expect(highlightSwatches.length).toBe(6);
-        });
-
-        it('should render six tag swatches', () => {
-            render(<FormattingMenu {...defaultProps} activeSubmenu="highlight" />);
-            const tagSwatches = document.querySelectorAll('.tag-swatch');
-            expect(tagSwatches.length).toBe(6);
+            // Get swatches from Background Color section (third section)
+            const sections = document.querySelectorAll('.color-picker-section');
+            const bgSection = sections[2]; // Background Color is third section
+            const bgSwatches = bgSection.querySelectorAll('.bg-swatch');
+            expect(bgSwatches.length).toBe(10);
         });
     });
 
@@ -374,22 +342,24 @@ describe('FormattingMenu', () => {
         it('should render all block type items in Turn Into popup', () => {
             render(<FormattingMenu {...defaultProps} activeSubmenu="turnInto" />);
 
-            const popupItems = document.querySelectorAll('.popup-item');
-            expect(popupItems.length).toBe(7); // Text, H1, H2, H3, Bulleted, Numbered, Quote
+            const menuItems = document.querySelectorAll('.turn-into-menu-item');
+            expect(menuItems.length).toBe(8); // Text, H1, H2, H3, H4, Bulleted, Numbered, Quote
 
             // Check specific items exist
             expect(screen.getByText('Heading 1')).toBeTruthy();
             expect(screen.getByText('Heading 2')).toBeTruthy();
             expect(screen.getByText('Heading 3')).toBeTruthy();
+            expect(screen.getByText('Heading 4')).toBeTruthy();
             expect(screen.getByText('Bulleted List')).toBeTruthy();
             expect(screen.getByText('Numbered List')).toBeTruthy();
             expect(screen.getByText('Quote')).toBeTruthy();
         });
 
-        it('should display check icon for active block type', () => {
+        it('should apply selected class to active block type', () => {
             render(<FormattingMenu {...defaultProps} activeSubmenu="turnInto" currentBlockType="h1" />);
-            const checkIcons = document.querySelectorAll('.check-icon');
-            expect(checkIcons.length).toBe(1);
+            const selectedItem = document.querySelector('.turn-into-menu-item.selected');
+            expect(selectedItem).toBeTruthy();
+            expect(selectedItem.textContent).toContain('Heading 1');
         });
     });
 

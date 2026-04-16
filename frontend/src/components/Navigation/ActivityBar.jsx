@@ -25,8 +25,8 @@ const ActivityBar = () => {
       {/* Bottom Actions */}
       <div className="bottom-actions">
         {/* Notifications */}
-        <button className="icon-btn-ghost" aria-label="Notifications">
-          <Bell size={24} strokeWidth={1.5} />
+        <button className="icon-btn icon-btn-lg" aria-label="Notifications">
+          <Bell strokeWidth={1.5} />
         </button>
 
         {/* User Profile */}

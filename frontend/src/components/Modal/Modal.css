@@ -1,0 +1,90 @@
+/**
+ * Modal Component Styles
+ *
+ * Three sizes: sm (400px), md (480px), lg (560px)
+ */
+
+.modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    display: flex;
+    flex-direction: column;
+    max-width: calc(100vw - 32px);
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.modal:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+}
+
+.modal--active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Sizes */
+.modal--sm {
+    width: 400px;
+    padding: 0 var(--space-sm);
+    box-shadow: var(--shadow-md);
+}
+
+.modal--md {
+    width: 480px;
+    padding: 0 var(--space-sm);
+    box-shadow: var(--shadow-md);
+}
+
+.modal--lg {
+    width: 560px;
+    padding: 0 var(--space-md);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Header */
+.modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 52px;
+    padding: var(--space-md) var(--space-xs);
+}
+
+.modal__title {
+    margin: 0;
+    font-size: var(--typography-h4-size);
+    font-weight: var(--typography-h4-weight);
+    line-height: var(--typography-h4-line-height);
+    color: var(--text-primary);
+}
+
+.modal__close {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Body */
+.modal__body {
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl) var(--space-md);
+    min-height: 40px;
+}
+
+/* Footer */
+.modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-xs);
+}

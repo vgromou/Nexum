@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
 import DOMPurify from 'dompurify';
+import { getPlainText, createTextNode } from '../utils/ast';
+import { astToHTML } from '../utils/astConverters';
 
 // Storage key for block clipboard data
 const CLIPBOARD_STORAGE_KEY = 'notion_blocks_clipboard';
@@ -21,26 +23,24 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
         const blocksToCopy = state.blocks.filter(b => blockIds.includes(b.id));
         if (blocksToCopy.length === 0) return;
 
-        // Prepare structured data for block-aware paste
+        // Prepare structured data for block-aware paste (AST format)
         const blocksData = blocksToCopy.map(b => ({
             type: b.type,
-            content: b.content,
-            indentLevel: b.indentLevel ?? 0,
+            children: b.children || [createTextNode('')],
+            metadata: b.metadata || { indentLevel: 0 },
             isPartial: { start: false, end: false },
         }));
 
-        // Generate plain text version
-        const plainText = blocksToCopy.map(b => {
-            const div = document.createElement('div');
-            div.innerHTML = b.content;
-            return div.textContent || div.innerText || '';
-        }).join('\n');
+        // Generate plain text version from AST
+        const plainText = blocksToCopy.map(b =>
+            getPlainText(b.children || [])
+        ).join('\n');
 
-        // Generate HTML version
+        // Generate HTML version from AST
         const html = blocksToCopy.map(b => {
             const tag = b.type === 'h1' ? 'h1' : b.type === 'h2' ? 'h2' : b.type === 'h3' ? 'h3' :
                 b.type === 'quote' ? 'blockquote' : b.type.includes('list') ? 'li' : 'p';
-            return `<${tag}>${b.content}</${tag}>`;
+            return `<${tag}>${astToHTML(b.children || [])}</${tag}>`;
         }).join('');
 
         // Create wiki-blocks JSON format
@@ -228,11 +228,9 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
 
             // Validate that stored blocks match current clipboard
             // (protects against stale sessionStorage data from previous copies)
-            const storedPlainText = storedBlocks?.map(b => {
-                const div = document.createElement('div');
-                div.innerHTML = b.content || '';
-                return div.textContent || '';
-            }).join('\n') || '';
+            const storedPlainText = storedBlocks?.map(b =>
+                getPlainText(b.children || [])
+            ).join('\n') || '';
 
             const isOurData = storedBlocks &&
                 storedBlocks.length > 0 &&
@@ -240,11 +238,11 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
 
             // If structured paste and we have VALID stored blocks
             if (!asPlainText && isOurData) {
-                // Sanitize stored content before inserting
+                // Sanitize stored blocks (AST format)
                 const sanitizedBlocks = storedBlocks.map(block => ({
                     type: block.type || 'paragraph',
-                    content: DOMPurify.sanitize(block.content || ''),
-                    indentLevel: block.indentLevel ?? 0,
+                    children: block.children || [createTextNode('')],
+                    metadata: { indentLevel: block.metadata?.indentLevel ?? 0 },
                     isPartial: block.isPartial || { start: false, end: false },
                 }));
 
@@ -304,8 +302,8 @@ export function useClipboard({ state, actions, editorRef, getSelectedContent }) 
                     }
                 }
             }
-        } catch (err) {
-            console.error('Failed to paste:', err);
+        } catch {
+            // Paste operation failed - silently ignore
         }
     }, [state.blocks, actions, editorRef]);
 

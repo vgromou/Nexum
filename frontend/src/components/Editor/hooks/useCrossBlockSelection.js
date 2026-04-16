@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { createLogger } from '../utils/debugLog';
+import { debounce } from '../../../utils/debounce';
 
 const log = createLogger('CrossBlockSelection');
 
@@ -118,7 +119,7 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
                 blocks: [{
                     type: block.type,
                     content,
-                    indentLevel: block.indentLevel ?? 0,
+                    indentLevel: block.metadata?.indentLevel ?? 0,
                     isPartial: { start: true, end: true },
                 }],
                 plainText: content,
@@ -156,7 +157,7 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
             blocks.push({
                 type: block.type,
                 content,
-                indentLevel: block.indentLevel ?? 0,
+                indentLevel: block.metadata?.indentLevel ?? 0,
                 isPartial,
                 originalId: block.id,
             });
@@ -345,11 +346,11 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
     }, [state.blocks, getBlockFromNode]);
 
     /**
-     * Updates cross-selection state when selection changes.
-     * Also syncs textSelectionBlockIds to global state for keyboard navigation.
+     * Debounced selection change handler to reduce excessive re-renders.
+     * Selection change events fire many times per second during selection.
      */
-    useEffect(() => {
-        const handleSelectionChange = () => {
+    const debouncedSelectionHandler = useMemo(() => {
+        return debounce(() => {
             const content = getSelectedContent();
             setCrossSelection(content);
 
@@ -388,11 +389,20 @@ export function useCrossBlockSelection({ editorRef, state, actions }) {
                     actions.clearTextSelection();
                 }
             }
-        };
+        }, 50); // 50ms debounce to batch rapid selection events
+    }, []); // Empty deps - callbacks accessed via closure get latest values
 
-        document.addEventListener('selectionchange', handleSelectionChange);
-        return () => document.removeEventListener('selectionchange', handleSelectionChange);
-    }, [getSelectedContent, actions, state.textSelectionBlockIds.length, state.blocks]);
+    /**
+     * Updates cross-selection state when selection changes.
+     * Also syncs textSelectionBlockIds to global state for keyboard navigation.
+     */
+    useEffect(() => {
+        document.addEventListener('selectionchange', debouncedSelectionHandler);
+        return () => {
+            document.removeEventListener('selectionchange', debouncedSelectionHandler);
+            debouncedSelectionHandler.cancel?.();
+        };
+    }, [debouncedSelectionHandler]);
 
 
     return {

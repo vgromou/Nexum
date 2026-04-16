@@ -10,7 +10,7 @@
 .block-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    /* No gap - spacing handled by per-block padding */
     user-select: text;
     -webkit-user-select: text;
 }
@@ -57,46 +57,257 @@
 
 .unified-content-area {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     outline: none;
     min-height: 200px;
+    /* Reset counter for numbered lists at container level */
+    counter-reset: numbered-list;
+    /* Prevent text from overflowing container */
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
-.unified-content-area:empty::before {
-    content: "Type '/' for commands...";
-    color: var(--color-gray-400, #9ca3af);
+/* Placeholder is handled by block-content, not the content area */
+
+/* ==========================================
+   BLOCK ROW (editor-block equivalent)
+   ========================================== */
+.block-row {
+    display: flex;
+    flex-direction: row;
+    /* Grip left, content right */
+    align-items: flex-start;
+    width: 100%;
+    position: relative;
+    border-radius: var(--radius-sm);
+    /* No margin - spacing is handled by per-block padding */
+}
+
+/* Show grip on block hover */
+.block-row:hover .block-handle {
+    opacity: 0.4;
+}
+
+/* Selected block highlight */
+.block-content.block-selected {
+    background-color: var(--accent-primary-light, #ECEEFF);
+    border-radius: var(--radius-sm);
+    transition: background-color 150ms ease-in-out;
+}
+
+/* Dragging state */
+.block-row.is-dragging .block-handle {
+    opacity: 1;
+    cursor: grabbing;
+}
+
+/* ==========================================
+   BLOCK GRIP (Drag Handle)
+   CRITICAL MEASUREMENTS - DO NOT CHANGE
+   ========================================== */
+.block-row .block-handle {
+    /* CRITICAL: Width 20px total (includes padding with border-box) */
+    width: 20px;
+    padding-left: 4px;
+    padding-right: 0;
+    margin-right: 0;
+
+    /* Layout - align to top, padding controls vertical position */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex-shrink: 0;
+
+    /* Visual */
+    border-radius: var(--radius-md);
+    cursor: grab;
+    user-select: none;
+
+    /* Color */
+    color: var(--icons-default, #9CA3AF);
+
+    /* Hidden by default */
+    opacity: 0;
+    transition: opacity 0.15s ease,
+        background 0.15s ease,
+        color 0.15s ease;
+
+    box-sizing: border-box;
+}
+
+/* Grip margin adjustments per block type */
+.block-row:has(.block-content[data-block-type="h1"]) .block-handle {
+    margin-top: var(--spacing-block-h1-top, 32px);
+}
+
+.block-row:has(.block-content[data-block-type="h2"]) .block-handle {
+    margin-top: var(--spacing-block-h2-top, 24px);
+}
+
+.block-row:has(.block-content[data-block-type="h3"]) .block-handle {
+    margin-top: var(--spacing-block-h3-top, 20px);
+}
+
+.block-row:has(.block-content[data-block-type="h4"]) .block-handle {
+    margin-top: var(--spacing-block-h4-top, 16px);
+}
+
+.block-row:has(.block-content[data-block-type="bulleted-list"]) .block-handle,
+.block-row:has(.block-content[data-block-type="numbered-list"]) .block-handle {
+    margin-top: var(--spacing-block-list-top, 6px);
+}
+
+.block-row:has(.block-content[data-block-type="quote"]) .block-handle {
+    margin-top: var(--spacing-block-quote-top, 16px);
+}
+
+/* Grip hover state */
+.block-row .block-handle:hover {
+    opacity: 1 !important;
+    background: var(--background-hover, #F3F4F6);
+    color: var(--icons-hover, #6B7280);
+}
+
+/* Grip active/dragging state */
+.block-row .block-handle:active {
+    cursor: grabbing;
+    background: var(--background-active, #E5E7EB);
+    color: var(--text-primary, #1F2937);
+}
+
+/* ==========================================
+   GRIP ICON (6 dots pattern)
+   ========================================== */
+.block-row .block-handle svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
     pointer-events: none;
+    display: block;
 }
 
-.unified-content-area .block-content {
-    padding: 4px 0;
+/* ==========================================
+   BLOCK CONTENT (Text area)
+   ========================================== */
+.block-row .block-content {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    /* 12px padding = grip (20px) + 12px = 32px total, matches page-title padding */
+    padding-left: 12px;
     margin: 0;
+    /* Ensure long words wrap at container edge */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
-.unified-content-area .block-content:focus {
+.block-row .block-content:focus {
     outline: none;
 }
 
-/* Block selection in unified editor */
-.unified-content-area .block-content.block-selected {
-    background-color: rgba(35, 131, 226, 0.14);
-    border-radius: 4px;
+/* Remove default margins from child elements */
+.block-row .block-content>* {
+    margin: 0;
+    padding: 0;
 }
 
 .unified-content-area .block-content.block-being-dragged {
     opacity: 0.5;
 }
 
+/* ==========================================
+   BLOCK TYPE-SPECIFIC SPACING
+   Padding-based spacing for visual hierarchy
+   ========================================== */
+
+/* Paragraph */
+.block-content[data-block-type="paragraph"] {
+    padding-top: var(--spacing-block-paragraph-top, 0px);
+    padding-bottom: var(--spacing-block-paragraph-bottom, 16px);
+}
+
+/* Heading H1 - Major section separator */
+.block-content[data-block-type="h1"] {
+    padding-top: var(--spacing-block-h1-top, 32px);
+    padding-bottom: var(--spacing-block-h1-bottom, 16px);
+    font-size: var(--typography-h1-size, 32px);
+    line-height: var(--typography-h1-line-height, 40px);
+    font-weight: var(--typography-h1-weight, 700);
+    letter-spacing: var(--typography-h1-letter-spacing, -0.004em);
+    color: var(--text-primary, #1F2937);
+}
+
+/* Heading H2 - Subsection separator */
+.block-content[data-block-type="h2"] {
+    padding-top: var(--spacing-block-h2-top, 24px);
+    padding-bottom: var(--spacing-block-h2-bottom, 12px);
+    font-size: var(--typography-h2-size, 24px);
+    line-height: var(--typography-h2-line-height, 32px);
+    font-weight: var(--typography-h2-weight, 600);
+    letter-spacing: var(--typography-h2-letter-spacing, -0.00048em);
+    color: var(--text-primary, #1F2937);
+}
+
+/* Heading H3 - Minor heading */
+.block-content[data-block-type="h3"] {
+    padding-top: var(--spacing-block-h3-top, 20px);
+    padding-bottom: var(--spacing-block-h3-bottom, 8px);
+    font-size: var(--typography-h3-size, 20px);
+    line-height: var(--typography-h3-line-height, 28px);
+    font-weight: var(--typography-h3-weight, 600);
+    letter-spacing: var(--typography-h3-letter-spacing, 0);
+    color: var(--text-primary, #1F2937);
+}
+
+/* Heading H4 - Smallest heading */
+.block-content[data-block-type="h4"] {
+    padding-top: var(--spacing-block-h4-top, 16px);
+    padding-bottom: var(--spacing-block-h4-bottom, 8px);
+    font-size: var(--typography-h4-size, 18px);
+    line-height: var(--typography-h4-line-height, 26px);
+    font-weight: var(--typography-h4-weight, 600);
+    letter-spacing: var(--typography-h4-letter-spacing, 0);
+    color: var(--text-primary, #1F2937);
+}
+
+/* List Items - Compact spacing */
+.block-content[data-block-type="bulleted-list"],
+.block-content[data-block-type="numbered-list"] {
+    padding-top: var(--spacing-block-list-top, 6px);
+    padding-bottom: var(--spacing-block-list-bottom, 6px);
+}
+
+/* Quote blocks */
+.block-content[data-block-type="quote"] {
+    padding-top: var(--spacing-block-quote-top, 16px);
+    padding-bottom: var(--spacing-block-quote-bottom, 16px);
+}
+
+/* ==========================================
+   FIRST/LAST BLOCK OVERRIDES
+   ========================================== */
+
+/* First block - no top padding */
+.unified-content-area>.block-row:first-child .block-content {
+    padding-top: 0 !important;
+}
+
+/* Last block - no bottom padding */
+.unified-content-area>.block-row:last-child .block-content {
+    padding-bottom: 0 !important;
+}
+
+
 /* Block Wrapper */
 .block-wrapper {
     position: relative;
     display: flex;
     align-items: flex-start;
-    padding: 4px 0;
-    padding-left: 32px;
-    /* Space for the handle outside */
-    margin-left: -32px;
-    /* Pull the entire wrapper back */
-    border-radius: 4px;
+    gap: var(--space-sm);
+    padding: 0;
+    border-radius: var(--radius-sm);
     transition: background-color 0.15s ease;
 }
 
@@ -117,22 +328,27 @@
     background-color: var(--color-selection-blue-hover);
 }
 
-/* Drag Handle - positioned outside the content area */
+/* Drag Handle - 24px container with 4px left padding, 20x20 icon */
 .block-handle {
-    position: absolute;
-    left: 4px;
-    top: 4px;
     width: 24px;
     height: 24px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding-left: 4px;
+    box-sizing: border-box;
     opacity: 0;
     cursor: grab;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     color: var(--color-gray-400, #9ca3af);
     transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
     user-select: none;
+}
+
+.block-handle svg {
+    width: 20px;
+    height: 20px;
 }
 
 .block-handle:hover {
@@ -170,14 +386,16 @@
 .block-content[data-block-type="paragraph"].is-empty.is-focused::before,
 .block-content[data-block-type="h1"].is-empty.is-focused::before,
 .block-content[data-block-type="h2"].is-empty.is-focused::before,
-.block-content[data-block-type="h3"].is-empty.is-focused::before {
+.block-content[data-block-type="h3"].is-empty.is-focused::before,
+.block-content[data-block-type="h4"].is-empty.is-focused::before {
     content: attr(data-placeholder);
     color: var(--color-gray-400, #9ca3af);
     pointer-events: none;
     position: absolute;
-    left: 0;
-    /* Align with block content padding */
-    top: var(--block-content-padding-top, 4px);
+    left: 12px;
+    /* Match block's padding-left */
+    top: 0px;
+    /* Align with cursor line */
 }
 
 /* Placeholder for empty focused list blocks (use ::after since ::before is for marker) */
@@ -213,7 +431,6 @@
     font-weight: var(--font-weight-h1, 700);
     letter-spacing: var(--letter-spacing-h1, -0.4px);
     color: var(--color-text-primary, #000);
-    margin-top: 16px;
 }
 
 .block-type-h2 .block-content {
@@ -222,7 +439,6 @@
     font-weight: var(--font-weight-h2, 600);
     letter-spacing: var(--letter-spacing-h2, -0.2px);
     color: var(--color-text-primary, #000);
-    margin-top: 12px;
 }
 
 .block-type-h3 .block-content {
@@ -231,14 +447,13 @@
     font-weight: var(--font-weight-h3, 600);
     letter-spacing: var(--letter-spacing-h3, 0);
     color: var(--color-text-primary, #000);
-    margin-top: 8px;
 }
 
 /* List Items */
 .list-item-wrapper {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 
 .list-bullet,
@@ -272,7 +487,7 @@
 .unified-content-area .block-content[data-block-type="bulleted-list"],
 .unified-content-area .block-content[data-block-type="numbered-list"] {
     position: relative;
-    padding-left: 28px;
+    /* padding-left = marker width (20px) + gap (8px) = 28px */
     padding-left: 28px;
     list-style: none;
 }
@@ -281,20 +496,68 @@
 .unified-content-area .block-content[data-block-type="quote"] {
     border-left: 4px solid var(--color-gray-400, #9ca3af);
     background-color: var(--color-gray-100, #f3f4f6);
-    border-radius: 4px;
-    padding: 12px 16px;
-    margin: 4px 0;
+    border-radius: var(--radius-sm);
+    /* Inner padding: 12 top, 0 right, 12 bottom, 24 left */
+    padding: var(--space-md) 0 var(--space-md) var(--space-xl);
     font-style: italic;
     color: var(--color-text-secondary, #666);
-    min-height: 52px;
-    /* Ensure space for line-height (26px) + padding (24px) + border */
+    min-height: 50px;
     display: flex;
     align-items: center;
 }
 
-/* Marker Utility - Reset Counter */
-.unified-content-area .block-content[data-list-reset="true"] {
-    counter-reset: block-list-counter;
+/* ==========================================
+   NUMBERED LIST COUNTER SYSTEM
+   Block-rows ARE siblings, so counters work on that level.
+   Each indent level has its own counter.
+   ========================================== */
+
+/* Reset level 0 counter when starting a new list sequence */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="0"][data-list-reset="true"]) {
+    counter-reset: numbered-list-0;
+}
+
+/* Increment level 0 counter ONLY for level 0 items, and NOT if it has reset */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="0"]:not([data-list-reset="true"])) {
+    counter-increment: numbered-list-0;
+}
+
+/* First item with reset: reset AND increment */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="0"][data-list-reset="true"]) {
+    counter-reset: numbered-list-0;
+    counter-increment: numbered-list-0;
+}
+
+/* Reset level 1 counter when entering level 1 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-list-reset-1="true"]) {
+    counter-reset: numbered-list-1;
+}
+
+/* Increment level 1 counter */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="1"]:not([data-list-reset-1="true"])) {
+    counter-increment: numbered-list-1;
+}
+
+/* First item at level 1 with reset: reset AND increment */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="1"][data-list-reset-1="true"]) {
+    counter-reset: numbered-list-1;
+    counter-increment: numbered-list-1;
+}
+
+/* Reset level 2 counter when entering level 2 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-list-reset-2="true"]) {
+    counter-reset: numbered-list-2;
+}
+
+/* Increment level 2 counter */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="2"]:not([data-list-reset-2="true"])) {
+    counter-increment: numbered-list-2;
+}
+
+/* First item at level 2 with reset: reset AND increment */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="2"][data-list-reset-2="true"]) {
+    counter-reset: numbered-list-2;
+    counter-increment: numbered-list-2;
 }
 
 /* Bullet Marker */
@@ -302,22 +565,20 @@
     content: '•';
     position: absolute;
     left: 4px;
+    top: 0;
+    padding-top: 6px;
     width: 20px;
     text-align: center;
     color: var(--color-text-primary, #000);
-    font-size: 1.2em;
-    line-height: inherit;
+    font-size: 20px;
+    line-height: 1;
     user-select: none;
     pointer-events: none;
 }
 
-/* Number Marker */
-.unified-content-area .block-content[data-block-type="numbered-list"] {
-    counter-increment: block-list-counter;
-}
-
-.unified-content-area .block-content[data-block-type="numbered-list"]::before {
-    content: counter(block-list-counter) ".";
+/* Number Marker - Level 0 */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="0"]::before {
+    content: counter(numbered-list-0) ".";
     position: absolute;
     left: 0;
     width: 24px;
@@ -331,13 +592,258 @@
     pointer-events: none;
 }
 
+/* Number Marker - Level 1 (letters: a, b, c...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="1"]::before {
+    content: counter(numbered-list-1, lower-alpha) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Number Marker - Level 2 (roman: i, ii, iii...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="2"]::before {
+    content: counter(numbered-list-2, lower-roman) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* ==========================================
+   NUMBERED LIST COUNTERS - Levels 3-10
+   ========================================== */
+
+/* Level 3 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="3"][data-list-reset-3="true"]) {
+    counter-reset: numbered-list-3;
+    counter-increment: numbered-list-3;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="3"]:not([data-list-reset-3="true"])) {
+    counter-increment: numbered-list-3;
+}
+
+/* Level 3 (decimal: 1, 2, 3...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="3"]::before {
+    content: counter(numbered-list-3) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Level 4 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="4"][data-list-reset-4="true"]) {
+    counter-reset: numbered-list-4;
+    counter-increment: numbered-list-4;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="4"]:not([data-list-reset-4="true"])) {
+    counter-increment: numbered-list-4;
+}
+
+/* Level 4 (letters: a, b, c...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="4"]::before {
+    content: counter(numbered-list-4, lower-alpha) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Level 5 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="5"][data-list-reset-5="true"]) {
+    counter-reset: numbered-list-5;
+    counter-increment: numbered-list-5;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="5"]:not([data-list-reset-5="true"])) {
+    counter-increment: numbered-list-5;
+}
+
+/* Level 5 (roman: i, ii, iii...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="5"]::before {
+    content: counter(numbered-list-5, lower-roman) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Level 6 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="6"][data-list-reset-6="true"]) {
+    counter-reset: numbered-list-6;
+    counter-increment: numbered-list-6;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="6"]:not([data-list-reset-6="true"])) {
+    counter-increment: numbered-list-6;
+}
+
+/* Level 6 (decimal: 1, 2, 3...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="6"]::before {
+    content: counter(numbered-list-6) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Level 7 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="7"][data-list-reset-7="true"]) {
+    counter-reset: numbered-list-7;
+    counter-increment: numbered-list-7;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="7"]:not([data-list-reset-7="true"])) {
+    counter-increment: numbered-list-7;
+}
+
+/* Level 7 (letters: a, b, c...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="7"]::before {
+    content: counter(numbered-list-7, lower-alpha) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Level 8 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="8"][data-list-reset-8="true"]) {
+    counter-reset: numbered-list-8;
+    counter-increment: numbered-list-8;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="8"]:not([data-list-reset-8="true"])) {
+    counter-increment: numbered-list-8;
+}
+
+/* Level 8 (roman: i, ii, iii...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="8"]::before {
+    content: counter(numbered-list-8, lower-roman) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Level 9 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="9"][data-list-reset-9="true"]) {
+    counter-reset: numbered-list-9;
+    counter-increment: numbered-list-9;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="9"]:not([data-list-reset-9="true"])) {
+    counter-increment: numbered-list-9;
+}
+
+/* Level 9 (decimal: 1, 2, 3...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="9"]::before {
+    content: counter(numbered-list-9) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Level 10 */
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="10"][data-list-reset-10="true"]) {
+    counter-reset: numbered-list-10;
+    counter-increment: numbered-list-10;
+}
+
+.unified-content-area>.block-row:has(.block-content[data-block-type="numbered-list"][data-indent-level="10"]:not([data-list-reset-10="true"])) {
+    counter-increment: numbered-list-10;
+}
+
+/* Level 10 (letters: a, b, c...) */
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="10"]::before {
+    content: counter(numbered-list-10, lower-alpha) ".";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    text-align: right;
+    padding-right: 4px;
+    color: var(--color-text-primary, #000);
+    font-variant-numeric: tabular-nums;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    pointer-events: none;
+}
+
+
 /* Quote */
 .block-type-quote .block-content-wrapper {
     border-left: 4px solid var(--color-gray-400, #9ca3af);
     background-color: var(--color-gray-100, #f3f4f6);
-    border-radius: 4px;
-    padding: 12px 16px;
-    margin: 4px 0;
+    border-radius: var(--radius-sm);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-xs) 0;
 }
 
 .quote-content {
@@ -354,8 +860,8 @@
     left: 0;
     right: 0;
     height: 3px;
-    background-color: var(--color-selection-blue);
-    border-radius: 2px;
+    background-color: var(--color-selection-blue, #2383e2);
+    border-radius: var(--radius-xs);
     pointer-events: none;
     z-index: 100;
     transform: translateY(-50%);
@@ -365,68 +871,172 @@
 .slash-command-menu {
     position: fixed;
     z-index: 1000;
-    background: white;
-    border: 1px solid var(--color-gray-100, #f3f4f6);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px var(--color-shadow-menu, rgba(0, 0, 0, 0.16)),
-        0 0 1px rgba(0, 0, 0, 0.08);
-    width: 220px;
-    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    max-height: 400px;
+    padding: var(--space-sm) var(--space-xxs) var(--space-sm) var(--space-sm);
+    /* 2px padding on right */
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--Border-Default, #E5E7EB);
+    background: var(--Surface-Elevated, #FFF);
+    box-shadow: 0 4px 16px 0 var(--Shadow-Default, rgba(0, 0, 0, 0.12));
+    overflow: hidden;
+}
+
+/* Scroll wrapper - handles overflow scroll */
+.slash-menu-scroll-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xxs);
     overflow-y: auto;
-    padding: 8px;
+    max-height: 100%;
+    padding-right: 2px;
+    /* 2px gap between content and scrollbar */
+    scrollbar-gutter: stable;
+    /* Reserves 4px for scrollbar */
 }
 
 .slash-menu-header {
+    display: flex;
+    padding: var(--space-xs) var(--space-md);
+    align-items: center;
+    gap: var(--space-xs);
+    align-self: stretch;
+    flex-shrink: 0;
+    color: var(--Text-Tertiary, #9CA3AF);
+    font-family: Inter, sans-serif;
     font-size: 11px;
+    font-style: normal;
     font-weight: 600;
+    line-height: 16px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--color-gray-400, #9ca3af);
-    padding: 8px 12px 6px;
+}
+
+.slash-menu-header-line-left {
+    width: 24px;
+    height: 1px;
+    flex-shrink: 0;
+    background: var(--Border-Default, #E5E7EB);
+}
+
+.slash-menu-header-line-right {
+    height: 1px;
+    flex: 1 0 0;
+    background: var(--Border-Default, #E5E7EB);
 }
 
 .slash-menu-items {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-self: stretch;
+    gap: var(--space-xxs);
 }
 
 .slash-menu-item {
     display: flex;
+    height: 32px;
+    padding: var(--space-sm) var(--space-md);
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    align-self: stretch;
     cursor: pointer;
-    border-radius: 8px;
+    gap: var(--space-sm);
+    background: transparent;
     transition: background-color 0.1s ease;
 }
 
-.slash-menu-item:hover {
-    background-color: var(--color-gray-100, #f3f4f6);
-}
-
-.slash-menu-item.selected {
-    background-color: var(--color-selection-blue-transparent, rgba(35, 131, 226, 0.08));
-}
-
+/* Default state colors */
 .slash-menu-item-icon {
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-gray-500, #6b7280);
-}
-
-.slash-menu-item-content {
-    flex: 1;
-    min-width: 0;
+    color: var(--Icons-Default, #9CA3AF);
 }
 
 .slash-menu-item-label {
     font-size: 14px;
-    font-weight: 500;
-    color: var(--color-text-primary, #000);
+    font-weight: 400;
+    color: var(--Text-Tertiary, #9CA3AF);
     line-height: 1.4;
+}
+
+.slash-menu-item-shortcut {
+    font-size: var(--typography-code-inline-size, 14px);
+    font-weight: var(--typography-code-inline-weight, 400);
+    line-height: var(--typography-code-inline-line-height, 20px);
+    color: var(--Icons-Default, #9CA3AF);
+    font-family: var(--font-family-mono, 'JetBrains Mono', monospace);
+}
+
+/* Hover state - applies to all items */
+.slash-menu-item:hover {
+    border-radius: var(--radius-md);
+    background: var(--Background-Hover, #F3F4F6);
+}
+
+.slash-menu-item:hover .slash-menu-item-icon {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+.slash-menu-item:hover .slash-menu-item-label {
+    color: var(--Text-Primary, #111827);
+}
+
+.slash-menu-item:hover .slash-menu-item-shortcut {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+/* Highlighted state - keyboard navigation (same as hover) */
+.slash-menu-item.highlighted {
+    border-radius: var(--radius-md);
+    background: var(--Background-Hover, #F3F4F6);
+}
+
+.slash-menu-item.highlighted .slash-menu-item-icon {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+.slash-menu-item.highlighted .slash-menu-item-label {
+    color: var(--Text-Primary, #111827);
+}
+
+.slash-menu-item.highlighted .slash-menu-item-shortcut {
+    color: var(--Icons-Hover, #6B7280);
+}
+
+/* Selected state - current formatting (purple/active colors) */
+.slash-menu-item.selected {
+    border-radius: var(--radius-md);
+    background: var(--Accent-Primary-Light, #ECEEFF);
+}
+
+.slash-menu-item.selected .slash-menu-item-icon {
+    color: var(--Icons-Active, #5B5FC7);
+}
+
+.slash-menu-item.selected .slash-menu-item-label {
+    color: var(--Accent-Primary, #5B5FC7);
+}
+
+.slash-menu-item.selected .slash-menu-item-shortcut {
+    color: var(--Icons-Active, #5B5FC7);
+}
+
+/* Left side group (icon + label) */
+.slash-menu-item-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: 1;
+    min-width: 0;
+}
+
+/* Keep for backwards compatibility */
+.slash-menu-item-content {
+    flex: 1;
+    min-width: 0;
 }
 
 .slash-menu-item-description {
@@ -434,9 +1044,12 @@
 }
 
 .slash-menu-empty {
-    padding: 12px;
-    text-align: center;
-    color: var(--color-gray-400, #9ca3af);
+    display: flex;
+    padding: var(--space-sm) var(--space-md);
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    color: var(--Text-Secondary, #6B7280);
     font-size: 14px;
 }
 
@@ -466,8 +1079,8 @@
     line-height: var(--line-height-code-inline, 1.5);
     font-weight: var(--font-weight-code-inline, 400);
     background-color: var(--color-code-bg);
-    padding: 2px 4px;
-    border-radius: 3px;
+    padding: var(--space-xxs) var(--space-xs);
+    border-radius: var(--radius-xs);
     color: var(--color-code-text);
 }
 
@@ -487,149 +1100,113 @@
 .block-content a.link-active,
 .unified-content-area a.link-active {
     background-color: rgba(37, 99, 235, 0.1);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
 }
 
 /* Normal Highlights (background only) */
-.block-content .highlight-purple {
-    background-color: var(--color-highlight-purple-bg);
-}
-
-.block-content .highlight-pink {
-    background-color: var(--color-highlight-pink-bg);
-}
-
-.block-content .highlight-blue {
-    background-color: var(--color-highlight-blue-bg);
-}
-
-.block-content .highlight-green {
-    background-color: var(--color-highlight-green-bg);
-}
-
-.block-content .highlight-yellow {
-    background-color: var(--color-highlight-yellow-bg);
-}
-
-.block-content .highlight-orange {
-    background-color: var(--color-highlight-orange-bg);
-}
-
-.block-content .highlight-red {
-    background-color: var(--color-highlight-red-bg);
+.block-content .highlight-default {
+    background-color: var(--color-highlight-default-bg);
+    color: var(--color-highlight-default-text);
 }
 
 .block-content .highlight-gray {
     background-color: var(--color-highlight-gray-bg);
 }
 
-/* Tag Highlights - Base styles (for body text) */
-.block-content .tag-purple,
-.block-content .tag-blue,
-.block-content .tag-green,
-.block-content .tag-orange,
-.block-content .tag-red,
-.block-content .tag-gray {
-    font-size: var(--font-size-highlight-body, 14px);
-    line-height: var(--line-height-highlight-body, 1.5);
-    font-weight: var(--font-weight-highlight-body, 500);
-    padding: 2px 6px;
-    border-radius: var(--border-radius-tag);
-    display: inline;
+.block-content .highlight-brown {
+    background-color: var(--color-highlight-brown-bg);
 }
 
-/* Tag colors */
-.block-content .tag-purple {
-    background-color: var(--color-highlight-purple-bg);
-    color: var(--color-highlight-purple-text);
-}
-
-.block-content .tag-pink {
-    background-color: var(--color-highlight-pink-bg);
-    color: var(--color-highlight-pink-text);
-}
-
-.block-content .tag-blue {
-    background-color: var(--color-highlight-blue-bg);
-    color: var(--color-highlight-blue-text);
-}
-
-.block-content .tag-green {
-    background-color: var(--color-highlight-green-bg);
-    color: var(--color-highlight-green-text);
-}
-
-.block-content .tag-yellow {
-    background-color: var(--color-highlight-yellow-bg);
-    color: var(--color-highlight-yellow-text);
-}
-
-.block-content .tag-orange {
+.block-content .highlight-orange {
     background-color: var(--color-highlight-orange-bg);
-    color: var(--color-highlight-orange-text);
 }
 
-.block-content .tag-red {
+.block-content .highlight-yellow {
+    background-color: var(--color-highlight-yellow-bg);
+}
+
+.block-content .highlight-green {
+    background-color: var(--color-highlight-green-bg);
+}
+
+.block-content .highlight-blue {
+    background-color: var(--color-highlight-blue-bg);
+}
+
+.block-content .highlight-purple {
+    background-color: var(--color-highlight-purple-bg);
+}
+
+.block-content .highlight-magenta {
+    background-color: var(--color-highlight-magenta-bg);
+}
+
+.block-content .highlight-red {
     background-color: var(--color-highlight-red-bg);
-    color: var(--color-highlight-red-text);
 }
 
-.block-content .tag-gray {
-    background-color: var(--color-highlight-gray-bg);
+/* Text Color Classes */
+.block-content .text-color-default {
+    color: var(--color-highlight-default-text);
+}
+
+.block-content .text-color-gray {
     color: var(--color-highlight-gray-text);
 }
 
-/* Tag Highlights in H1 - preserve heading size */
-.block-content[data-block-type="h1"] .tag-purple,
-.block-content[data-block-type="h1"] .tag-blue,
-.block-content[data-block-type="h1"] .tag-green,
-.block-content[data-block-type="h1"] .tag-orange,
-.block-content[data-block-type="h1"] .tag-red,
-.block-content[data-block-type="h1"] .tag-gray {
-    font-size: var(--font-size-highlight-h1, 28px);
-    line-height: var(--line-height-highlight-h1, 1.25);
-    font-weight: var(--font-weight-highlight-h1, 700);
-    letter-spacing: var(--letter-spacing-highlight-h1, -0.004em);
+.block-content .text-color-brown {
+    color: var(--color-highlight-brown-text);
 }
 
-/* Tag Highlights in H2 - preserve heading size */
-.block-content[data-block-type="h2"] .tag-purple,
-.block-content[data-block-type="h2"] .tag-blue,
-.block-content[data-block-type="h2"] .tag-green,
-.block-content[data-block-type="h2"] .tag-orange,
-.block-content[data-block-type="h2"] .tag-red,
-.block-content[data-block-type="h2"] .tag-gray {
-    font-size: var(--font-size-highlight-h2, 22px);
-    line-height: var(--line-height-highlight-h2, 1.33);
-    font-weight: var(--font-weight-highlight-h2, 600);
-    letter-spacing: var(--letter-spacing-highlight-h2, -0.002em);
+.block-content .text-color-orange {
+    color: var(--color-highlight-orange-text);
 }
 
-/* Tag Highlights in H3 - preserve heading size */
-.block-content[data-block-type="h3"] .tag-purple,
-.block-content[data-block-type="h3"] .tag-blue,
-.block-content[data-block-type="h3"] .tag-green,
-.block-content[data-block-type="h3"] .tag-orange,
-.block-content[data-block-type="h3"] .tag-red,
-.block-content[data-block-type="h3"] .tag-gray {
-    font-size: var(--font-size-highlight-h3, 18px);
-    line-height: var(--line-height-highlight-h3, 1.4);
-    font-weight: var(--font-weight-highlight-h3, 600);
-    letter-spacing: var(--letter-spacing-highlight-h3, 0);
+.block-content .text-color-yellow {
+    color: var(--color-highlight-yellow-text);
 }
 
-/* Scrollbar styling for slash menu */
-.slash-command-menu::-webkit-scrollbar {
-    width: 6px;
+.block-content .text-color-green {
+    color: var(--color-highlight-green-text);
 }
 
-.slash-command-menu::-webkit-scrollbar-track {
+.block-content .text-color-blue {
+    color: var(--color-highlight-blue-text);
+}
+
+.block-content .text-color-purple {
+    color: var(--color-highlight-purple-text);
+}
+
+.block-content .text-color-magenta {
+    color: var(--color-highlight-magenta-text);
+}
+
+.block-content .text-color-red {
+    color: var(--color-highlight-red-text);
+}
+
+/* Scrollbar styling for slash menu scroll wrapper */
+/* Content -> 2px padding-right -> 4px scrollbar (gutter) -> 2px padding -> border */
+
+.slash-menu-scroll-wrapper::-webkit-scrollbar {
+    width: 4px;
+}
+
+.slash-menu-scroll-wrapper::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.slash-command-menu::-webkit-scrollbar-thumb {
-    background-color: var(--color-gray-400, #9ca3af);
-    border-radius: 3px;
+/* Scrollbar thumb - 4px wide */
+.slash-menu-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: var(--radius-xs);
+    transition: background-color 0.2s ease;
+}
+
+/* Show scrollbar thumb only when actively scrolling */
+.slash-command-menu.scrolling .slash-menu-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: var(--Border-Strong, #9CA3AF);
 }
 
 /* Drag state */
@@ -645,7 +1222,7 @@
 /* Text selection highlight */
 .block-wrapper.block-text-selected {
     background-color: var(--color-selection-blue-transparent);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .block-wrapper.block-text-selected:not(.block-selected) .block-handle {
@@ -673,9 +1250,9 @@
     z-index: 10000;
     pointer-events: none;
     background: white;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 8px 24px var(--color-shadow-drag), 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 8px 12px;
+    padding: var(--space-sm) var(--space-md);
     max-width: 320px;
     min-width: 180px;
     opacity: 0.95;
@@ -696,7 +1273,7 @@
 }
 
 .drag-preview-item {
-    padding: 4px 0;
+    padding: var(--space-xs) 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -835,32 +1412,83 @@
     content: '▪';
 }
 
-/* Nested numbered list counter management */
-/* Counter reset for nested levels */
-.unified-content-area .block-content[data-list-reset-1="true"] {
-    counter-reset: list-counter-1;
+/* ==========================================
+   EXTENDED LIST NESTING (Levels 3-10)
+   Infinite nesting support
+   ========================================== */
+
+/* Indent levels 3+ - 24px per level */
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="3"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="3"] {
+    margin-left: 72px;
 }
 
-.unified-content-area .block-content[data-list-reset-2="true"] {
-    counter-reset: list-counter-2;
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="4"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="4"] {
+    margin-left: 96px;
 }
 
-/* Level 1 numbered list counter */
-.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="1"] {
-    counter-increment: list-counter-1;
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="5"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="5"] {
+    margin-left: 120px;
 }
 
-.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="1"]::before {
-    content: counter(list-counter-1) ".";
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="6"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="6"] {
+    margin-left: 144px;
 }
 
-/* Level 2 numbered list counter */
-.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="2"] {
-    counter-increment: list-counter-2;
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="7"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="7"] {
+    margin-left: 168px;
 }
 
-.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="2"]::before {
-    content: counter(list-counter-2) ".";
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="8"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="8"] {
+    margin-left: 192px;
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="9"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="9"] {
+    margin-left: 216px;
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="10"],
+.unified-content-area .block-content[data-block-type="numbered-list"][data-indent-level="10"] {
+    margin-left: 240px;
+}
+
+/* Bullet markers cycle for levels 3+ */
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="3"]::before {
+    content: '•';
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="4"]::before {
+    content: '◦';
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="5"]::before {
+    content: '▪';
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="6"]::before {
+    content: '•';
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="7"]::before {
+    content: '◦';
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="8"]::before {
+    content: '▪';
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="9"]::before {
+    content: '•';
+}
+
+.unified-content-area .block-content[data-block-type="bulleted-list"][data-indent-level="10"]::before {
+    content: '◦';
 }
 
 /* ==========================================
@@ -880,7 +1508,7 @@
 /* Links in read-only mode - extra visual feedback on hover */
 .block-editor.read-only .unified-content-area a:hover {
     background-color: rgba(37, 99, 235, 0.08);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
 }
 
 /* Hide placeholders in read-only mode */
