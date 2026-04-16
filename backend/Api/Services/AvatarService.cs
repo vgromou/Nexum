@@ -1,9 +1,7 @@
 using Api.Configuration;
+using ImageMagick;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
 
 namespace Api.Services;
 
@@ -144,8 +142,8 @@ public sealed class AvatarService : IAvatarService
 
         try
         {
-            using var sourceStream = file.OpenReadStream();
-            using var image = await Image.LoadAsync(sourceStream);
+            await using var sourceStream = file.OpenReadStream();
+            using var image = new MagickImage(sourceStream);
 
             // Verify minimum size
             if (image.Width < 32 || image.Height < 32)
@@ -153,10 +151,8 @@ public sealed class AvatarService : IAvatarService
                 throw new BadHttpRequestException("Image must be at least 32x32 pixels");
             }
 
-            // Strip EXIF metadata for privacy and security
-            image.Metadata.ExifProfile = null;
-            image.Metadata.IptcProfile = null;
-            image.Metadata.XmpProfile = null;
+            // Strip all metadata profiles (EXIF, IPTC, XMP, etc.) for privacy and security
+            image.Strip();
 
             // Generate storage keys
             var basePath = $"avatars/{userId}";
@@ -177,7 +173,6 @@ public sealed class AvatarService : IAvatarService
                 _settings.ThumbnailLargeSize,
                 _settings.WebPQuality);
 
-            // Calculate total file size (approximate, both WebP files)
             var publicUrl = _fileStorageService.GetPublicUrl(largeKey);
 
             _logger.LogInformation(
@@ -191,14 +186,9 @@ public sealed class AvatarService : IAvatarService
                 PublicUrl: publicUrl,
                 FileSize: file.Length);
         }
-        catch (UnknownImageFormatException ex)
+        catch (MagickException ex)
         {
-            _logger.LogWarning(ex, "Invalid image format for user {UserId}", userId);
-            throw new BadHttpRequestException("Unsupported or corrupt image file");
-        }
-        catch (InvalidImageContentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid image content for user {UserId}", userId);
+            _logger.LogWarning(ex, "Invalid or corrupt image for user {UserId}", userId);
             throw new BadHttpRequestException("Unsupported or corrupt image file");
         }
         catch (BadHttpRequestException)
@@ -214,34 +204,30 @@ public sealed class AvatarService : IAvatarService
 
     /// <summary>
     /// Processes an image to create a thumbnail and uploads it to storage.
+    /// Produces a square thumbnail by resizing to fill and center-cropping.
     /// </summary>
     private async Task ProcessAndUploadThumbnail(
-        Image image,
+        IMagickImage<byte> image,
         string objectKey,
         int size,
         int quality)
     {
-        using var processedImage = image.Clone(ctx =>
-        {
-            // Resize to square thumbnail (crop to center if not square)
-            var resizeOptions = new ResizeOptions
-            {
-                Size = new Size(size, size),
-                Mode = ResizeMode.Crop,
-                Position = AnchorPositionMode.Center
-            };
-            ctx.Resize(resizeOptions);
-        });
+        using var processedImage = (MagickImage)image.Clone();
+        var sizeU = (uint)size;
 
-        // Convert to WebP and upload
+        // Resize to fill target area, preserving aspect ratio
+        processedImage.Resize(new MagickGeometry(sizeU, sizeU) { FillArea = true });
+
+        // Center-crop to exact square and reset virtual canvas
+        processedImage.Crop(sizeU, sizeU, Gravity.Center);
+        processedImage.ResetPage();
+
+        processedImage.Format = MagickFormat.WebP;
+        processedImage.Quality = (uint)quality;
+        processedImage.Settings.SetDefine(MagickFormat.WebP, "lossless", false);
+
         using var outputStream = new MemoryStream();
-        var encoder = new WebpEncoder
-        {
-            Quality = quality,
-            FileFormat = WebpFileFormatType.Lossy
-        };
-
-        await processedImage.SaveAsync(outputStream, encoder);
+        await processedImage.WriteAsync(outputStream, MagickFormat.WebP);
         outputStream.Position = 0;
 
         await _fileStorageService.UploadFileAsync(
