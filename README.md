@@ -56,13 +56,13 @@ which are compatible with MIT redistribution.
 | coverlet.collector | MIT |
 | EFCore.NamingConventions | Apache 2.0 |
 | Magick.NET-Q8-AnyCPU | Apache 2.0 |
-| Microsoft.AspNetCore.* | MIT |
-| Microsoft.EntityFrameworkCore.* | MIT |
+| Microsoft.* (AspNetCore, EntityFrameworkCore, Extensions, NET.Test.Sdk) | MIT |
 | Minio | Apache 2.0 |
 | Moq | BSD-3-Clause |
 | Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL License |
 | Swashbuckle.AspNetCore | MIT |
-| xUnit | Apache 2.0 |
+| System.IdentityModel.Tokens.Jwt | MIT |
+| xunit / xunit.runner.visualstudio | Apache 2.0 / MIT |
 
 ### Frontend
 

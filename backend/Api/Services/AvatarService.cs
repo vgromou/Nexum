@@ -143,7 +143,8 @@ public sealed class AvatarService : IAvatarService
         try
         {
             await using var sourceStream = file.OpenReadStream();
-            using var image = new MagickImage(sourceStream);
+            using var image = new MagickImage();
+            await image.ReadAsync(sourceStream);
 
             // Verify minimum size
             if (image.Width < 32 || image.Height < 32)
@@ -212,7 +213,7 @@ public sealed class AvatarService : IAvatarService
         int size,
         int quality)
     {
-        using var processedImage = (MagickImage)image.Clone();
+        using var processedImage = image.Clone();
         var sizeU = (uint)size;
 
         // Resize to fill target area, preserving aspect ratio
