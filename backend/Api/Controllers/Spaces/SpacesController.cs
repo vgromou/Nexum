@@ -154,7 +154,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -192,7 +192,7 @@ public partial class SpacesController : ControllerBase
 
         if (slugExists)
         {
-            throw ConflictException.SlugExists(slug);
+            throw ConflictException.SpaceSlugExists(slug);
         }
 
         // Validate default access
@@ -244,7 +244,7 @@ public partial class SpacesController : ControllerBase
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            throw ConflictException.SlugExists(slug);
+            throw ConflictException.SpaceSlugExists(slug);
         }
 
         // Reload with navigation properties for response
@@ -285,7 +285,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -318,7 +318,7 @@ public partial class SpacesController : ControllerBase
 
                 if (slugExists)
                 {
-                    throw ConflictException.SlugExists(newSlug);
+                    throw ConflictException.SpaceSlugExists(newSlug);
                 }
 
                 space.Slug = newSlug;
@@ -360,7 +360,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -370,7 +370,7 @@ public partial class SpacesController : ControllerBase
 
         if (space.IsArchived)
         {
-            throw BusinessRuleException.InvalidState("archived", "archived");
+            throw BusinessRuleException.SpaceAlreadyArchived();
         }
 
         space.IsArchived = true;
@@ -403,7 +403,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -412,7 +412,7 @@ public partial class SpacesController : ControllerBase
 
         if (!space.IsArchived)
         {
-            throw BusinessRuleException.InvalidState("active", "active");
+            throw BusinessRuleException.SpaceNotArchived();
         }
 
         space.IsArchived = false;
@@ -451,7 +451,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -499,7 +499,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -513,7 +513,7 @@ public partial class SpacesController : ControllerBase
                 "Role must be Administrator, Editor, or Viewer",
                 new Dictionary<string, List<FieldError>>
                 {
-                    ["role"] = [new FieldError { Code = ErrorCodes.VALIDATION_INVALID_VALUE, Message = "Cannot assign Owner or Private role via this endpoint" }]
+                    ["role"] = [new FieldError { Code = ErrorCodes.INVALID_SPACE_ROLE, Message = "Cannot assign Owner or Private role via this endpoint" }]
                 });
         }
 
@@ -544,7 +544,7 @@ public partial class SpacesController : ControllerBase
         // Check not already a member
         if (space.Members.Any(m => m.UserId == request.UserId))
         {
-            throw ConflictException.AlreadyExists("Space member");
+            throw ConflictException.SpaceMemberExists(request.UserId);
         }
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
@@ -600,7 +600,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -614,20 +614,20 @@ public partial class SpacesController : ControllerBase
                 "Role must be Administrator, Editor, or Viewer",
                 new Dictionary<string, List<FieldError>>
                 {
-                    ["role"] = [new FieldError { Code = ErrorCodes.VALIDATION_INVALID_VALUE, Message = "Use transfer-ownership endpoint to assign Owner role" }]
+                    ["role"] = [new FieldError { Code = ErrorCodes.INVALID_SPACE_ROLE, Message = "Use transfer-ownership endpoint to assign Owner role" }]
                 });
         }
 
         var targetMember = space.Members.FirstOrDefault(m => m.UserId == targetUserId);
         if (targetMember == null)
         {
-            throw NotFoundException.ForResource("Space member", targetUserId);
+            throw NotFoundException.SpaceMember(targetUserId, spaceId);
         }
 
         // Cannot change Owner's role
         if (targetMember.Role == SpaceRole.Owner)
         {
-            throw BusinessRuleException.NotAllowed("Cannot change Owner's role. Use transfer-ownership endpoint");
+            throw BusinessRuleException.CannotChangeOwnerRole();
         }
 
         // Administrator cannot promote/demote other Administrators
@@ -668,7 +668,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -685,7 +685,7 @@ public partial class SpacesController : ControllerBase
         var targetMember = space.Members.FirstOrDefault(m => m.UserId == targetUserId);
         if (targetMember == null)
         {
-            throw NotFoundException.ForResource("Space member", targetUserId);
+            throw NotFoundException.SpaceMember(targetUserId, spaceId);
         }
 
         // Cannot remove last Owner
@@ -694,7 +694,7 @@ public partial class SpacesController : ControllerBase
             var ownerCount = space.Members.Count(m => m.Role == SpaceRole.Owner);
             if (ownerCount <= 1)
             {
-                throw BusinessRuleException.NotAllowed("Cannot remove the last Owner. Transfer ownership first");
+                throw BusinessRuleException.CannotRemoveLastOwner();
             }
         }
 
@@ -737,7 +737,7 @@ public partial class SpacesController : ControllerBase
 
         if (space == null)
         {
-            throw NotFoundException.ForResource("Space", spaceId);
+            throw NotFoundException.Space(spaceId);
         }
 
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
@@ -754,7 +754,7 @@ public partial class SpacesController : ControllerBase
         var newOwnerMember = space.Members.FirstOrDefault(m => m.UserId == request.NewOwnerId);
         if (newOwnerMember == null)
         {
-            throw NotFoundException.ForResource("Space member", request.NewOwnerId);
+            throw NotFoundException.SpaceMember(request.NewOwnerId, spaceId);
         }
 
         if (newOwnerMember.Role != SpaceRole.Administrator)
@@ -763,7 +763,7 @@ public partial class SpacesController : ControllerBase
                 "New owner must be a current Administrator",
                 new Dictionary<string, List<FieldError>>
                 {
-                    ["newOwnerId"] = [new FieldError { Code = ErrorCodes.VALIDATION_INVALID_VALUE, Message = "Target user must have Administrator role" }]
+                    ["newOwnerId"] = [new FieldError { Code = ErrorCodes.TRANSFER_REQUIRES_ADMIN, Message = "Target user must have Administrator role" }]
                 });
         }
 
@@ -874,7 +874,7 @@ public partial class SpacesController : ControllerBase
                 "Default access must be Private, Viewer, or Editor",
                 new Dictionary<string, List<FieldError>>
                 {
-                    ["defaultAccess"] = [new FieldError { Code = ErrorCodes.VALIDATION_INVALID_VALUE, Message = "Default access cannot be Owner or Administrator" }]
+                    ["defaultAccess"] = [new FieldError { Code = ErrorCodes.INVALID_DEFAULT_ACCESS, Message = "Default access cannot be Owner or Administrator" }]
                 });
         }
     }

@@ -50,4 +50,20 @@ public class NotFoundException : ApiException
             $"User with ID '{userId}' is not a member of organization '{organizationId}'",
             ErrorCodes.MEMBER_NOT_FOUND);
     }
+
+    /// <summary>
+    /// Creates a NotFoundException for a space.
+    /// </summary>
+    public static NotFoundException Space(Guid? id = null)
+        => new(
+            id != null ? $"Space with ID '{id}' not found" : "Space not found",
+            ErrorCodes.SPACE_NOT_FOUND);
+
+    /// <summary>
+    /// Creates a NotFoundException for a space member.
+    /// </summary>
+    public static NotFoundException SpaceMember(Guid userId, Guid spaceId)
+        => new(
+            $"User with ID '{userId}' is not a member of space '{spaceId}'",
+            ErrorCodes.SPACE_MEMBER_NOT_FOUND);
 }

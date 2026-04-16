@@ -103,4 +103,20 @@ public class ConflictException : ApiException
             $"An organization with slug '{slug}' already exists",
             ErrorCodes.CONFLICT_SLUG_EXISTS);
     }
+
+    /// <summary>
+    /// Creates an exception when space slug already exists in the organization.
+    /// </summary>
+    public static ConflictException SpaceSlugExists(string slug)
+        => new(
+            $"A space with slug '{slug}' already exists in this organization",
+            ErrorCodes.SPACE_SLUG_EXISTS);
+
+    /// <summary>
+    /// Creates an exception when user is already a space member.
+    /// </summary>
+    public static ConflictException SpaceMemberExists(Guid userId)
+        => new(
+            $"User with ID '{userId}' is already a member of this space",
+            ErrorCodes.SPACE_MEMBER_EXISTS);
 }

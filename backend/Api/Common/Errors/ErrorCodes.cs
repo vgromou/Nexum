@@ -65,6 +65,20 @@ public static class ErrorCodes
     public const string CANNOT_DEACTIVATE_LAST_ADMIN = "CANNOT_DEACTIVATE_LAST_ADMIN"; // 422
     public const string USER_ALREADY_ACTIVE = "USER_ALREADY_ACTIVE"; // 422
 
+    // Space errors (SPACE_*)
+    public const string SPACE_NOT_FOUND = "SPACE_NOT_FOUND";                     // 404
+    public const string SPACE_MEMBER_NOT_FOUND = "SPACE_MEMBER_NOT_FOUND";       // 404
+    public const string SPACE_MEMBER_EXISTS = "SPACE_MEMBER_EXISTS";             // 409
+    public const string SPACE_SLUG_EXISTS = "SPACE_SLUG_EXISTS";                 // 409
+    public const string SPACE_ALREADY_ARCHIVED = "SPACE_ALREADY_ARCHIVED";       // 422
+    public const string SPACE_NOT_ARCHIVED = "SPACE_NOT_ARCHIVED";               // 422
+    public const string SPACE_IS_ARCHIVED = "SPACE_IS_ARCHIVED";                 // 422
+    public const string CANNOT_REMOVE_LAST_OWNER = "CANNOT_REMOVE_LAST_OWNER";   // 422
+    public const string CANNOT_CHANGE_OWNER_ROLE = "CANNOT_CHANGE_OWNER_ROLE";   // 422
+    public const string INVALID_SPACE_ROLE = "INVALID_SPACE_ROLE";               // 400
+    public const string INVALID_DEFAULT_ACCESS = "INVALID_DEFAULT_ACCESS";       // 400
+    public const string TRANSFER_REQUIRES_ADMIN = "TRANSFER_REQUIRES_ADMIN";     // 400
+
     // Server errors (SERVER_*)
     public const string SERVER_ERROR = "SERVER_ERROR";                     // 500
     public const string SERVER_UNAVAILABLE = "SERVER_UNAVAILABLE";         // 503
