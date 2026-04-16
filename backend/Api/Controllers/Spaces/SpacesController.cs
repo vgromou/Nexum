@@ -251,7 +251,7 @@ public partial class SpacesController : ControllerBase
         await _context.Entry(ownerMember).Reference(m => m.User).LoadAsync(cancellationToken);
         space.Members = new List<SpaceMember> { ownerMember };
 
-        var response = MapToSpaceResponse(space, userId, isOrgAdmin: false);
+        var response = MapToSpaceResponse(space, userId, isOrgAdmin: false, isOrgManager: false);
 
         return CreatedAtAction(
             actionName: nameof(GetSpace),
@@ -334,7 +334,7 @@ public partial class SpacesController : ControllerBase
         space.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync(cancellationToken);
 
-        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin));
+        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin, isOrgManager: false));
     }
 
     /// <summary>
@@ -366,15 +366,7 @@ public partial class SpacesController : ControllerBase
         var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
         var isOrgAdmin = orgRole == OrganizationRole.Admin;
 
-        // Only Owner or Org Admin can archive (Administrators cannot)
-        if (!isOrgAdmin)
-        {
-            var member = space.Members.FirstOrDefault(m => m.UserId == userId);
-            if (member?.Role != SpaceRole.Owner)
-            {
-                throw ForbiddenException.InsufficientPermissions("archive this space");
-            }
-        }
+        EnsureOwnerOrOrgAdmin(space, userId, isOrgAdmin, "archive this space");
 
         if (space.IsArchived)
         {
@@ -385,7 +377,7 @@ public partial class SpacesController : ControllerBase
         space.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync(cancellationToken);
 
-        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin));
+        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin, isOrgManager: false));
     }
 
     /// <summary>
@@ -427,7 +419,7 @@ public partial class SpacesController : ControllerBase
         space.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync(cancellationToken);
 
-        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin));
+        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin, isOrgManager: false));
     }
 
     #endregion
@@ -790,7 +782,7 @@ public partial class SpacesController : ControllerBase
         space.UpdatedAt = now;
         await _context.SaveChangesAsync(cancellationToken);
 
-        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin));
+        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin, isOrgManager: false));
     }
 
     #endregion
@@ -840,22 +832,34 @@ public partial class SpacesController : ControllerBase
     /// </summary>
     private static void EnsureSpaceManageAccess(Space space, Guid userId, bool isOrgAdmin)
     {
-        if (isOrgAdmin) return;
-
-        var member = space.Members.FirstOrDefault(m => m.UserId == userId);
-
         if (space.IsArchived)
         {
-            if (member?.Role != SpaceRole.Owner)
-            {
-                throw ForbiddenException.InsufficientPermissions("manage this archived space");
-            }
+            EnsureOwnerOrOrgAdmin(space, userId, isOrgAdmin, "manage this archived space");
             return;
         }
 
+        if (isOrgAdmin) return;
+
+        var member = space.Members.FirstOrDefault(m => m.UserId == userId);
         if (member == null || (member.Role != SpaceRole.Owner && member.Role != SpaceRole.Administrator))
         {
             throw ForbiddenException.InsufficientPermissions("manage this space");
+        }
+    }
+
+    /// <summary>
+    /// Ensure user is the space Owner or an Org Admin. Used for privileged
+    /// actions (archive, managing archived spaces) where Space Administrators
+    /// are explicitly excluded.
+    /// </summary>
+    private static void EnsureOwnerOrOrgAdmin(Space space, Guid userId, bool isOrgAdmin, string action)
+    {
+        if (isOrgAdmin) return;
+
+        var member = space.Members.FirstOrDefault(m => m.UserId == userId);
+        if (member?.Role != SpaceRole.Owner)
+        {
+            throw ForbiddenException.InsufficientPermissions(action);
         }
     }
 
@@ -897,7 +901,7 @@ public partial class SpacesController : ControllerBase
     /// <summary>
     /// Map Space entity to SpaceResponse DTO.
     /// </summary>
-    private static SpaceResponse MapToSpaceResponse(Space space, Guid userId, bool isOrgAdmin, bool isOrgManager = false)
+    private static SpaceResponse MapToSpaceResponse(Space space, Guid userId, bool isOrgAdmin, bool isOrgManager)
     {
         var owner = space.Members.FirstOrDefault(m => m.Role == SpaceRole.Owner);
         var (role, accessSource) = GetEffectiveRoleWithSource(space, userId, isOrgAdmin, isOrgManager);
