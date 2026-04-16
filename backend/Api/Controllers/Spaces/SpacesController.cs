@@ -60,7 +60,9 @@ public partial class SpacesController : ControllerBase
     {
         var userId = HttpContext.GetValidatedUserId();
         var orgId = HttpContext.GetValidatedOrganizationId();
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
+        var isOrgManager = orgRole == OrganizationRole.Manager;
 
         // Base query: all spaces in user's organization
         var spacesQuery = _context.Spaces
@@ -68,19 +70,30 @@ public partial class SpacesController : ControllerBase
             .Where(s => s.OrganizationId == orgId)
             .AsQueryable();
 
-        // Access control: regular users only see accessible spaces
-        if (!isOrgAdmin)
-        {
-            spacesQuery = spacesQuery.Where(s =>
-                s.DefaultAccess != SpaceRole.Private ||
-                s.Members.Any(m => m.UserId == userId));
-        }
-
-        // Filter: isArchived (null/false = only active, true = only archived)
+        // Filter + access control: different rules for archived vs active spaces
         if (query.IsArchived == true)
+        {
             spacesQuery = spacesQuery.Where(s => s.IsArchived);
+
+            // Archived access: Org Admin sees all, Org Manager sees all, others only where they are Owner
+            if (!isOrgAdmin && !isOrgManager)
+            {
+                spacesQuery = spacesQuery.Where(s =>
+                    s.Members.Any(m => m.UserId == userId && m.Role == SpaceRole.Owner));
+            }
+        }
         else
+        {
             spacesQuery = spacesQuery.Where(s => !s.IsArchived);
+
+            // Active access: regular users only see accessible spaces
+            if (!isOrgAdmin)
+            {
+                spacesQuery = spacesQuery.Where(s =>
+                    s.DefaultAccess != SpaceRole.Private ||
+                    s.Members.Any(m => m.UserId == userId));
+            }
+        }
 
         // Filter: search by name
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -112,7 +125,7 @@ public partial class SpacesController : ControllerBase
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
-        var items = spaces.Select(s => MapToSpaceResponse(s, userId, isOrgAdmin)).ToList();
+        var items = spaces.Select(s => MapToSpaceResponse(s, userId, isOrgAdmin, isOrgManager)).ToList();
 
         return Ok(PagedResponse.Create(items, query.Page, query.PageSize, totalItems));
     }
@@ -144,10 +157,12 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
-        EnsureSpaceAccess(space, userId, isOrgAdmin);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
+        var isOrgManager = orgRole == OrganizationRole.Manager;
+        EnsureSpaceAccess(space, userId, isOrgAdmin, isOrgManager);
 
-        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin));
+        return Ok(MapToSpaceResponse(space, userId, isOrgAdmin, isOrgManager));
     }
 
     /// <summary>
@@ -273,13 +288,9 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
         EnsureSpaceManageAccess(space, userId, isOrgAdmin);
-
-        if (space.IsArchived)
-        {
-            throw BusinessRuleException.NotAllowed("Cannot update an archived space");
-        }
 
         // Apply updates
         if (request.Name != null)
@@ -352,8 +363,18 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
-        EnsureSpaceManageAccess(space, userId, isOrgAdmin);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
+
+        // Only Owner or Org Admin can archive (Administrators cannot)
+        if (!isOrgAdmin)
+        {
+            var member = space.Members.FirstOrDefault(m => m.UserId == userId);
+            if (member?.Role != SpaceRole.Owner)
+            {
+                throw ForbiddenException.InsufficientPermissions("archive this space");
+            }
+        }
 
         if (space.IsArchived)
         {
@@ -393,7 +414,8 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
         EnsureSpaceManageAccess(space, userId, isOrgAdmin);
 
         if (!space.IsArchived)
@@ -440,8 +462,10 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
-        EnsureSpaceAccess(space, userId, isOrgAdmin);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
+        var isOrgManager = orgRole == OrganizationRole.Manager;
+        EnsureSpaceAccess(space, userId, isOrgAdmin, isOrgManager);
 
         var members = space.Members.AsEnumerable();
 
@@ -486,12 +510,8 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        if (space.IsArchived)
-        {
-            throw BusinessRuleException.NotAllowed("Cannot add members to an archived space");
-        }
-
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
         EnsureSpaceManageAccess(space, userId, isOrgAdmin);
 
         // Validate role
@@ -591,12 +611,8 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        if (space.IsArchived)
-        {
-            throw BusinessRuleException.NotAllowed("Cannot modify roles in an archived space");
-        }
-
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
         EnsureSpaceManageAccess(space, userId, isOrgAdmin);
 
         // Validate role
@@ -663,16 +679,13 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        if (space.IsArchived)
-        {
-            throw BusinessRuleException.NotAllowed("Cannot modify membership of an archived space");
-        }
-
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
         var isSelfRemoval = userId == targetUserId;
 
-        // Self-removal is allowed for non-owners
-        if (!isSelfRemoval)
+        // Archived spaces: only Owner + Org Admin can manage membership (no self-removal)
+        // Active spaces: self-removal is allowed for non-owners, others need manage access
+        if (space.IsArchived || !isSelfRemoval)
         {
             EnsureSpaceManageAccess(space, userId, isOrgAdmin);
         }
@@ -735,7 +748,8 @@ public partial class SpacesController : ControllerBase
             throw NotFoundException.ForResource("Space", spaceId);
         }
 
-        var isOrgAdmin = await IsOrgAdmin(userId, orgId, cancellationToken);
+        var orgRole = await GetOrgRole(userId, orgId, cancellationToken);
+        var isOrgAdmin = orgRole == OrganizationRole.Admin;
 
         // Only current Owner or Org Admin can transfer
         var currentOwner = space.Members.FirstOrDefault(m => m.Role == SpaceRole.Owner);
@@ -784,22 +798,32 @@ public partial class SpacesController : ControllerBase
     #region Private Helpers
 
     /// <summary>
-    /// Check if user is an organization admin.
+    /// Get user's organization role (Admin, Manager, User) or null if not a member.
     /// </summary>
-    private async Task<bool> IsOrgAdmin(Guid userId, Guid orgId, CancellationToken ct)
+    private async Task<OrganizationRole?> GetOrgRole(Guid userId, Guid orgId, CancellationToken ct)
     {
         return await _context.OrganizationMembers
-            .AnyAsync(m => m.UserId == userId &&
-                           m.OrganizationId == orgId &&
-                           m.OrganizationRole == OrganizationRole.Admin, ct);
+            .Where(m => m.UserId == userId && m.OrganizationId == orgId)
+            .Select(m => (OrganizationRole?)m.OrganizationRole)
+            .FirstOrDefaultAsync(ct);
     }
 
     /// <summary>
     /// Ensure user has at least viewer access to the space.
+    /// Archived spaces: only Owner, Org Admin, and Org Manager (read-only) have access.
     /// </summary>
-    private static void EnsureSpaceAccess(Space space, Guid userId, bool isOrgAdmin)
+    private static void EnsureSpaceAccess(Space space, Guid userId, bool isOrgAdmin, bool isOrgManager)
     {
         if (isOrgAdmin) return;
+
+        if (space.IsArchived)
+        {
+            var member = space.Members.FirstOrDefault(m => m.UserId == userId);
+            if (member?.Role == SpaceRole.Owner) return;
+            if (isOrgManager) return;
+
+            throw ForbiddenException.InsufficientPermissions("access this archived space");
+        }
 
         var hasMembership = space.Members.Any(m => m.UserId == userId);
         if (hasMembership) return;
@@ -812,12 +836,23 @@ public partial class SpacesController : ControllerBase
 
     /// <summary>
     /// Ensure user has Owner/Administrator access to manage the space.
+    /// Archived spaces: only Owner and Org Admin can manage (Administrators cannot).
     /// </summary>
     private static void EnsureSpaceManageAccess(Space space, Guid userId, bool isOrgAdmin)
     {
         if (isOrgAdmin) return;
 
         var member = space.Members.FirstOrDefault(m => m.UserId == userId);
+
+        if (space.IsArchived)
+        {
+            if (member?.Role != SpaceRole.Owner)
+            {
+                throw ForbiddenException.InsufficientPermissions("manage this archived space");
+            }
+            return;
+        }
+
         if (member == null || (member.Role != SpaceRole.Owner && member.Role != SpaceRole.Administrator))
         {
             throw ForbiddenException.InsufficientPermissions("manage this space");
@@ -844,7 +879,7 @@ public partial class SpacesController : ControllerBase
     /// Compute the user's effective role and access source in a space.
     /// </summary>
     private static (SpaceRole Role, AccessSource Source) GetEffectiveRoleWithSource(
-        Space space, Guid userId, bool isOrgAdmin)
+        Space space, Guid userId, bool isOrgAdmin, bool isOrgManager)
     {
         var member = space.Members.FirstOrDefault(m => m.UserId == userId);
         if (member != null)
@@ -853,16 +888,19 @@ public partial class SpacesController : ControllerBase
         if (isOrgAdmin)
             return (SpaceRole.Administrator, AccessSource.OrgAdmin);
 
+        if (space.IsArchived && isOrgManager)
+            return (SpaceRole.Viewer, AccessSource.OrgManager);
+
         return (space.DefaultAccess, AccessSource.DefaultAccess);
     }
 
     /// <summary>
     /// Map Space entity to SpaceResponse DTO.
     /// </summary>
-    private static SpaceResponse MapToSpaceResponse(Space space, Guid userId, bool isOrgAdmin)
+    private static SpaceResponse MapToSpaceResponse(Space space, Guid userId, bool isOrgAdmin, bool isOrgManager = false)
     {
         var owner = space.Members.FirstOrDefault(m => m.Role == SpaceRole.Owner);
-        var (role, accessSource) = GetEffectiveRoleWithSource(space, userId, isOrgAdmin);
+        var (role, accessSource) = GetEffectiveRoleWithSource(space, userId, isOrgAdmin, isOrgManager);
 
         return new SpaceResponse
         {

@@ -11,6 +11,9 @@ public enum AccessSource
     /// <summary>Organization admin privilege.</summary>
     OrgAdmin,
 
+    /// <summary>Organization manager privilege (read-only access to archived spaces).</summary>
+    OrgManager,
+
     /// <summary>Via the space's default access level.</summary>
     DefaultAccess
 }
