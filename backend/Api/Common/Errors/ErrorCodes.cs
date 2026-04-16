@@ -72,7 +72,6 @@ public static class ErrorCodes
     public const string SPACE_SLUG_EXISTS = "SPACE_SLUG_EXISTS";                 // 409
     public const string SPACE_ALREADY_ARCHIVED = "SPACE_ALREADY_ARCHIVED";       // 422
     public const string SPACE_NOT_ARCHIVED = "SPACE_NOT_ARCHIVED";               // 422
-    public const string SPACE_IS_ARCHIVED = "SPACE_IS_ARCHIVED";                 // 422
     public const string CANNOT_REMOVE_LAST_OWNER = "CANNOT_REMOVE_LAST_OWNER";   // 422
     public const string CANNOT_CHANGE_OWNER_ROLE = "CANNOT_CHANGE_OWNER_ROLE";   // 422
     public const string INVALID_SPACE_ROLE = "INVALID_SPACE_ROLE";               // 400

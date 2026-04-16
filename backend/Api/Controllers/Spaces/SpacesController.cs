@@ -530,7 +530,7 @@ public partial class SpacesController : ControllerBase
 
         if (targetUser == null)
         {
-            throw NotFoundException.ForResource("User", request.UserId);
+            throw NotFoundException.User(request.UserId);
         }
 
         var isOrgMember = await _context.OrganizationMembers
@@ -538,7 +538,7 @@ public partial class SpacesController : ControllerBase
 
         if (!isOrgMember)
         {
-            throw NotFoundException.ForResource("Organization member", request.UserId);
+            throw NotFoundException.Member(request.UserId, orgId);
         }
 
         // Check not already a member

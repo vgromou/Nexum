@@ -101,42 +101,42 @@ public class BusinessRuleException : ApiException
     }
 
     /// <summary>
-    /// Space is archived, cannot perform mutations.
-    /// </summary>
-    public static BusinessRuleException SpaceIsArchived()
-        => new(
-            "Cannot perform this operation on an archived space",
-            ErrorCodes.SPACE_IS_ARCHIVED);
-
-    /// <summary>
-    /// Space is already archived.
+    /// Creates an exception when space is already archived.
     /// </summary>
     public static BusinessRuleException SpaceAlreadyArchived()
-        => new(
+    {
+        return new BusinessRuleException(
             "Space is already archived",
             ErrorCodes.SPACE_ALREADY_ARCHIVED);
+    }
 
     /// <summary>
-    /// Space is not archived (cannot unarchive).
+    /// Creates an exception when space is not archived (cannot unarchive).
     /// </summary>
     public static BusinessRuleException SpaceNotArchived()
-        => new(
+    {
+        return new BusinessRuleException(
             "Space is not archived",
             ErrorCodes.SPACE_NOT_ARCHIVED);
+    }
 
     /// <summary>
-    /// Cannot remove or change the last Owner.
+    /// Creates an exception when trying to remove the last Owner of a space.
     /// </summary>
     public static BusinessRuleException CannotRemoveLastOwner()
-        => new(
+    {
+        return new BusinessRuleException(
             "Cannot remove the last Owner. Transfer ownership first",
             ErrorCodes.CANNOT_REMOVE_LAST_OWNER);
+    }
 
     /// <summary>
-    /// Cannot change Owner's role directly.
+    /// Creates an exception when trying to change the Owner's role directly.
     /// </summary>
     public static BusinessRuleException CannotChangeOwnerRole()
-        => new(
+    {
+        return new BusinessRuleException(
             "Cannot change Owner's role. Use transfer-ownership endpoint",
             ErrorCodes.CANNOT_CHANGE_OWNER_ROLE);
+    }
 }

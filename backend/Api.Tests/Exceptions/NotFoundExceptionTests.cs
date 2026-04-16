@@ -107,4 +107,44 @@ public class NotFoundExceptionTests
         // Assert
         exception.Message.Should().Contain(orgId.ToString());
     }
+
+    [Fact]
+    public void Space_WithoutId_ShouldCreateSpaceNotFound()
+    {
+        // Act
+        var exception = NotFoundException.Space();
+
+        // Assert
+        exception.Message.Should().Be("Space not found");
+        exception.ErrorCode.Should().Be(ErrorCodes.SPACE_NOT_FOUND);
+    }
+
+    [Fact]
+    public void Space_WithId_ShouldIncludeIdInMessage()
+    {
+        // Arrange
+        var spaceId = Guid.NewGuid();
+
+        // Act
+        var exception = NotFoundException.Space(spaceId);
+
+        // Assert
+        exception.Message.Should().Be($"Space with ID '{spaceId}' not found");
+        exception.ErrorCode.Should().Be(ErrorCodes.SPACE_NOT_FOUND);
+    }
+
+    [Fact]
+    public void SpaceMember_ShouldIncludeUserAndSpaceIdsInMessage()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var spaceId = Guid.NewGuid();
+
+        // Act
+        var exception = NotFoundException.SpaceMember(userId, spaceId);
+
+        // Assert
+        exception.Message.Should().Be($"User with ID '{userId}' is not a member of space '{spaceId}'");
+        exception.ErrorCode.Should().Be(ErrorCodes.SPACE_MEMBER_NOT_FOUND);
+    }
 }

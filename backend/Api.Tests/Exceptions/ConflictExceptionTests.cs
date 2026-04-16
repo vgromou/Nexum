@@ -136,6 +136,38 @@ public class ConflictExceptionTests
     }
 
     [Fact]
+    public void SpaceSlugExists_ShouldCreateCorrectException()
+    {
+        // Arrange
+        var slug = "engineering";
+
+        // Act
+        var exception = ConflictException.SpaceSlugExists(slug);
+
+        // Assert
+        exception.StatusCode.Should().Be(409);
+        exception.ErrorCode.Should().Be(ErrorCodes.SPACE_SLUG_EXISTS);
+        exception.Message.Should().Be($"A space with slug '{slug}' already exists in this organization");
+        exception.DisplayType.Should().Be(DisplayType.Toast);
+    }
+
+    [Fact]
+    public void SpaceMemberExists_ShouldIncludeUserIdInMessage()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+
+        // Act
+        var exception = ConflictException.SpaceMemberExists(userId);
+
+        // Assert
+        exception.StatusCode.Should().Be(409);
+        exception.ErrorCode.Should().Be(ErrorCodes.SPACE_MEMBER_EXISTS);
+        exception.Message.Should().Be($"User with ID '{userId}' is already a member of this space");
+        exception.DisplayType.Should().Be(DisplayType.Toast);
+    }
+
+    [Fact]
     public void ToApiError_ShouldConvertCorrectly()
     {
         // Arrange
