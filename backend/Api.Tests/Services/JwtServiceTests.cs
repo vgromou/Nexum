@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Api.Configuration;
 using Api.Models;
 using Api.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 

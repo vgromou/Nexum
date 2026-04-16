@@ -6,7 +6,7 @@ using Api.Configuration;
 using Api.Data;
 using Api.Models;
 using Api.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

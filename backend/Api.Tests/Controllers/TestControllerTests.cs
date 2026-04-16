@@ -4,7 +4,7 @@ using Api.Data;
 using Api.DTOs.Organizations;
 using Api.Exceptions;
 using Api.Models;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

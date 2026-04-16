@@ -5,7 +5,7 @@ using Api.DTOs.Common;
 using Api.DTOs.Organizations;
 using Api.Exceptions;
 using Api.Models;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

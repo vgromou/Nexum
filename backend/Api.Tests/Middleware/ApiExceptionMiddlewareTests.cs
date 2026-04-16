@@ -2,7 +2,7 @@ using System.Text.Json;
 using Api.Common.Errors;
 using Api.Exceptions;
 using Api.Middleware;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

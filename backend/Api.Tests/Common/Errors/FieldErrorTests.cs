@@ -1,5 +1,5 @@
 using Api.Common.Errors;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace Api.Tests.Common.Errors;
 

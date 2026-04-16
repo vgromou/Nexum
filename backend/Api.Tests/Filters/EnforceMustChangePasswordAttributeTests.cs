@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Api.Common.Errors;
 using Api.Exceptions;
 using Api.Filters;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;

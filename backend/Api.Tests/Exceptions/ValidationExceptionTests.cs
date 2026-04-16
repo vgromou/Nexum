@@ -1,6 +1,6 @@
 using Api.Common.Errors;
 using Api.Exceptions;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace Api.Tests.Exceptions;
 

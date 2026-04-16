@@ -1,5 +1,5 @@
 using Api.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace Api.Tests.Services;
 

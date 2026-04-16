@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Api.Common.Errors;
 using Api.Data;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

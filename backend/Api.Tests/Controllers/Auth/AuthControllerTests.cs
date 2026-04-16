@@ -8,7 +8,7 @@ using Api.DTOs.Auth;
 using Api.Exceptions;
 using Api.Models;
 using Api.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

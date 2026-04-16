@@ -6,7 +6,7 @@ using Api.DTOs.Users;
 using Api.Exceptions;
 using Api.Models;
 using Api.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +21,7 @@ public class UsersControllerTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly FakeTimeProvider _timeProvider;
     private readonly Mock<IAvatarUrlValidator> _avatarUrlValidatorMock;
+    private readonly Mock<IAvatarService> _avatarServiceMock;
     private readonly UsersController _controller;
     private readonly Guid _organizationId;
     private readonly Guid _userId;
@@ -80,7 +81,8 @@ public class UsersControllerTests : IDisposable
         _context.SaveChanges();
 
         _avatarUrlValidatorMock = new Mock<IAvatarUrlValidator>();
-        _controller = new UsersController(_context, _timeProvider, _avatarUrlValidatorMock.Object);
+        _avatarServiceMock = new Mock<IAvatarService>();
+        _controller = new UsersController(_context, _timeProvider, _avatarUrlValidatorMock.Object, _avatarServiceMock.Object);
     }
 
     public void Dispose()
