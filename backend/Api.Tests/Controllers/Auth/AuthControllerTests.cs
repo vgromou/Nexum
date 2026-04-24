@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Claims;
 using Api.Common.Constants;
+using Api.Common.Errors;
 using Api.Configuration;
 using Api.Controllers.Auth;
 using Api.Data;
@@ -1083,7 +1084,7 @@ public class AuthControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task ChangePassword_ShouldThrowUnauthorizedWhenCurrentPasswordIsIncorrect()
+    public async Task ChangePassword_ShouldThrowFieldValidationWhenCurrentPasswordIsIncorrect()
     {
         // Arrange
         SetupAuthenticatedUser(_userId);
@@ -1100,8 +1101,16 @@ public class AuthControllerTests : IDisposable
         var act = async () => await _controller.ChangePassword(request, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<UnauthorizedException>()
-            .WithMessage("Current password is incorrect");
+        // Frontend relies on Field-typed validation errors to render inline under
+        // the "Current password" input (see NX bug: no error shown on incorrect
+        // current password). A Toast/Page error would clear the form silently.
+        var assertion = await act.Should().ThrowAsync<ValidationException>();
+        var ex = assertion.Which;
+        ex.DisplayType.Should().Be(DisplayType.Field);
+        ex.StatusCode.Should().Be(400);
+        ex.FieldErrors.Should().ContainKey("currentPassword");
+        ex.FieldErrors["currentPassword"].Should().ContainSingle()
+            .Which.Code.Should().Be(ErrorCodes.AUTH_INVALID_CURRENT_PASSWORD);
     }
 
     [Fact]

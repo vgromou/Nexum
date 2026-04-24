@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Eye, EyeOff } from 'lucide-react';
 import Field from '../Field';
 import Button from '../Button/Button';
+import { useApiCall } from '../../hooks/useApiCall';
+import { changePassword as changePasswordApi } from '../../api/authApi';
 import './SecurityTab.css';
 
 /**
@@ -39,7 +41,7 @@ const formatRelativeTime = (dateString) => {
 const SecurityTab = ({
     user,
     onChangePassword,
-    isLoading = false,
+    changePassword = changePasswordApi,
 }) => {
     const [formData, setFormData] = useState({
         currentPassword: '',
@@ -52,10 +54,11 @@ const SecurityTab = ({
     });
 
     const [errors, setErrors] = useState({});
+    const currentPasswordRef = useRef(null);
+    const { call, loading } = useApiCall();
 
     const handleChange = (field) => (e) => {
         setFormData(prev => ({ ...prev, [field]: e.target.value }));
-        // Clear error when user types
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: null }));
         }
@@ -82,21 +85,36 @@ const SecurityTab = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (validateForm()) {
-            onChangePassword?.({
-                currentPassword: formData.currentPassword,
-                newPassword: formData.newPassword,
-            });
+        if (!validateForm()) return;
 
-            // Reset form on success
-            setFormData({
-                currentPassword: '',
-                newPassword: '',
-            });
+        setErrors({});
+
+        const { error, fieldErrors } = await call(
+            () => changePassword(formData.currentPassword, formData.newPassword),
+            { successMessage: 'Password changed successfully' }
+        );
+
+        // Always clear both password fields after submit, regardless of outcome.
+        // Keeps typed secrets out of the DOM and gives the user a clean slate.
+        setFormData({ currentPassword: '', newPassword: '' });
+
+        if (error) {
+            if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+                setErrors(fieldErrors);
+            } else if (error.code === 'AUTH_INVALID_CURRENT_PASSWORD') {
+                setErrors({ currentPassword: error.message || 'Current password is incorrect' });
+            }
+            currentPasswordRef.current?.focus();
+            return;
         }
+
+        onChangePassword?.({
+            currentPassword: formData.currentPassword,
+            newPassword: formData.newPassword,
+        });
     };
 
     const passwordLastChanged = formatRelativeTime(user?.passwordLastChanged);
@@ -114,9 +132,15 @@ const SecurityTab = ({
                     )}
                 </div>
 
-                <form className="security-tab__form" onSubmit={handleSubmit}>
+                <form
+                    className="security-tab__form"
+                    onSubmit={handleSubmit}
+                    noValidate
+                    autoComplete="off"
+                >
                     <div className="security-tab__grid">
                         <Field
+                            ref={currentPasswordRef}
                             label="Current Password"
                             name="currentPassword"
                             type={showPasswords.current ? 'text' : 'password'}
@@ -127,7 +151,7 @@ const SecurityTab = ({
                             rightIcon={showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
                             onRightIconClick={() => toggleShowPassword('current')}
                             autoComplete="current-password"
-                            disabled={isLoading}
+                            disabled={loading}
                         />
                         <Field
                             label="New Password"
@@ -140,7 +164,7 @@ const SecurityTab = ({
                             rightIcon={showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
                             onRightIconClick={() => toggleShowPassword('new')}
                             autoComplete="new-password"
-                            disabled={isLoading}
+                            disabled={loading}
                         />
                     </div>
 
@@ -148,8 +172,8 @@ const SecurityTab = ({
                         <Button
                             type="submit"
                             variant="outline"
-                            disabled={isLoading}
-                            {...(isLoading && { loading: true })}
+                            disabled={loading}
+                            {...(loading && { loading: true })}
                         >
                             Change Password
                         </Button>
@@ -170,10 +194,10 @@ SecurityTab.propTypes = {
     user: PropTypes.shape({
         passwordLastChanged: PropTypes.string,
     }),
-    /** Callback when password change is submitted */
+    /** Callback fired after a successful password change */
     onChangePassword: PropTypes.func,
-    /** Loading state for password change */
-    isLoading: PropTypes.bool,
+    /** Override for the password-change API call (used in tests/stories) */
+    changePassword: PropTypes.func,
 };
 
 export default SecurityTab;

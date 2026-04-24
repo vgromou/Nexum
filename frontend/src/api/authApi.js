@@ -58,16 +58,21 @@ export const getMe = async () => {
 };
 
 /**
- * Change password
+ * Change password. Backend rotates tokens: we persist the new access token
+ * so the current session keeps working (old refresh tokens are revoked server-side).
  * @param {string} currentPassword - Current password
  * @param {string} newPassword - New password
- * @returns {Promise<void>}
+ * @returns {Promise<import('axios').AxiosResponse>}
  */
 export const changePassword = async (currentPassword, newPassword) => {
-  await client.post('/api/auth/change-password', {
+  const response = await client.post('/api/auth/change-password', {
     currentPassword,
     newPassword,
   });
+  if (response?.data?.accessToken) {
+    setAccessToken(response.data.accessToken);
+  }
+  return response;
 };
 
 export default {

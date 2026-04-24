@@ -99,6 +99,19 @@ export const parseError = (error) => {
   // Custom API error format: { error: { code, message, displayType, details } }
   if (data?.error) {
     const apiError = data.error;
+    const fields = apiError.details?.fields;
+    let fieldErrors = null;
+    if (fields && typeof fields === 'object') {
+      fieldErrors = {};
+      for (const [field, errors] of Object.entries(fields)) {
+        if (Array.isArray(errors) && errors.length > 0) {
+          const first = errors[0];
+          fieldErrors[field] = typeof first === 'string' ? first : first?.message;
+        } else if (typeof errors === 'string') {
+          fieldErrors[field] = errors;
+        }
+      }
+    }
     return {
       code: apiError.code || 'UNKNOWN_ERROR',
       message:
@@ -109,7 +122,7 @@ export const parseError = (error) => {
       status,
       traceId: apiError.traceId || null,
       details: apiError.details || null,
-      fieldErrors: null,
+      fieldErrors,
     };
   }
 

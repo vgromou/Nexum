@@ -1,7 +1,10 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import UserSettings from './UserSettings';
+import { ToastProvider } from '../Toast';
+
+const render = (ui) => rtlRender(<ToastProvider>{ui}</ToastProvider>);
 
 const mockUser = {
     firstName: 'Viktor',

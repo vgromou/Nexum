@@ -15,6 +15,7 @@ public static class ErrorCodes
     public const string AUTH_SESSION_EXPIRED = "AUTH_SESSION_EXPIRED";
     public const string AUTH_ACCOUNT_LOCKED = "AUTH_ACCOUNT_LOCKED";
     public const string AUTH_ACCOUNT_DISABLED = "AUTH_ACCOUNT_DISABLED";
+    public const string AUTH_INVALID_CURRENT_PASSWORD = "AUTH_INVALID_CURRENT_PASSWORD";
 
     // Authorization errors (ACCESS_*) - Status 403
     public const string ACCESS_DENIED = "ACCESS_DENIED";

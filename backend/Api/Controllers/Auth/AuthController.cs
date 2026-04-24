@@ -577,8 +577,8 @@ public class AuthController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>New authentication tokens.</returns>
     /// <response code="200">Password changed successfully.</response>
-    /// <response code="400">Invalid request body or new password requirements not met.</response>
-    /// <response code="401">User is not authenticated or current password is incorrect.</response>
+    /// <response code="400">Invalid request body, new password requirements not met, or current password is incorrect.</response>
+    /// <response code="401">User is not authenticated.</response>
     [HttpPost("change-password")]
     [Authorize]
     [ProducesResponseType(typeof(ChangePasswordResponse), StatusCodes.Status200OK)]
@@ -613,7 +613,10 @@ public class AuthController : ControllerBase
         if (!_passwordService.VerifyPassword(request.CurrentPassword, user.PasswordHash))
         {
             _logger.LogWarning("Password change failed for user {UserId}: incorrect current password", userId);
-            throw new UnauthorizedException("Current password is incorrect", "INVALID_PASSWORD");
+            throw ValidationException.ForField(
+                "currentPassword",
+                ErrorCodes.AUTH_INVALID_CURRENT_PASSWORD,
+                "Current password is incorrect");
         }
 
         // Get user's organization membership (MVP: single organization)
