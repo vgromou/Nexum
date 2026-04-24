@@ -104,17 +104,12 @@ const SecurityTab = ({
         if (error) {
             if (fieldErrors && Object.keys(fieldErrors).length > 0) {
                 setErrors(fieldErrors);
-            } else if (error.code === 'AUTH_INVALID_CURRENT_PASSWORD') {
-                setErrors({ currentPassword: error.message || 'Current password is incorrect' });
             }
             currentPasswordRef.current?.focus();
             return;
         }
 
-        onChangePassword?.({
-            currentPassword: formData.currentPassword,
-            newPassword: formData.newPassword,
-        });
+        onChangePassword?.();
     };
 
     const passwordLastChanged = formatRelativeTime(user?.passwordLastChanged);
@@ -173,7 +168,6 @@ const SecurityTab = ({
                             type="submit"
                             variant="outline"
                             disabled={loading}
-                            {...(loading && { loading: true })}
                         >
                             Change Password
                         </Button>

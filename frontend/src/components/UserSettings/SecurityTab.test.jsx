@@ -84,11 +84,9 @@ describe('SecurityTab', () => {
         fireEvent.click(screen.getByRole('button', { name: /change password/i }));
 
         await waitFor(() => {
-            expect(onChangePassword).toHaveBeenCalledWith({
-                currentPassword: 'correct',
-                newPassword: 'ValidPass123',
-            });
+            expect(onChangePassword).toHaveBeenCalledTimes(1);
         });
+        expect(onChangePassword).toHaveBeenCalledWith();
 
         expect(screen.getByLabelText('Current Password')).toHaveValue('');
         expect(screen.getByLabelText('New Password')).toHaveValue('');

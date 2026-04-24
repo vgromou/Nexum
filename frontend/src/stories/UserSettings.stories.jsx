@@ -52,8 +52,8 @@ export const InteractiveDemo = {
                 alert('Profile saved!\n\n' + JSON.stringify(data, null, 2));
             };
 
-            const handleChangePassword = (data) => {
-                console.log('Change password:', data);
+            const handleChangePassword = () => {
+                console.log('Password changed');
                 alert('Password changed!');
             };
 
@@ -123,7 +123,7 @@ export const SecurityTab = {
                     isOpen={isOpen}
                     onClose={() => setIsOpen(false)}
                     user={mockUser}
-                    onChangePassword={(data) => console.log('Change password:', data)}
+                    onChangePassword={() => console.log('Password changed')}
                 />
             );
         };
